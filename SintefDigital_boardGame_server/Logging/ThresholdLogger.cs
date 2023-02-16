@@ -41,9 +41,16 @@ public class ThresholdLogger : ILogger
 
         var filePath = CreateFilePath();
 
-        StreamWriter writer = new StreamWriter(filePath, true);
-        writer.WriteLine(CreateLoggingMessage(severityLevel, logData));
-        writer.Dispose();
+        try
+        {
+            StreamWriter writer = new StreamWriter(filePath, true);
+            writer.WriteLine(CreateLoggingMessage(severityLevel, logData));
+            writer.Dispose();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(CreateLoggingMessage(LogLevel.Error, "Failed to store data to file. Data" + CreateLoggingMessage(severityLevel, logData)));
+        }
     }
 
     private string CreateFilePath()
