@@ -1,25 +1,22 @@
-using SintefDigital_boardGame_server.Communication;
-
 namespace SintefDigital_boardGame_server.Core;
 
 public class GameController
 {
-    private List<GameState> games;
-    private IMultiplayerGameController viewController;
-    private IMultiplayerPlayerInputController inputController;
-    public GameController()
+    private readonly List<GameState> _games;
+    private readonly IMultiplayerGameController _viewController;
+    private readonly IMultiplayerPlayerInputController _inputController;
+    public GameController(IMultiplayerGameController viewController, IMultiplayerPlayerInputController inputController)
     {
-        this.games = new List<GameState>();
-        var multiplayerController = new InternetMultiplayerController();
-        this.viewController = multiplayerController;
-        this.inputController = multiplayerController;
+        this._games = new List<GameState>();
+        this._viewController = viewController;
+        this._inputController = inputController;
     }
     
     public void Run()
     {
         while (true)
         {
-            var newGames = inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
+            var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
             foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
 
             HandlePlayerInputs();
@@ -32,8 +29,8 @@ public class GameController
     {
         var newGame = CreateNewGame(lobbyNameAndPlayer);
         AssignGameToPlayer(lobbyNameAndPlayer.Item1, newGame);
-        games.Add(newGame);
-        viewController.SendNewGameStateToPlayers(newGame);
+        _games.Add(newGame);
+        _viewController.SendNewGameStateToPlayers(newGame);
     }
     
     private GameState CreateNewGame(Tuple<Player, string> lobbyNameAndPlayer)
@@ -60,7 +57,7 @@ public class GameController
 
     private bool IsGameIDUnique(int ID)
     {
-        foreach (var game in games)
+        foreach (var game in _games)
         {
             if (game.ID == ID)
             {
@@ -77,16 +74,16 @@ public class GameController
 
     private void HandlePlayerInputs()
     {
-        foreach (var game in games)
+        foreach (var game in _games)
         {
-            var playerInputs = inputController.FetchPlayerInputs(game.ID);
+            var playerInputs = _inputController.FetchPlayerInputs(game.ID);
             foreach (var input in playerInputs) HandleInput(input);
         }
     }
 
     private void HandleInput(Input input)
     {
-        //TODO check if input is legal based on the game state once applicable
+        // TODO check if input is legal based on the game state once applicable
         switch (input.Type)
         {
             case PlayerInputType.Movement:
