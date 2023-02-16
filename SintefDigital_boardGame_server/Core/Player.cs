@@ -1,9 +1,9 @@
 namespace SintefDigital_boardGame_server.Core;
 
-public struct GameState
+public struct Player
 {
     public int ID;
     public string Name;
-    public List<Player> Players;
-    
+    public GameState ConnectedGame;
+    public Node Position;
 }

@@ -1,6 +1,6 @@
 namespace SintefDigital_boardGame_server.Core;
 
-public struct PlayerInput
+public interface IRuleChecker
 {
     
 }
