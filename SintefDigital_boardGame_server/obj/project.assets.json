@@ -8,24 +8,33 @@
     "net6.0": []
   },
   "packageFolders": {
-    "/home/tim/.nuget/packages/": {}
+    "C:\\Users\\Tim Matras\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {},
+    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/tim/Dokumenter/IT2901/SintefDigital_boardGame_server/SintefDigital_boardGame_server/SintefDigital_boardGame_server.csproj",
+      "projectUniqueName": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\SintefDigital_boardGame_server\\SintefDigital_boardGame_server.csproj",
       "projectName": "SintefDigital_boardGame_server",
-      "projectPath": "/home/tim/Dokumenter/IT2901/SintefDigital_boardGame_server/SintefDigital_boardGame_server/SintefDigital_boardGame_server.csproj",
-      "packagesPath": "/home/tim/.nuget/packages/",
-      "outputPath": "/home/tim/Dokumenter/IT2901/SintefDigital_boardGame_server/SintefDigital_boardGame_server/obj/",
+      "projectPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\SintefDigital_boardGame_server\\SintefDigital_boardGame_server.csproj",
+      "packagesPath": "C:\\Users\\Tim Matras\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\SintefDigital_boardGame_server\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
+        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+      ],
       "configFilePaths": [
-        "/home/tim/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\Tim Matras\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net6.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -59,7 +68,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/home/tim/.dotnet/sdk/6.0.405/RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.102\\RuntimeIdentifierGraph.json"
       }
     }
   }
