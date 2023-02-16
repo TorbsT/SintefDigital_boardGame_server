@@ -24,7 +24,7 @@ public class GameController
 
             HandlePlayerInputs();
 
-            break;
+            break; // TODO: Remove this once the server should actually run forever
         }
     }
 
@@ -100,7 +100,7 @@ public class GameController
     private void HandleMovement(Player player, Node toNode)
     {
         var game = player.ConnectedGame;
-        // TODO: Check here if the movement is valid
+        // TODO: Check here if the movement is valid once applicable
         player.Position = toNode;
     }
 }
