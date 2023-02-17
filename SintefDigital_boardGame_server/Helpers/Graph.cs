@@ -17,7 +17,7 @@ namespace SintefDigital_boardGame_server.Helpers
         private Edgees Edges { get; set; } = new();
         private Edgees AntiEdges { get; set; } = new();  // improves time complexity of CopyEdgesTo
         private Dictionary<(int, int), int> Weights { get; set; } = new();
-        private Dictionary<int, Dictionary<string, object>> NodeSatellites { get; set; } = new();
+        private Dictionary<int, Dictionary<string, object>> NodeInfo { get; set; } = new();
         private HashSet<int> Nodes { get; set; } = new();
 
         /// <summary>
@@ -26,16 +26,16 @@ namespace SintefDigital_boardGame_server.Helpers
         /// </summary>
         /// <param name="inputGraph"></param>
         /// <returns></returns>
-        public static Graph MakeFromSatellites(Graph inputGraph)
+        public static Graph MakeFromNodeInfo(Graph inputGraph)
         {
             Graph result = new();
             for (int i = 0; i < inputGraph.NodeCount; i++)
             {
-                if (!inputGraph.NodeSatellites.ContainsKey(i)) continue;
-                foreach (string key in inputGraph.NodeSatellites[i].Keys)
+                if (!inputGraph.NodeInfo.ContainsKey(i)) continue;
+                foreach (string key in inputGraph.NodeInfo[i].Keys)
                 {
-                    object value = inputGraph.NodeSatellites[i][key];
-                    result.SetSatellite(i, key, value);
+                    object value = inputGraph.NodeInfo[i][key];
+                    result.SetNodeInfo(i, key, value);
                 }
             }
             return result;
@@ -46,7 +46,7 @@ namespace SintefDigital_boardGame_server.Helpers
         /// A node is defined either though edges or satellite data.
         /// </summary>
         /// <returns>A collection of node IDs</returns>
-        public ICollection<int> CopyNodes()
+        public ICollection<int> CopyNodeIds()
         {
             HashSet<int> result = new();
             foreach (int id in Nodes)
@@ -79,12 +79,12 @@ namespace SintefDigital_boardGame_server.Helpers
         /// <returns>
         /// A collection of node ids, empty if node is nonexistent
         /// </returns>
-        public ICollection<int> CopyEdgesFrom(int from)
+        public ICollection<int> CopyEdgesFrom(int nodeId)
         {
-            if (!Edges.HasNode(from)) return new HashSet<int>();
+            if (!Edges.HasNode(nodeId)) return new HashSet<int>();
 
             HashSet<int> result = new();
-            foreach (int i in Edges.GetNodeEdges(from))
+            foreach (int i in Edges.GetNodeEdges(nodeId))
             {
                 result.Add(i);
             }
@@ -97,12 +97,12 @@ namespace SintefDigital_boardGame_server.Helpers
         /// <returns>
         /// A collection of node ids, empty if node is nonexistent
         /// </returns>
-        public ICollection<int> CopyEdgesTo(int to)
+        public ICollection<int> CopyEdgesTo(int nodeId)
         {
-            if (!AntiEdges.HasNode(to)) return new HashSet<int>();
+            if (!AntiEdges.HasNode(nodeId)) return new HashSet<int>();
 
             HashSet<int> result = new();
-            foreach (int i in AntiEdges.GetNodeEdges(to))
+            foreach (int i in AntiEdges.GetNodeEdges(nodeId))
             {
                 result.Add(i);
             }
@@ -113,110 +113,110 @@ namespace SintefDigital_boardGame_server.Helpers
         /// Gets the quantity of nodes directly accessible from node
         /// </summary>
         /// <returns>An integer, 0 if node is nonexistent</returns>
-        public int GetEdgesCountFrom(int from)
+        public int GetEdgesCountFrom(int nodeId)
         {
-            if (!Edges.HasNode(from)) return 0;
-            return Edges.GetNodeEdges(from).Count;
+            if (!Edges.HasNode(nodeId)) return 0;
+            return Edges.GetNodeEdges(nodeId).Count;
         }
         /// <summary>
         /// Gets the quantity of nodes with direct access to node
         /// </summary>
         /// <returns>An integer, 0 if node is nonexistent</returns>
-        public int GetEdgesCountTo(int to)
+        public int GetEdgesCountTo(int nodeId)
         {
-            if (!AntiEdges.HasNode(to)) return 0;
-            return AntiEdges.GetNodeEdges(to).Count;
+            if (!AntiEdges.HasNode(nodeId)) return 0;
+            return AntiEdges.GetNodeEdges(nodeId).Count;
         }
         /// <summary>
         /// Adds a one-directional edge to this graph.
         /// Can be weighted.
         /// Replaces an existing edge if necessary.
         /// </summary>
-        /// <param name="from">Edge start node id.</param>
-        /// <param name="to">Edge end node id.</param>
+        /// <param name="fromNodeId">Edge start node id.</param>
+        /// <param name="toNodeId">Edge end node id.</param>
         /// <param name="weight">Edge weight. Ignore this parameter in unweighted graphs.</param>
-        public void AddEdge(int from, int to, int weight = 1)
+        public void BuildEdge(int fromNodeId, int toNodeId, int weight = 1)
         {
-            Edges.Connect(from, to);
-            AntiEdges.Connect(to, from);
-            SetWeight(from, to, weight);
-            if (!Nodes.Contains(from)) Nodes.Add(from);
-            if (!Nodes.Contains(to)) Nodes.Add(to);
+            Edges.Connect(fromNodeId, toNodeId);
+            AntiEdges.Connect(toNodeId, fromNodeId);
+            SetWeight(fromNodeId, toNodeId, weight);
+            if (!Nodes.Contains(fromNodeId)) Nodes.Add(fromNodeId);
+            if (!Nodes.Contains(toNodeId)) Nodes.Add(toNodeId);
         }
         /// <summary>
         /// Removes the given edge from this graph.
         /// Only removes in the given direction.
         /// If the given edge is nonexistent, nothing happens.
         /// </summary>
-        /// <param name="from">Edge start node id.</param>
-        /// <param name="to">Edge end node id.</param>
-        public void RemoveEdge(int from, int to)
+        /// <param name="fromNodeId">Edge start node id.</param>
+        /// <param name="toNodeId">Edge end node id.</param>
+        public void RemoveEdge(int fromNodeId, int toNodeId)
         {
-            Edges.Disconnect(from, to);
-            AntiEdges.Disconnect(to, from);
+            Edges.Disconnect(fromNodeId, toNodeId);
+            AntiEdges.Disconnect(toNodeId, fromNodeId);
         }
         /// <summary>
         /// Gets satellite info of a node.
         /// Can get from nonexistent nodes.
         /// </summary>
-        /// <param name="id">The node id.</param>
-        /// <param name="satelliteName">Specifies where the info is stored.</param>
+        /// <param name="nodeId">The node id.</param>
+        /// <param name="infoKey">Specifies where the info is stored.</param>
         /// <returns>
         /// An object, null if there is no satellite info
         /// </returns>
-        public object GetSatellite(int id, string satelliteName)
+        public object GetNodeInfo(int nodeId, string infoKey)
         {
-            if (!NodeSatellites.ContainsKey(id)) return null;
-            if (!NodeSatellites[id].ContainsKey(satelliteName)) return null;
-            return NodeSatellites[id][satelliteName];
+            if (!NodeInfo.ContainsKey(nodeId)) return null;
+            if (!NodeInfo[nodeId].ContainsKey(infoKey)) return null;
+            return NodeInfo[nodeId][infoKey];
         }
         /// <summary>
         /// Stores satellite info on a node.
         /// Can store on nonexistent nodes.
         /// Overwrites previous info at the given satellite
         /// </summary>
-        /// <param name="id">The node id.</param>
-        /// <param name="satelliteName">Specifies where the info should be stored.</param>
-        /// <param name="value">Specifies the object to store</param>
-        public void SetSatellite(int id, string satelliteName, object value)
+        /// <param name="nodeId">The node id.</param>
+        /// <param name="infoKey">Specifies where the info should be stored.</param>
+        /// <param name="infoValue">Specifies the object to store</param>
+        public void SetNodeInfo(int nodeId, string infoKey, object infoValue)
         {
-            if (!NodeSatellites.ContainsKey(id)) NodeSatellites[id] = new();
-            if (!Nodes.Contains(id)) Nodes.Add(id);
-            NodeSatellites[id][satelliteName] = value;
+            if (!NodeInfo.ContainsKey(nodeId)) NodeInfo[nodeId] = new();
+            if (!Nodes.Contains(nodeId)) Nodes.Add(nodeId);
+            NodeInfo[nodeId][infoKey] = infoValue;
         }
         /// <summary>
         /// Sets the weight of an edge.
         /// Can set the weight of a nonexistent edge.
         /// </summary>
-        /// <param name="from"></param>
-        /// <param name="to"></param>
+        /// <param name="fromNodeId"></param>
+        /// <param name="toNodeId"></param>
         /// <param name="weight"></param>
-        public void SetWeight(int from, int to, int weight)
+        public void SetWeight(int fromNodeId, int toNodeId, int weight)
         {
-            Weights[(from, to)] = weight;
+            Weights[(fromNodeId, toNodeId)] = weight;
         }
         /// <summary>
         /// Gets the weight of an edge.
         /// </summary>
-        /// <param name="from">Edge start node id.</param>
-        /// <param name="to">Edge end node id.</param>
+        /// <param name="fromNodeId">Edge start node id.</param>
+        /// <param name="toNodeId">Edge end node id.</param>
         /// <returns>An integer, null if the edge weight is nonexistent.</returns>
-        public int? GetWeight(int from, int to)
+        public int? GetWeight(int fromNodeId, int toNodeId)
         {
-            if (!Weights.ContainsKey((from, to))) return null;
-            return Weights[(from, to)];
+            if (!Weights.ContainsKey((fromNodeId, toNodeId))) return null;
+            return Weights[(fromNodeId, toNodeId)];
         }
         /// <summary>
         /// Gets the quantity of edges between two nodes.
         /// </summary>
-        /// <param name="a">Node id A.</param>
-        /// <param name="b">Node id B.</param>
+        /// <param name="nodeIdA">Node id A.</param>
+        /// <param name="nodeIdB">Node id B.</param>
         /// <returns>0, 1 or 2.</returns>
-        public int GetEdgeQuantityBetween(int a, int b)
+        public int GetEdgeQuantityBetween(int nodeIdA, int nodeIdB)
         {
             int quantity = 0;
-            if (Edges.HasEdge(a, b)) quantity++;
-            if (Edges.HasEdge(b, a)) quantity++;
+            if (Edges.HasEdge(nodeIdA, nodeIdB)) quantity++;
+            if (Edges.HasEdge(nodeIdB, nodeIdA)) quantity++;
             return quantity;
         }
 
