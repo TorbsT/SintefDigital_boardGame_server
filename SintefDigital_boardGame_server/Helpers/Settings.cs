@@ -2,6 +2,6 @@
 {
     public static class Settings
     {
-        public static readonly string CostSatellite = "cost";
+        public static readonly string CostInfoKey = "cost";
     }
 }

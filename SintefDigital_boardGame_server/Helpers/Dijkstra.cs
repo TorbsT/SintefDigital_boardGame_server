@@ -17,18 +17,18 @@ namespace SintefDigital_boardGame_server.Helpers
             this.inputGraph = inputGraph;
             this.startId = startId;
             this.maxDistance = maxDistance;
-            ResultTree = Graph.MakeFromSatellites(inputGraph);
+            ResultTree = Graph.MakeFromNodeInfo(inputGraph);
         }
         public IEnumerable Solve()
         {
             Queue<int> queue = new();  // ids
             queue.Enqueue(startId);
-            ResultTree.SetSatellite(startId, Settings.CostSatellite, 0);
+            ResultTree.SetNodeInfo(startId, Settings.CostInfoKey, 0);
 
             while (queue.Count > 0)
             {
                 int current = queue.Dequeue();
-                int? ch = (int?)ResultTree.GetSatellite(current, Settings.CostSatellite);
+                int? ch = (int?)ResultTree.GetNodeInfo(current, Settings.CostInfoKey);
                 int costHere = ch == null ? 0 : ch.Value;
                 foreach (int next in inputGraph.CopyEdgesFrom(current))
                 {
@@ -36,7 +36,7 @@ namespace SintefDigital_boardGame_server.Helpers
                     int? currentNextCost = inputGraph.GetWeight(current, next);
                     int hypoCost = costHere + (int)currentNextCost;
                     if (hypoCost > maxDistance) continue;
-                    int? prevCost = (int?)ResultTree.GetSatellite(next, Settings.CostSatellite);
+                    int? prevCost = (int?)ResultTree.GetNodeInfo(next, Settings.CostInfoKey);
                     if (prevCost == null || hypoCost < prevCost)
                     {
                         if (prevCost != null)
@@ -47,8 +47,8 @@ namespace SintefDigital_boardGame_server.Helpers
                             }
                         }
 
-                        ResultTree.AddEdge(current, next);
-                        ResultTree.SetSatellite(next, Settings.CostSatellite, hypoCost);
+                        ResultTree.BuildEdge(current, next);
+                        ResultTree.SetNodeInfo(next, Settings.CostInfoKey, hypoCost);
                         queue.Enqueue(next);
                     }
                 }
