@@ -1,4 +1,4 @@
-﻿namespace SintefDigital_boardGame_server.Helpers
+namespace SintefDigital_boardGame_server.Helpers
 {
     public static class Settings
     {
