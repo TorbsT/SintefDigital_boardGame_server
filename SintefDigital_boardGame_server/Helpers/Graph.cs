@@ -1,4 +1,4 @@
-﻿// The following piece of code is copied from TorbuTils
+// The following piece of code is copied from TorbuTils
 // https://github.com/TorbsT/Torbutils/blob/main/Packages/com.torbst.torbutils/Runtime/Giraphe/Graph.cs
 
 namespace SintefDigital_boardGame_server.Helpers
@@ -164,7 +164,7 @@ namespace SintefDigital_boardGame_server.Helpers
         /// <returns>
         /// An object, null if there is no satellite info
         /// </returns>
-        public object GetNodeInfo(int nodeId, string infoKey)
+        public object? GetNodeInfo(int nodeId, string infoKey)
         {
             if (!NodeInfo.ContainsKey(nodeId)) return null;
             if (!NodeInfo[nodeId].ContainsKey(infoKey)) return null;
