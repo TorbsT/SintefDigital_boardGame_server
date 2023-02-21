@@ -4,7 +4,7 @@ using SintefDigital_boardGame_server.Core;
 
 namespace SintefDigital_boardGame_server.Communication;
 
-public class InternetMultiplayerController : IMultiplayerGameController, IMultiplayerPlayerInputController
+public class InternetMultiplayerController : IMultiplayerViewController, IMultiplayerPlayerInputController
 {
     public List<Tuple<Player, string>> FetchRequestedGameLobbiesWithLobbyNameAndPlayer()
     {

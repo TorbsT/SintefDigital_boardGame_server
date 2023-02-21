@@ -1,6 +1,6 @@
 ﻿namespace SintefDigital_boardGame_server.Core;
 
-public class RwLock<T> : IDisposable
+public class RwLock<T>
 {
     private readonly ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
     private T _obj;
@@ -20,10 +20,5 @@ public class RwLock<T> : IDisposable
     {
         _lock.ExitReadLock();
     }
-
-
-    public void Dispose()
-    {
-        _lock.Dispose();
-    }
+    
 }

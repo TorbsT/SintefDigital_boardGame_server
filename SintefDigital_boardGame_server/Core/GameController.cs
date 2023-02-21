@@ -10,13 +10,13 @@ namespace SintefDigital_boardGame_server.Core;
 public class GameController
 {
     private readonly List<GameState> _games;
-    private readonly RwLock<IMultiplayerGameController> _viewController;
+    private readonly RwLock<IMultiplayerViewController> _viewController;
     private readonly RwLock<IMultiplayerPlayerInputController> _inputController;
     private readonly ILogger _logger;
     private Thread _mainLoopThread;
     private RwLock<bool> _stopMainThread = new RwLock<bool>(false);
 
-    public GameController(ILogger logger, RwLock<IMultiplayerGameController> viewController, RwLock<IMultiplayerPlayerInputController> inputController)
+    public GameController(ILogger logger, RwLock<IMultiplayerViewController> viewController, RwLock<IMultiplayerPlayerInputController> inputController)
     {
         this._games = new List<GameState>();
         this._viewController = viewController;

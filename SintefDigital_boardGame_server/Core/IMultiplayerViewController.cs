@@ -1,6 +1,6 @@
 namespace SintefDigital_boardGame_server.Core;
 
-public interface IMultiplayerGameController
+public interface IMultiplayerViewController
 {
     void SendNewGameStateToPlayers(GameState state);
 }
