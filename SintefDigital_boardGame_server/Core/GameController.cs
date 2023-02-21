@@ -22,10 +22,10 @@ public class GameController
     
     public void Run()
     {
-        _logger.Log(LogLevel.Info, "Running the game controller");
+        _logger.Log(LogLevel.Info, "Running the game controller.");
         while (true)
         {
-            _logger.Log(LogLevel.Debug, "Getting the new game requests");
+            _logger.Log(LogLevel.Debug, "Getting the new game requests.");
             try
             {
                 var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
@@ -33,23 +33,23 @@ public class GameController
             }
             catch (Exception e)
             {
-                _logger.Log(LogLevel.Error, $"Failed to get and create new game(s). Error {e}");
+                _logger.Log(LogLevel.Error, $"Failed to get and create new game(s). Error {e}.");
             }
-            _logger.Log(LogLevel.Debug, "Done getting the new game requests");
+            _logger.Log(LogLevel.Debug, "Done getting the new game requests.");
             
-            _logger.Log(LogLevel.Debug, "Getting player inputs and handling them");
+            _logger.Log(LogLevel.Debug, "Getting player inputs and handling them.");
             try
             {
                 HandlePlayerInputs();
             }
             catch (Exception e)
             {
-                _logger.Log(LogLevel.Error, $"Failed to handle player inputs {e}");
+                _logger.Log(LogLevel.Error, $"Failed to handle player inputs {e}.");
             }
-            _logger.Log(LogLevel.Debug, "Done handling player inputs");
+            _logger.Log(LogLevel.Debug, "Done handling player inputs.");
             
             { // TODO: Remove this once the server should actually run forever
-                _logger.Log(LogLevel.Warning, "Stopping the game controller so that it doesn't run forever");
+                _logger.Log(LogLevel.Warning, "Stopping the game controller so that it doesn't run forever.");
                 break;
             }
         }
@@ -65,14 +65,14 @@ public class GameController
     
     private GameState CreateNewGame(Tuple<Player, string> lobbyNameAndPlayer)
     {
-        _logger.Log(LogLevel.Debug, "Creating new game state");
+        _logger.Log(LogLevel.Debug, "Creating new game state.");
         var newGame = new GameState
         {
             ID = GenerateUnusedGameID(),
             Name = lobbyNameAndPlayer.Item2,
             Players = new List<Player> { lobbyNameAndPlayer.Item1 }
         };
-        _logger.Log(LogLevel.Debug, "Done creating new Game State");
+        _logger.Log(LogLevel.Debug, $"Done creating new Game State with ID {newGame.ID} and name {newGame.Name}.");
         return newGame;
     }
 
@@ -102,6 +102,7 @@ public class GameController
     private void AssignGameToPlayer(Player player, GameState game)
     {
         player.ConnectedGame = game;
+        _logger.Log(LogLevel.Debug, $"Assigned player with ID {player.ID} to game with id {game.ID}");
     }
 
     private void HandlePlayerInputs()
@@ -116,6 +117,8 @@ public class GameController
     private void HandleInput(Input input)
     {
         // TODO check if input is legal based on the game state once applicable
+        _logger.Log(LogLevel.Debug, $"Handling inputs for player with ID {input.Player.ID} and " +
+                                    $"name {input.Player.Name} and input type {input.Type}.");
         switch (input.Type)
         {
             case PlayerInputType.Movement:
@@ -124,6 +127,7 @@ public class GameController
             default:
                 throw new ArgumentOutOfRangeException();
         }
+        _logger.Log(LogLevel.Debug, $"Finished handling inputs for player with ID {input.Player.ID}");
     }
 
     private void HandleMovement(Player player, Node toNode)
