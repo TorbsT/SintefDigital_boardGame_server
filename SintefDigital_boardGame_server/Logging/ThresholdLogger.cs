@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 
+using System.Runtime.CompilerServices;
+
 namespace SintefDigital_boardGame_server.Logging;
 
 public class ThresholdLogger : ILogger
@@ -21,24 +23,24 @@ public class ThresholdLogger : ILogger
         this._storeThreshold = storeThreshold;
     }
     
-    public void Log(LogLevel severityLevel, string logData)
+    public void Log(LogLevel severityLevel, string logData, [CallerMemberName] string callingFunction = "", [CallerFilePath] string callingClass = "")
     {
-        HandleLogPrint(severityLevel, logData);
+        HandleLogPrint(severityLevel, logData, callingClass, callingFunction);
         HandleStoringOfLog(severityLevel, logData);
     }
-    private void HandleLogPrint(LogLevel severityLevel, string logData)
+    private void HandleLogPrint(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
     {
         if (_printThreshold == LogLevel.Ignore || severityLevel < _printThreshold) return;
         
-        Console.WriteLine(CreateLoggingMessage(severityLevel, logData));
+        Console.WriteLine(CreateLoggingMessage(severityLevel, logData, callingClass, callingFunction));
     }
 
-    private string CreateLoggingMessage(LogLevel severityLevel, string logData)
+    private string CreateLoggingMessage(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
     {
-        return $"{DateTime.Now} [{severityLevel}] {logData}";
+        return $"{DateTime.Now} [{severityLevel}] {logData} | In {callingClass}, {callingFunction}";
     }
     
-    private void HandleStoringOfLog(LogLevel severityLevel, string logData)
+    private void HandleStoringOfLog(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
     {
         if (_storeThreshold == LogLevel.Ignore || severityLevel < _storeThreshold) return;
 
@@ -47,12 +49,12 @@ public class ThresholdLogger : ILogger
         try
         {
             StreamWriter writer = new StreamWriter(filePath, true);
-            writer.WriteLine(CreateLoggingMessage(severityLevel, logData));
+            writer.WriteLine(CreateLoggingMessage(severityLevel, logData, callingClass, callingFunction));
             writer.Dispose();
         }
         catch (Exception e)
         {
-            Console.WriteLine(CreateLoggingMessage(LogLevel.Error, "Failed to store data to file. Data" + CreateLoggingMessage(severityLevel, logData)));
+            Console.WriteLine(CreateLoggingMessage(LogLevel.Error, "Failed to store data to file. Data" + CreateLoggingMessage(severityLevel, logData, callingClass, callingFunction),  callingClass, callingFunction));
         }
     }
 
