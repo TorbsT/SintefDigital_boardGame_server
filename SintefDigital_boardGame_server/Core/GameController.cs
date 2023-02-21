@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using SintefDigital_boardGame_server.Logging;
 
 namespace SintefDigital_boardGame_server.Core;
 
@@ -8,23 +9,33 @@ public class GameController
     private readonly List<GameState> _games;
     private readonly IMultiplayerGameController _viewController;
     private readonly IMultiplayerPlayerInputController _inputController;
-    public GameController(IMultiplayerGameController viewController, IMultiplayerPlayerInputController inputController)
+    private readonly ILogger _logger;
+    public GameController(ILogger logger, IMultiplayerGameController viewController, IMultiplayerPlayerInputController inputController)
     {
         this._games = new List<GameState>();
         this._viewController = viewController;
         this._inputController = inputController;
+        this._logger = logger;
     }
     
     public void Run()
     {
+        _logger.Log(LogLevel.Info, "Running the game controller");
         while (true)
         {
+            _logger.Log(LogLevel.Debug, "Getting the new game requests");
             var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
             foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
-
+            _logger.Log(LogLevel.Debug, "Done getting the new game requests");
+            
+            _logger.Log(LogLevel.Debug, "Getting player inputs and handling them");
             HandlePlayerInputs();
-
-            break; // TODO: Remove this once the server should actually run forever
+            _logger.Log(LogLevel.Debug, "Done handling player inputs");
+            
+            { // TODO: Remove this once the server should actually run forever
+                _logger.Log(LogLevel.Warning, "Stopping the game controller so that it doesn't run forever");
+                break;
+            }
         }
     }
 
