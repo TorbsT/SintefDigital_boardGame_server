@@ -1,4 +1,7 @@
-﻿namespace SintefDigital_boardGame_server.Logging;
+﻿using System;
+using System.IO;
+
+namespace SintefDigital_boardGame_server.Logging;
 
 public class ThresholdLogger : ILogger
 {
