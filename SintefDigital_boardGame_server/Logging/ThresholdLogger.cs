@@ -5,12 +5,15 @@ using System.Runtime.CompilerServices;
 
 namespace SintefDigital_boardGame_server.Logging;
 
+/// <summary>
+/// This class is theoretically thread safe
+/// </summary>
 public class ThresholdLogger : ILogger
 {
     private readonly LogLevel _printThreshold;
     private readonly LogLevel _storeThreshold;
     private uint _fileIndex = 1;
-
+    private ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim();
 
     public ThresholdLogger() : this(LogLevel.Info, LogLevel.Info)
     {
@@ -23,10 +26,23 @@ public class ThresholdLogger : ILogger
         this._storeThreshold = storeThreshold;
     }
     
+    // TODO: callingClass here can be show sensitive information (filepaths), find out if this is a problem or not
     public void Log(LogLevel severityLevel, string logData, [CallerMemberName] string callingFunction = "", [CallerFilePath] string callingClass = "")
     {
-        HandleLogPrint(severityLevel, logData, callingClass, callingFunction);
-        HandleStoringOfLog(severityLevel, logData, callingClass, callingFunction);
+        _rwLock.EnterWriteLock();
+        try
+        {
+            HandleLogPrint(severityLevel, logData, callingClass, callingFunction);
+            HandleStoringOfLog(severityLevel, logData, callingClass, callingFunction);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Something failed asynchronously when logging. Error: {e}");
+        }
+        finally
+        {
+            _rwLock.ExitWriteLock();
+        }
     }
     private void HandleLogPrint(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
     {

@@ -10,10 +10,13 @@ namespace SintefDigital_boardGame_server.Core;
 public class GameController
 {
     private readonly List<GameState> _games;
-    private readonly IMultiplayerGameController _viewController;
-    private readonly IMultiplayerPlayerInputController _inputController;
+    private readonly RwLock<IMultiplayerGameController> _viewController;
+    private readonly RwLock<IMultiplayerPlayerInputController> _inputController;
     private readonly ILogger _logger;
-    public GameController(ILogger logger, IMultiplayerGameController viewController, IMultiplayerPlayerInputController inputController)
+    private Thread _mainLoopThread;
+    private RwLock<bool> _stopMainThread = new RwLock<bool>(false);
+
+    public GameController(ILogger logger, RwLock<IMultiplayerGameController> viewController, RwLock<IMultiplayerPlayerInputController> inputController)
     {
         this._games = new List<GameState>();
         this._viewController = viewController;
@@ -22,24 +25,51 @@ public class GameController
     }
     
     //TODO: Make an instantiator that gives a GameController that is threadsafe.
-    
+
     public void Run()
     {
-        _logger.Log(LogLevel.Info, "Running the game controller.");
-        while (true)
+        if (_mainLoopThread != null)
         {
+            _logger.Log(LogLevel.Error, "The GameController is already running!");
+            return;
+        }
+
+        _mainLoopThread = new Thread(RunMainLoop);
+        _mainLoopThread.Start();
+    }
+
+    public void Stop()
+    {
+        var stopThread = _stopMainThread.Lock();
+        
+    }
+
+    private void RunMainLoop()
+    {
+        bool stop = _stopMainThread.Lock();
+        _stopMainThread.ReleaseLock();
+        
+        while (!stop){
             _logger.Log(LogLevel.Debug, "Getting the new game requests.");
             try
             {
-                var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
+                var inputController = _inputController.Lock();
+                List<Tuple<Player, string>>
+                    newGames = inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
                 foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
             }
             catch (Exception e)
             {
                 _logger.Log(LogLevel.Error, $"Failed to get and create new game(s). Error {e}.");
             }
+            finally
+            {
+                _inputController.ReleaseLock();
+            }
+
+
             _logger.Log(LogLevel.Debug, "Done getting the new game requests.");
-            
+
             _logger.Log(LogLevel.Debug, "Getting player inputs and handling them.");
             try
             {
@@ -51,10 +81,8 @@ public class GameController
             }
             _logger.Log(LogLevel.Debug, "Done handling player inputs.");
             
-            { // TODO: Remove this once the server should actually run forever
-                _logger.Log(LogLevel.Warning, "Stopping the game controller so that it doesn't run forever.");
-                break;
-            }
+            stop = _stopMainThread.Lock();
+            _stopMainThread.ReleaseLock();
         }
     }
 
@@ -63,7 +91,20 @@ public class GameController
         var newGame = CreateNewGame(lobbyNameAndPlayer);
         AssignGameToPlayer(lobbyNameAndPlayer.Item1, newGame);
         _games.Add(newGame);
-        _viewController.SendNewGameStateToPlayers(newGame);
+        try
+        {
+            var viewController = _viewController.Lock();
+            viewController.SendNewGameStateToPlayers(newGame);
+        }
+        catch (Exception e)
+        {
+            _logger.Log(LogLevel.Error, "Something went wrong when trying to send new game state to the players." +
+                                        $" Error: {e}");
+        }
+        finally
+        {
+            _viewController.ReleaseLock();
+        }
     }
     
     private GameState CreateNewGame(Tuple<Player, string> lobbyNameAndPlayer)
@@ -108,11 +149,26 @@ public class GameController
         _logger.Log(LogLevel.Debug, $"Assigned player with ID {player.ID} to game with id {game.ID}");
     }
 
-    private void HandlePlayerInputs()
+    private async void HandlePlayerInputs()
     {
         foreach (var game in _games)
         {
-            var playerInputs = _inputController.FetchPlayerInputs(game.ID);
+            List<Input> playerInputs = new List<Input>();
+            try
+            {
+                var inputController = _inputController.Lock();
+                playerInputs = inputController.FetchPlayerInputs(game.ID);
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Error, "Something went wrong when trying to handle the player inputs. " +
+                                            $"Error: {e}");
+            }
+            finally
+            {
+                _inputController.ReleaseLock();
+            }
+            
             foreach (var input in playerInputs) HandleInput(input);
         }
     }
@@ -121,7 +177,7 @@ public class GameController
     {
         // TODO check if input is legal based on the game state once applicable
         _logger.Log(LogLevel.Debug, $"Handling inputs for player with ID {input.Player.ID} and " +
-                                    $"name {input.Player.Name} and input type {input.Type}.");
+                                                   $"name {input.Player.Name} and input type {input.Type}.");
         switch (input.Type)
         {
             case PlayerInputType.Movement:

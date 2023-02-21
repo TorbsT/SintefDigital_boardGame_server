@@ -13,7 +13,7 @@ public class InternetMultiplayerController : IMultiplayerGameController, IMultip
         return newGames;
     }
 
-    public List<Core.Input> FetchPlayerInputs(int gameID)
+    public List<Input> FetchPlayerInputs(int gameID)
     {
         var playerInputs = new List<Core.Input>();
         // TODO: Return all the inputs from the game with the given gameID
