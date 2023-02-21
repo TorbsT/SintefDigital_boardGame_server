@@ -1,6 +1,6 @@
 namespace SintefDigital_boardGame_server.Rules;
 
-public class RuleController : Core.RuleChecker
+public class RuleController : Core.IRuleChecker
 {
     
 }
