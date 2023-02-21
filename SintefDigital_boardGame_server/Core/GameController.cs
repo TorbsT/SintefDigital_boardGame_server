@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 
+using SintefDigital_boardGame_server.Logging;
+
+
 namespace SintefDigital_boardGame_server.Core;
 
 public class GameController
@@ -8,23 +11,47 @@ public class GameController
     private readonly List<GameState> _games;
     private readonly IMultiplayerGameController _viewController;
     private readonly IMultiplayerPlayerInputController _inputController;
-    public GameController(IMultiplayerGameController viewController, IMultiplayerPlayerInputController inputController)
+    private readonly ILogger _logger;
+    public GameController(ILogger logger, IMultiplayerGameController viewController, IMultiplayerPlayerInputController inputController)
     {
         this._games = new List<GameState>();
         this._viewController = viewController;
         this._inputController = inputController;
+        this._logger = logger;
     }
     
     public void Run()
     {
+        _logger.Log(LogLevel.Info, "Running the game controller");
         while (true)
         {
-            var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
-            foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
-
-            HandlePlayerInputs();
-
-            break; // TODO: Remove this once the server should actually run forever
+            _logger.Log(LogLevel.Debug, "Getting the new game requests");
+            try
+            {
+                var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
+                foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Error, $"Failed to get and create new game(s). Error {e}");
+            }
+            _logger.Log(LogLevel.Debug, "Done getting the new game requests");
+            
+            _logger.Log(LogLevel.Debug, "Getting player inputs and handling them");
+            try
+            {
+                HandlePlayerInputs();
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Error, $"Failed to handle player inputs {e}");
+            }
+            _logger.Log(LogLevel.Debug, "Done handling player inputs");
+            
+            { // TODO: Remove this once the server should actually run forever
+                _logger.Log(LogLevel.Warning, "Stopping the game controller so that it doesn't run forever");
+                break;
+            }
         }
     }
 
@@ -38,12 +65,14 @@ public class GameController
     
     private GameState CreateNewGame(Tuple<Player, string> lobbyNameAndPlayer)
     {
+        _logger.Log(LogLevel.Debug, "Creating new game state");
         var newGame = new GameState
         {
             ID = GenerateUnusedGameID(),
             Name = lobbyNameAndPlayer.Item2,
             Players = new List<Player> { lobbyNameAndPlayer.Item1 }
         };
+        _logger.Log(LogLevel.Debug, "Done creating new Game State");
         return newGame;
     }
 
