@@ -24,12 +24,26 @@ public class GameController
         while (true)
         {
             _logger.Log(LogLevel.Debug, "Getting the new game requests");
-            var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
-            foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
+            try
+            {
+                var newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
+                foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Error, $"Failed to get and create new game(s). Error {e}");
+            }
             _logger.Log(LogLevel.Debug, "Done getting the new game requests");
             
             _logger.Log(LogLevel.Debug, "Getting player inputs and handling them");
-            HandlePlayerInputs();
+            try
+            {
+                HandlePlayerInputs();
+            }
+            catch (Exception e)
+            {
+                _logger.Log(LogLevel.Error, $"Failed to handle player inputs {e}");
+            }
             _logger.Log(LogLevel.Debug, "Done handling player inputs");
             
             { // TODO: Remove this once the server should actually run forever
@@ -49,12 +63,14 @@ public class GameController
     
     private GameState CreateNewGame(Tuple<Player, string> lobbyNameAndPlayer)
     {
+        _logger.Log(LogLevel.Debug, "Creating new game state");
         var newGame = new GameState
         {
             ID = GenerateUnusedGameID(),
             Name = lobbyNameAndPlayer.Item2,
             Players = new List<Player> { lobbyNameAndPlayer.Item1 }
         };
+        _logger.Log(LogLevel.Debug, "Done creating new Game State");
         return newGame;
     }
 
