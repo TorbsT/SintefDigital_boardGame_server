@@ -1,6 +1,9 @@
 // The following piece of code is copied from TorbuTils
 // https://github.com/TorbsT/Torbutils/blob/main/Packages/com.torbst.torbutils/Runtime/Giraphe/Graph.cs
 
+using System;
+using System.Collections.Generic;
+
 namespace SintefDigital_boardGame_server.Helpers
 {
     /// <summary>
