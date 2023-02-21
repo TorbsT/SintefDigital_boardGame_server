@@ -8,5 +8,5 @@ public static class LoggingConstants
 
 public interface ILogger
 {
-    void Log(LogLevel severityLevel, string logData);
+    void Log(LogLevel severityLevel, string logData, string callingFunction = "", string callingClass = "");
 }

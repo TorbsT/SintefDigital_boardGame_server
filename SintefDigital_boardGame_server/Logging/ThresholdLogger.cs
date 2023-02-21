@@ -26,7 +26,7 @@ public class ThresholdLogger : ILogger
     public void Log(LogLevel severityLevel, string logData, [CallerMemberName] string callingFunction = "", [CallerFilePath] string callingClass = "")
     {
         HandleLogPrint(severityLevel, logData, callingClass, callingFunction);
-        HandleStoringOfLog(severityLevel, logData);
+        HandleStoringOfLog(severityLevel, logData, callingClass, callingFunction);
     }
     private void HandleLogPrint(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
     {
@@ -84,4 +84,5 @@ public class ThresholdLogger : ILogger
         var folderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, LoggingConstants.FolderName);
         return Path.Combine(folderPath, fileName);
     }
+    
 }
