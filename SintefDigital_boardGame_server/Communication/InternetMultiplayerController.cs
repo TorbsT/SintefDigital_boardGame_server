@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using SintefDigital_boardGame_server.Core;
 
 namespace SintefDigital_boardGame_server.Communication;
