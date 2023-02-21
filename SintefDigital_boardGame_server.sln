@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SintefDigital_boardGame_server", "SintefDigital_boardGame_server\SintefDigital_boardGame_server.csproj", "{6C349C05-E165-446E-93ED-76FE6FF0D01E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SintefDigital_boardGame_server.Tests", "SintefDigital_boardGame_server.Tests\SintefDigital_boardGame_server.Tests.csproj", "{D91D3522-46DE-4D03-8EE0-989A29EC8100}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{6C349C05-E165-446E-93ED-76FE6FF0D01E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C349C05-E165-446E-93ED-76FE6FF0D01E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C349C05-E165-446E-93ED-76FE6FF0D01E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D91D3522-46DE-4D03-8EE0-989A29EC8100}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D91D3522-46DE-4D03-8EE0-989A29EC8100}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D91D3522-46DE-4D03-8EE0-989A29EC8100}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D91D3522-46DE-4D03-8EE0-989A29EC8100}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

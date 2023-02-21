@@ -3,3 +3,5 @@
 .idea/*
 SintefDigital_boardGame_server/obj/*
 SintefDigital_boardGame_server/bin/*
+SintefDigital_boardGame_server.Tests/obj/*
+SintefDigital_boardGame_server.Tests/bin/*

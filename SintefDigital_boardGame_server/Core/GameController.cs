@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 using SintefDigital_boardGame_server.Logging;
 
@@ -19,6 +20,8 @@ public class GameController
         this._inputController = inputController;
         this._logger = logger;
     }
+    
+    //TODO: Make an instantiator that gives a GameController that is threadsafe.
     
     public void Run()
     {
