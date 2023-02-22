@@ -27,7 +27,7 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
         return clone;
     }
 
-    public void addNewWantedGames(List<Tuple<Player, string>> wantedGameList)
+    public void AddNewWantedGames(List<Tuple<Player, string>> wantedGameList)
     {
         VerifyLock();
         _newGames.AddRange(wantedGameList);

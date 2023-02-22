@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Principal;
 using System.Threading;
 
 using SintefDigital_boardGame_server.Logging;
@@ -7,7 +8,7 @@ using SintefDigital_boardGame_server.Logging;
 
 namespace SintefDigital_boardGame_server.Core;
 
-public class GameController
+public class GameController : IDisposable
 {
     private readonly List<GameState> _games;
     private readonly IMultiplayerViewController _viewController;
@@ -29,7 +30,7 @@ public class GameController
 
     public void Run()
     {
-        if (_mainLoopThread.IsAlive)
+        if (IsMainLoopRunning())
         {
             _logger.Log(LogLevel.Error, "The GameController is already running!");
             return;
@@ -39,6 +40,11 @@ public class GameController
         _mainLoopThread.Start();
     }
 
+    public bool IsMainLoopRunning()
+    {
+        return _mainLoopThread.IsAlive;
+    }
+    
     public void Stop()
     {
         lock (_stopMonitor)
@@ -154,7 +160,7 @@ public class GameController
     private void AssignGameToPlayer(Player player, GameState game)
     {
         player.ConnectedGame = game;
-        _logger.Log(LogLevel.Debug, $"Assigned player with ID {player.ID} to game with id {game.ID}");
+        _logger.Log(LogLevel.Debug, $"Assigned player with uniqueID {player.uniqueID} to game with id {game.ID}");
     }
 
     private async void HandlePlayerInputs()
@@ -184,7 +190,7 @@ public class GameController
     private void HandleInput(Input input)
     {
         // TODO check if input is legal based on the game state once applicable
-        _logger.Log(LogLevel.Debug, $"Handling inputs for player with ID {input.Player.ID} and " +
+        _logger.Log(LogLevel.Debug, $"Handling inputs for player with uniqueID {input.Player.uniqueID} and " +
                                                    $"name {input.Player.Name} and input type {input.Type}.");
         switch (input.Type)
         {
@@ -194,7 +200,7 @@ public class GameController
             default:
                 throw new ArgumentOutOfRangeException();
         }
-        _logger.Log(LogLevel.Debug, $"Finished handling inputs for player with ID {input.Player.ID}");
+        _logger.Log(LogLevel.Debug, $"Finished handling inputs for player with ID {input.Player.uniqueID}");
     }
 
     private void HandleMovement(Player player, Node toNode)
@@ -202,5 +208,12 @@ public class GameController
         var game = player.ConnectedGame;
         // TODO: Check here if the movement is valid once applicable
         player.Position = toNode;
+    }
+
+
+    public void Dispose()
+    {
+        Stop();
+        _mainLoopThread.Join();
     }
 }
