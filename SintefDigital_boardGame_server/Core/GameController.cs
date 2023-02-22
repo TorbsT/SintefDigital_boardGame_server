@@ -10,13 +10,14 @@ namespace SintefDigital_boardGame_server.Core;
 public class GameController
 {
     private readonly List<GameState> _games;
-    private readonly RwLock<IMultiplayerViewController> _viewController;
-    private readonly RwLock<IMultiplayerPlayerInputController> _inputController;
+    private readonly IMultiplayerViewController _viewController;
+    private readonly IMultiplayerPlayerInputController _inputController;
     private readonly ILogger _logger;
     private Thread _mainLoopThread;
-    private RwLock<bool> _stopMainThread = new RwLock<bool>(false);
+    private object _stopMonitor = new object();
+    private bool _stopMainThread = false;
 
-    public GameController(ILogger logger, RwLock<IMultiplayerViewController> viewController, RwLock<IMultiplayerPlayerInputController> inputController)
+    public GameController(ILogger logger, IMultiplayerViewController viewController, IMultiplayerPlayerInputController inputController)
     {
         this._games = new List<GameState>();
         this._viewController = viewController;
@@ -28,7 +29,7 @@ public class GameController
 
     public void Run()
     {
-        if (_mainLoopThread != null)
+        if (_mainLoopThread.IsAlive)
         {
             _logger.Log(LogLevel.Error, "The GameController is already running!");
             return;
@@ -40,22 +41,27 @@ public class GameController
 
     public void Stop()
     {
-        var stopThread = _stopMainThread.Lock();
-        
+        lock (_stopMonitor)
+        {
+            _stopMainThread = true;
+        }
     }
 
     private void RunMainLoop()
     {
-        bool stop = _stopMainThread.Lock();
-        _stopMainThread.ReleaseLock();
+        bool stop;
+        lock (_stopMonitor)
+        {
+            stop = _stopMainThread;
+        }
         
         while (!stop){
             _logger.Log(LogLevel.Debug, "Getting the new game requests.");
             try
             {
-                var inputController = _inputController.Lock();
+                _inputController.Lock();
                 List<Tuple<Player, string>>
-                    newGames = inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
+                    newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayer();
                 foreach (var lobbyNameAndPlayer in newGames) HandleNewGameCreation(lobbyNameAndPlayer);
             }
             catch (Exception e)
@@ -81,8 +87,10 @@ public class GameController
             }
             _logger.Log(LogLevel.Debug, "Done handling player inputs.");
             
-            stop = _stopMainThread.Lock();
-            _stopMainThread.ReleaseLock();
+            lock (_stopMonitor)
+            {
+                stop = _stopMainThread;
+            }
         }
     }
 
@@ -93,8 +101,8 @@ public class GameController
         _games.Add(newGame);
         try
         {
-            var viewController = _viewController.Lock();
-            viewController.SendNewGameStateToPlayers(newGame);
+            _viewController.Lock();
+            _viewController.SendNewGameStateToPlayers(newGame);
         }
         catch (Exception e)
         {
@@ -156,8 +164,8 @@ public class GameController
             List<Input> playerInputs = new List<Input>();
             try
             {
-                var inputController = _inputController.Lock();
-                playerInputs = inputController.FetchPlayerInputs(game.ID);
+                _inputController.Lock();
+                playerInputs = _inputController.FetchPlayerInputs(game.ID);
             }
             catch (Exception e)
             {

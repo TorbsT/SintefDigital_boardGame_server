@@ -10,15 +10,10 @@ public class GameStateTest
     [Fact]
     public void TestCreatingNewGame()
     {
-        RwLock<IMultiplayerPlayerInputController> inputController;
-        RwLock<IMultiplayerViewController> viewController;
-        {
-            var mockMultiPlayerController = new MockMultiplayerController();
-            inputController = new RwLock<IMultiplayerPlayerInputController>(mockMultiPlayerController);
-            viewController = new RwLock<IMultiplayerViewController>(mockMultiPlayerController);
-        }
-        var gameController = new GameController(new ThresholdLogger(LogLevel.Ignore, LogLevel.Ignore), viewController, inputController);
+        var mockMultiPlayerController = new MockMultiplayerController();
+        var gameController = new GameController(new ThresholdLogger(LogLevel.Ignore, LogLevel.Ignore), mockMultiPlayerController, mockMultiPlayerController);
         
         // TODO: Write the tests!
+        
     }
 }

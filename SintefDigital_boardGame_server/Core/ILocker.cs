@@ -1,0 +1,29 @@
+﻿namespace SintefDigital_boardGame_server.Core;
+
+/// <summary>
+/// It's important to make sure that each public function checks if the lock is activated before making any changes.
+/// An example of how ILocker would be implemented:
+///
+/// private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+/// 
+/// public void Lock() {
+///     _lock.EnterWriteLock();
+/// }
+/// public void ReleaseLock() {
+///     _lock.ExitReadLock();
+/// }
+/// public void VerifyLock() {
+///     if (!_lock.IsWriteLockHeld) throw new InvalidOperationException();
+/// }
+/// ...
+/// public void SomeFunction() {
+///     VerifyLock();
+///     ...
+/// }
+/// </summary>
+public interface ILocker
+{
+    public void Lock();
+    public void ReleaseLock();
+    public void VerifyLock();
+}

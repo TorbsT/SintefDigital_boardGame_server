@@ -1,6 +1,6 @@
 namespace SintefDigital_boardGame_server.Core;
 
-public interface IMultiplayerViewController
+public interface IMultiplayerViewController : ILocker
 {
     void SendNewGameStateToPlayers(GameState state);
 }
