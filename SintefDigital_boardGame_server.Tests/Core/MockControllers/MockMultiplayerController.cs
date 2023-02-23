@@ -5,8 +5,9 @@ namespace SintefDigital_boardGame_server.Test.Core.MockControllers;
 public class MockMultiplayerController : IMultiplayerViewController, IMultiplayerPlayerInputController
 {
     private List<GameState> _createdGameStates = new List<GameState>();
-    private List<Tuple<Player, string>> _newGames = new List<Tuple<Player, string>>();
+    private List<(Player,string)> _newGames = new List<(Player,string)>();
     private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+    private List<Input> _inputs = new List<Input>();
 
     public MockMultiplayerController()
     {
@@ -16,18 +17,21 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
     public void SendNewGameStateToPlayers(GameState state)
     {
         VerifyLock();
+        Console.WriteLine(_createdGameStates.Count);
+        _createdGameStates.RemoveAll(gameState => gameState.ID == state.ID);
+        Console.WriteLine(_createdGameStates.Count);
         _createdGameStates.Add(state);
     }
 
-    public List<Tuple<Player, string>> FetchRequestedGameLobbiesWithLobbyNameAndPlayer()
+    public List<(Player,string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayer()
     {
         VerifyLock();
-        var clone = new List<Tuple<Player, string>>(_newGames);
+        var clone = new List<(Player,string)>(_newGames);
         _newGames.Clear();
         return clone;
     }
 
-    public void AddNewWantedGames(List<Tuple<Player, string>> wantedGameList)
+    public void AddNewWantedGames(List<(Player,string)> wantedGameList)
     {
         VerifyLock();
         _newGames.AddRange(wantedGameList);
@@ -36,8 +40,9 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
     public List<Input> FetchPlayerInputs(int gameID)
     {
         VerifyLock();
-        // TODO: Make inputs for the games created
-        return new List<Input>();
+        List<Input> inputs = new List<Input>(_inputs);
+        _inputs.Clear();
+        return inputs;
     }
 
     public List<GameState> FetchCreatedGames()
@@ -46,6 +51,12 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
         return new List<GameState>(_createdGameStates);
     }
 
+    public void AddInput(Input input)
+    {
+        VerifyLock();
+        _inputs.Add(input);
+    }
+    
     public void Lock()
     {
         _lock.EnterWriteLock();

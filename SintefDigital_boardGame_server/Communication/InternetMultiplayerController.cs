@@ -8,10 +8,10 @@ public class InternetMultiplayerController : IMultiplayerViewController, IMultip
 {
     private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
     
-    public List<Tuple<Player, string>> FetchRequestedGameLobbiesWithLobbyNameAndPlayer()
+    public List<(Player,string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayer()
     {
         VerifyLock();
-        var newGames = new List<Tuple<Player, string>>();
+        var newGames = new List<(Player,string)>();
         // TODO: Return all the new wanted games
         return newGames;
     }

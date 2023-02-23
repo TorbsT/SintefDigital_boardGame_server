@@ -1,4 +1,6 @@
-﻿namespace SintefDigital_boardGame_server.Logging;
+﻿using System.Runtime.CompilerServices;
+
+namespace SintefDigital_boardGame_server.Logging;
 
 public static class LoggingConstants
 {
@@ -8,5 +10,5 @@ public static class LoggingConstants
 
 public interface ILogger
 {
-    void Log(LogLevel severityLevel, string logData, string callingFunction = "", string callingClass = "");
+    void Log(LogLevel severityLevel, string logData, [CallerMemberName] string callingFunction = "", [CallerFilePath] string callingClass = "");
 }

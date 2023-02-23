@@ -2,6 +2,8 @@
 
 /// <summary>
 /// It's important to make sure that each public function checks if the lock is activated before making any changes.
+/// It's also important to remember to lock the object itself in it's own functions if it changes any private
+/// variables.
 /// An example of how ILocker would be implemented:
 ///
 /// private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();

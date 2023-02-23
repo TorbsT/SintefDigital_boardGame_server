@@ -4,5 +4,5 @@ public struct Input
 {
     public Player Player;
     public PlayerInputType Type;
-    public Node ToNode;
+    public Node RelatedNode;
 }

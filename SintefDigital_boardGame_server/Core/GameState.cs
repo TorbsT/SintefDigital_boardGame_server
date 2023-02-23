@@ -7,5 +7,4 @@ public struct GameState
     public int ID;
     public string Name;
     public List<Player> Players;
-    
 }

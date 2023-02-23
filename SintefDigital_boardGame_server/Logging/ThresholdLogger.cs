@@ -53,7 +53,9 @@ public class ThresholdLogger : ILogger
 
     private string CreateLoggingMessage(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
     {
-        return $"{DateTime.Now} [{severityLevel}] {logData} | In {callingClass}, {callingFunction}";
+        int lastBackslashPosition = callingClass.LastIndexOf("\\", StringComparison.Ordinal) + 1;
+        string className = callingClass.Substring(lastBackslashPosition, callingClass.Length - lastBackslashPosition);
+        return $"{DateTime.Now} [{severityLevel}] in {callingFunction} in {className} | {logData}";
     }
     
     private void HandleStoringOfLog(LogLevel severityLevel, string logData, string callingClass, string callingFunction)
@@ -70,7 +72,7 @@ public class ThresholdLogger : ILogger
         }
         catch (Exception e)
         {
-            Console.WriteLine(CreateLoggingMessage(LogLevel.Error, "Failed to store data to file. Data" + CreateLoggingMessage(severityLevel, logData, callingClass, callingFunction),  callingClass, callingFunction));
+            Console.WriteLine(CreateLoggingMessage(LogLevel.Error, $"Failed to store data to file. Error: {e}. Data" + CreateLoggingMessage(severityLevel, logData, callingClass, callingFunction),  callingClass, callingFunction));
         }
     }
 
