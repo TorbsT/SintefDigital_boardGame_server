@@ -1,5 +1,6 @@
 using Core;
 using Logging;
+using System.Xml.Linq;
 using Test.Core.MockControllers;
 using Xunit;
 
@@ -77,16 +78,13 @@ public class GameControllerTest : IDisposable
     public void TestPlayerInfoMovement()
     {
 
-        NodeInfo startNode = new NodeInfo();
-        startNode.ID = 1;
-        startNode.Neighbours = new List<NodeInfo>();
+        Node startNode = new Node( new NodeInfo() { district = "1", ID = 1});
+        
 
-        NodeInfo endNode = new NodeInfo();
-        endNode.ID = 2;
-        endNode.Neighbours = new List<NodeInfo>();
+        Node endNode = new Node(new NodeInfo() { district = "1", ID = 1 });
 
-        startNode.Neighbours.Add(endNode);
-        endNode.Neighbours.Add(startNode);
+        startNode.AddNeighbour(endNode);
+        endNode.AddNeighbour(startNode);
 
         PlayerInfo PlayerInfo = MakeRandomPlayerInfo();
         PlayerInfo.Position = startNode;
@@ -114,7 +112,7 @@ public class GameControllerTest : IDisposable
 
         GameStateInfo.PlayerInfos ??= new List<PlayerInfo>();
 
-        Assert.Contains(GameStateInfo.PlayerInfos, PlayerInfo1 => PlayerInfo1.Position.ID == startNode.ID);
+        Assert.Contains(GameStateInfo.PlayerInfos, PlayerInfo1 => PlayerInfo1.Position.ID == ((NodeInfo) startNode).ID);
 
         PlayerInfo = GameStateInfo.PlayerInfos.First(PlayerInfo1 => PlayerInfo1.UniqueID == PlayerInfo.UniqueID);
 
@@ -133,7 +131,7 @@ public class GameControllerTest : IDisposable
         GameStateInfo = _mockMultiPlayerInfoController.FetchCreatedGames().First();
         _mockMultiPlayerInfoController.ReleaseLock();
 
-        Assert.Contains(GameStateInfo.PlayerInfos, PlayerInfo1 => PlayerInfo1.Position.ID == endNode.ID);
+        Assert.Contains(GameStateInfo.PlayerInfos, PlayerInfo1 => PlayerInfo1.Position.ID == ((NodeInfo) endNode).ID);
     }
 
     private (GameController, MockMultiPlayerInfoController) CreateAndRunGameControllerAndMultiPlayerInfoController()

@@ -3,5 +3,17 @@
 .idea/*
 SintefDigital_boardGame_server/obj/*
 SintefDigital_boardGame_server/bin/*
+SintefDigital_boardGame_server/Communication/obj/*
+SintefDigital_boardGame_server/Communication/bin/*
+SintefDigital_boardGame_server/Core/obj/*
+SintefDigital_boardGame_server/Core/bin/*
+SintefDigital_boardGame_server/Helpers/obj/*
+SintefDigital_boardGame_server/Helpers/bin/*
+SintefDigital_boardGame_server/Logging/obj/*
+SintefDigital_boardGame_server/Logging/bin/*
+SintefDigital_boardGame_server/MainProgram/obj/*
+SintefDigital_boardGame_server/MainProgram/bin/*
+SintefDigital_boardGame_server/Test/obj/*
+SintefDigital_boardGame_server/Test/bin/*
 SintefDigital_boardGame_server.Tests/obj/*
 SintefDigital_boardGame_server.Tests/bin/*

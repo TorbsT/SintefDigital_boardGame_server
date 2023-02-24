@@ -5,5 +5,5 @@ namespace Core;
 public struct NodeInfo
 {
     public int ID;
-    public List<NodeInfo> Neighbours;
+    public string district;
 }

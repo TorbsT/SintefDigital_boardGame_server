@@ -12,7 +12,7 @@ namespace Core;
 /// </summary>
 public class GameController : IDisposable
 {
-    private readonly List<GameStateInfo> _games;
+    private readonly List<GameState> _games;
     private readonly IMultiPlayerInfoViewController _viewController;
     private readonly IMultiPlayerInfoPlayerInfoInputController _inputController;
     private readonly ILogger _logger;
@@ -22,7 +22,7 @@ public class GameController : IDisposable
 
     public GameController(ILogger logger, IMultiPlayerInfoViewController viewController, IMultiPlayerInfoPlayerInfoInputController inputController)
     {
-        this._games = new List<GameStateInfo>();
+        this._games = new List<GameState>();
         this._viewController = viewController;
         this._inputController = inputController;
         this._logger = logger;
@@ -112,7 +112,7 @@ public class GameController : IDisposable
         try
         {
             _viewController.Lock();
-            _viewController.SendNewGameStateInfoToPlayerInfos(newGame);
+            _viewController.SendNewGameStateInfoToPlayerInfos(newGame.GetGameStateInfo());
         }
         catch (Exception e)
         {
@@ -125,19 +125,13 @@ public class GameController : IDisposable
         }
     }
 
-    private GameStateInfo CreateNewGameAndAssignHost((PlayerInfo, string) lobbyNameAndPlayerInfo)
+    private GameState CreateNewGameAndAssignHost((PlayerInfo, string) lobbyNameAndPlayerInfo)
     {
         _logger.Log(LogLevel.Debug, "Creating new game state.");
-        var newGame = new GameStateInfo
-        {
-            ID = GenerateUnusedGameID(),
-            Name = lobbyNameAndPlayerInfo.Item2,
-            PlayerInfos = new List<PlayerInfo>()
-        };
-        PlayerInfo PlayerInfo = lobbyNameAndPlayerInfo.Item1;
-        AssignGameToPlayerInfo(ref PlayerInfo, newGame);
-        newGame.PlayerInfos.Add(PlayerInfo);
-        _logger.Log(LogLevel.Debug, $"Done creating new Game State with ID {newGame.ID} and name {newGame.Name}.");
+        var newGame = new GameState(lobbyNameAndPlayerInfo.Item2, GenerateUnusedGameID());
+        newGame.AssignPlayerToGame(lobbyNameAndPlayerInfo.Item1);
+        _logger.Log(LogLevel.Debug, $"Done creating new Game State with ID {newGame.GetGameStateInfo().ID} and name {newGame.GetGameStateInfo().Name}.");
+
         return newGame;
     }
 
@@ -156,7 +150,7 @@ public class GameController : IDisposable
     {
         foreach (var game in _games)
         {
-            if (game.ID == ID)
+            if (game.GetGameStateInfo().ID == ID)
             {
                 return false;
             }
@@ -178,7 +172,7 @@ public class GameController : IDisposable
             try
             {
                 _inputController.Lock();
-                PlayerInfoInputs = _inputController.FetchPlayerInfoInputs(game.ID);
+                PlayerInfoInputs = _inputController.FetchPlayerInfoInputs(game.GetGameStateInfo().ID);
             }
             catch (Exception e)
             {
@@ -194,13 +188,9 @@ public class GameController : IDisposable
             {
                 try
                 {
-                    var newGameStateInfo = HandleInput(input);
-                    _logger.Log(LogLevel.Debug, $"Got new game state with ID {newGameStateInfo.ID}.");
-                    if (newGameStateInfo.Equals(default)) continue;
+                    HandleInput(input);
                     _viewController.Lock();
-                    _viewController.SendNewGameStateInfoToPlayerInfos(newGameStateInfo);
-                    _logger.Log(LogLevel.Debug, $"Done sending new game state to PlayerInfos in game with ID " +
-                                                $"{newGameStateInfo.ID}");
+                    _viewController.SendNewGameStateInfoToPlayerInfos(_games.First(state => state.GetGameStateInfo().ID == input.PlayerInfo.ConnectedGameID));
                     _viewController.ReleaseLock();
                 }
                 catch (Exception e)
@@ -211,7 +201,7 @@ public class GameController : IDisposable
         }
     }
 
-    private GameStateInfo HandleInput(Input input)
+    private void HandleInput(Input input)
     {
         // TODO check if input is legal based on the game state once applicable
         _logger.Log(LogLevel.Debug, $"Handling inputs for PlayerInfo with uniqueID {input.PlayerInfo.UniqueID} and " +
@@ -219,41 +209,35 @@ public class GameController : IDisposable
         switch (input.Type)
         {
             case PlayerInfoInputType.Movement:
-                return HandleMovement(input.PlayerInfo, input.RelatedNode);
+                HandleMovement(input.PlayerInfo, input.RelatedNode);
+                break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
         _logger.Log(LogLevel.Debug, $"Finished handling inputs for PlayerInfo with ID {input.PlayerInfo.UniqueID}.");
     }
 
-    private GameStateInfo HandleMovement(PlayerInfo PlayerInfoCopy, NodeInfo toNodeCopy)
+    private void HandleMovement(PlayerInfo playerInfo, NodeInfo toNodeCopy)
     {
         try
         {
-            var game = _games.First(state => state.ID == PlayerInfoCopy.ConnectedGameID);
-            var gamePlayerInfo = game.PlayerInfos.First(PlayerInfo1 => PlayerInfo1.InGameID == PlayerInfoCopy.InGameID);
-            _games.Remove(game);
-            game.PlayerInfos.RemoveAll(PlayerInfo1 => PlayerInfo1.InGameID == PlayerInfoCopy.InGameID);
+            var game = _games.First(state => state.GetGameStateInfo().ID == playerInfo.ConnectedGameID);
             // TODO: Check here if the movement is valid once applicable and dont use toNodeCopy.
-            gamePlayerInfo.Position = toNodeCopy;
-            game.PlayerInfos.Add(gamePlayerInfo);
-            _games.Add(game);
-            _logger.Log(LogLevel.Debug, $"Moved PlayerInfo {PlayerInfoCopy.InGameID} in {PlayerInfoCopy.ConnectedGameID} to " +
+            playerInfo.Position = toNodeCopy;
+            game.UpdatePlayersBasedOnInfos(new List<PlayerInfo>() {playerInfo});
+            _logger.Log(LogLevel.Debug, $"Moved player {playerInfo.InGameID} in {playerInfo.ConnectedGameID} to " +
                                         $"node with nodeID {toNodeCopy.ID}");
-            return game;
         }
         catch (InvalidOperationException e)
         {
             _logger.Log(LogLevel.Error, "Failed to move PlayerInfo because the game the PlayerInfo refers to " +
                                         $"doesn't exist or the PlayerInfo isn't in the game. " +
-                                        $"GameID: {PlayerInfoCopy.ConnectedGameID}. InGame PlayerInfoID {PlayerInfoCopy.InGameID}.");
+                                        $"GameID: {playerInfo.ConnectedGameID}. InGame PlayerInfoID {playerInfo.InGameID}.");
         }
         catch (Exception e)
         {
             _logger.Log(LogLevel.Error, $"Something went wrong when trying to move the PlayerInfo. Error {e}");
         }
-
-        return default;
     }
 
 
