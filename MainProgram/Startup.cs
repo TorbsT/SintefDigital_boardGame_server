@@ -4,10 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using System.Linq;
-using Microsoft.AspNetCore.Mvc;
 
-namespace SintefDigitalBoardGameServer
+namespace MainProgram
 {
     public class Startup
     {
@@ -36,6 +34,7 @@ namespace SintefDigitalBoardGameServer
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            Console.WriteLine("Configuring controllers...");
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
