@@ -1,0 +1,161 @@
+{
+  "version": 3,
+  "targets": {
+    "net6.0": {
+      "Core/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v6.0",
+        "dependencies": {
+          "Logging": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Core.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Core.dll": {}
+        }
+      },
+      "Helpers/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v6.0",
+        "compile": {
+          "bin/placeholder/Helpers.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Helpers.dll": {}
+        }
+      },
+      "Logging/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v6.0",
+        "compile": {
+          "bin/placeholder/Logging.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Logging.dll": {}
+        }
+      },
+      "Rules/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v6.0",
+        "dependencies": {
+          "Core": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Rules.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Rules.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Core/1.0.0": {
+      "type": "project",
+      "path": "../Core/Core.csproj",
+      "msbuildProject": "../Core/Core.csproj"
+    },
+    "Helpers/1.0.0": {
+      "type": "project",
+      "path": "../Helpers/Helpers.csproj",
+      "msbuildProject": "../Helpers/Helpers.csproj"
+    },
+    "Logging/1.0.0": {
+      "type": "project",
+      "path": "../Logging/Logging.csproj",
+      "msbuildProject": "../Logging/Logging.csproj"
+    },
+    "Rules/1.0.0": {
+      "type": "project",
+      "path": "../Rules/Rules.csproj",
+      "msbuildProject": "../Rules/Rules.csproj"
+    }
+  },
+  "projectFileDependencyGroups": {
+    "net6.0": [
+      "Core >= 1.0.0",
+      "Helpers >= 1.0.0",
+      "Logging >= 1.0.0",
+      "Rules >= 1.0.0"
+    ]
+  },
+  "packageFolders": {
+    "C:\\Users\\Tim Matras\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {},
+    "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Communication\\Communication.csproj",
+      "projectName": "Communication",
+      "projectPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Communication\\Communication.csproj",
+      "packagesPath": "C:\\Users\\Tim Matras\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Communication\\obj\\",
+      "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
+        "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
+      ],
+      "configFilePaths": [
+        "C:\\Users\\Tim Matras\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+      ],
+      "originalTargetFrameworks": [
+        "net6.0"
+      ],
+      "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net6.0": {
+          "targetAlias": "net6.0",
+          "projectReferences": {
+            "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Core\\Core.csproj": {
+              "projectPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Core\\Core.csproj"
+            },
+            "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Helpers\\Helpers.csproj": {
+              "projectPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Helpers\\Helpers.csproj"
+            },
+            "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Logging\\Logging.csproj": {
+              "projectPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Logging\\Logging.csproj"
+            },
+            "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Rules\\Rules.csproj": {
+              "projectPath": "C:\\Users\\Tim Matras\\Documents\\Universitet-fag\\IT2901\\SintefDigital_boardGame_server\\Rules\\Rules.csproj"
+            }
+          }
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      }
+    },
+    "frameworks": {
+      "net6.0": {
+        "targetAlias": "net6.0",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.102\\RuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

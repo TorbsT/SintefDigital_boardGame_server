@@ -1,38 +1,38 @@
-using SintefDigital_boardGame_server.Core;
-using SintefDigital_boardGame_server.Logging;
-using SintefDigital_boardGame_server.Test.Core.MockControllers;
+using Core;
+using Logging;
+using Test.Core.MockControllers;
 using Xunit;
 
-namespace SintefDigital_boardGame_server.Test.Core;
+namespace Test.Core;
 
 
 public class GameControllerTest : IDisposable
 {
 
     private GameController _gameController;
-    private MockMultiplayerController _mockMultiplayerController;
+    private MockMultiPlayerInfoController _mockMultiPlayerInfoController;
 
     public GameControllerTest()
     {
-        (_gameController, _mockMultiplayerController) = CreateAndRunGameControllerAndMultiplayerController();
+        (_gameController, _mockMultiPlayerInfoController) = CreateAndRunGameControllerAndMultiPlayerInfoController();
     }
 
     public void Dispose()
     {
         _gameController.Dispose();
     }
-    
+
     [Fact]
     public void TestRunningController()
     {
-        var mockMultiPlayerController = new MockMultiplayerController();
-        var gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore), mockMultiPlayerController, mockMultiPlayerController);
+        var mockMultiPlayerInfoController = new MockMultiPlayerInfoController();
+        var gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore), mockMultiPlayerInfoController, mockMultiPlayerInfoController);
         Assert.False(gameController.IsMainLoopRunning());
         gameController.Run();
         Assert.True(gameController.IsMainLoopRunning());
         gameController.Dispose();
     }
-    
+
     [Theory]
     [InlineData(0, 0)]
     [InlineData(0, 1)]
@@ -40,155 +40,155 @@ public class GameControllerTest : IDisposable
     [InlineData(5, 10)]
     [InlineData(100, 110)]
     [InlineData(1000, 1000)]
-    public void TestCreatingNewGame(int amountOfNewPlayers, int amountOfNewGames)
+    public void TestCreatingNewGame(int amountOfNewPlayerInfos, int amountOfNewGames)
     {
         Thread.Sleep(10);
-        _mockMultiplayerController.Lock();
-        Assert.Empty(_mockMultiplayerController.FetchCreatedGames());
+        _mockMultiPlayerInfoController.Lock();
+        Assert.Empty(_mockMultiPlayerInfoController.FetchCreatedGames());
 
-        List<Player> players = MakeRandomPlayerListWithSize(amountOfNewPlayers);
-        
-        List<(Player,string)> newGames = MakeRandomGameLobbyListWithSize(amountOfNewGames, players);
-        _mockMultiplayerController.AddNewWantedGames(new List<(Player,string)>(newGames));
-        _mockMultiplayerController.ReleaseLock();
-        
-        List<GameState> gamesCreatedList = new List<GameState>();
+        List<PlayerInfo> PlayerInfos = MakeRandomPlayerInfoListWithSize(amountOfNewPlayerInfos);
+
+        List<(PlayerInfo, string)> newGames = MakeRandomGameLobbyListWithSize(amountOfNewGames, PlayerInfos);
+        _mockMultiPlayerInfoController.AddNewWantedGames(new List<(PlayerInfo, string)>(newGames));
+        _mockMultiPlayerInfoController.ReleaseLock();
+
+        List<GameStateInfo> gamesCreatedList = new List<GameStateInfo>();
         for (int _ = 0; _ < 100; _++)
         {
             Thread.Sleep(500);
-            _mockMultiplayerController.Lock();
-            gamesCreatedList = _mockMultiplayerController.FetchCreatedGames();
-            _mockMultiplayerController.ReleaseLock();
+            _mockMultiPlayerInfoController.Lock();
+            gamesCreatedList = _mockMultiPlayerInfoController.FetchCreatedGames();
+            _mockMultiPlayerInfoController.ReleaseLock();
             if (gamesCreatedList.Count <= newGames.Count) break;
         }
-        
+
         Assert.Equal(newGames.Count, gamesCreatedList.Count);
 
-        foreach (var (player, gameName) in newGames)
+        foreach (var (PlayerInfo, gameName) in newGames)
         {
-            Assert.Contains(gamesCreatedList, gameState =>
+            Assert.Contains(gamesCreatedList, GameStateInfo =>
             {
-                return gameState.Players.Any(gamePlayer => gamePlayer.UniqueID == player.UniqueID) && gameState.Name == gameName;
+                return GameStateInfo.PlayerInfos.Any(gamePlayerInfo => gamePlayerInfo.UniqueID == PlayerInfo.UniqueID) && GameStateInfo.Name == gameName;
             });
         }
     }
 
     [Fact]
-    public void TestPlayerMovement()
+    public void TestPlayerInfoMovement()
     {
-        
-        Node startNode = new Node();
+
+        NodeInfo startNode = new NodeInfo();
         startNode.ID = 1;
-        startNode.Neighbours = new List<Node>();
-        
-        Node endNode = new Node();
+        startNode.Neighbours = new List<NodeInfo>();
+
+        NodeInfo endNode = new NodeInfo();
         endNode.ID = 2;
-        endNode.Neighbours = new List<Node>();
-        
+        endNode.Neighbours = new List<NodeInfo>();
+
         startNode.Neighbours.Add(endNode);
         endNode.Neighbours.Add(startNode);
-        
-        Player player = MakeRandomPlayer();
-        player.Position = startNode;
-        var newGame = (player, "TestMovement");
-        List<(Player, string)> newGameList = new List<(Player, string)>();
-        newGameList.Add(newGame);
-        
-        _mockMultiplayerController.Lock();
-        _mockMultiplayerController.AddNewWantedGames(new List<(Player, string)>(newGameList));
-        _mockMultiplayerController.ReleaseLock();
 
-        GameState gameState = new GameState();
+        PlayerInfo PlayerInfo = MakeRandomPlayerInfo();
+        PlayerInfo.Position = startNode;
+        var newGame = (PlayerInfo, "TestMovement");
+        List<(PlayerInfo, string)> newGameList = new List<(PlayerInfo, string)>();
+        newGameList.Add(newGame);
+
+        _mockMultiPlayerInfoController.Lock();
+        _mockMultiPlayerInfoController.AddNewWantedGames(new List<(PlayerInfo, string)>(newGameList));
+        _mockMultiPlayerInfoController.ReleaseLock();
+
+        GameStateInfo GameStateInfo = new GameStateInfo();
         for (int _ = 0; _ < 100; _++)
         {
             Thread.Sleep(100);
-            _mockMultiplayerController.Lock();
-            var createdGames = _mockMultiplayerController.FetchCreatedGames();
-            _mockMultiplayerController.ReleaseLock();
+            _mockMultiPlayerInfoController.Lock();
+            var createdGames = _mockMultiPlayerInfoController.FetchCreatedGames();
+            _mockMultiPlayerInfoController.ReleaseLock();
             if (createdGames.Count == 1)
             {
-                gameState = createdGames.First();
+                GameStateInfo = createdGames.First();
                 break;
             }
         }
 
-        gameState.Players ??= new List<Player>();
+        GameStateInfo.PlayerInfos ??= new List<PlayerInfo>();
 
-        Assert.Contains(gameState.Players, player1 => player1.Position.ID == startNode.ID);
+        Assert.Contains(GameStateInfo.PlayerInfos, PlayerInfo1 => PlayerInfo1.Position.ID == startNode.ID);
 
-        player = gameState.Players.First(player1 => player1.UniqueID == player.UniqueID);
-        
+        PlayerInfo = GameStateInfo.PlayerInfos.First(PlayerInfo1 => PlayerInfo1.UniqueID == PlayerInfo.UniqueID);
+
         Input input = new Input();
-        input.Player = player;
-        input.Type = PlayerInputType.Movement;
+        input.PlayerInfo = PlayerInfo;
+        input.Type = PlayerInfoInputType.Movement;
         input.RelatedNode = endNode;
-        
-        _mockMultiplayerController.Lock();
-        _mockMultiplayerController.AddInput(input);
-        _mockMultiplayerController.ReleaseLock();
-        
+
+        _mockMultiPlayerInfoController.Lock();
+        _mockMultiPlayerInfoController.AddInput(input);
+        _mockMultiPlayerInfoController.ReleaseLock();
+
         Thread.Sleep(500); // Let the game controller handle the inputs
-        
-        _mockMultiplayerController.Lock();
-        gameState = _mockMultiplayerController.FetchCreatedGames().First();
-        _mockMultiplayerController.ReleaseLock();
-        
-        Assert.Contains(gameState.Players, player1 => player1.Position.ID == endNode.ID);
+
+        _mockMultiPlayerInfoController.Lock();
+        GameStateInfo = _mockMultiPlayerInfoController.FetchCreatedGames().First();
+        _mockMultiPlayerInfoController.ReleaseLock();
+
+        Assert.Contains(GameStateInfo.PlayerInfos, PlayerInfo1 => PlayerInfo1.Position.ID == endNode.ID);
     }
 
-    private (GameController, MockMultiplayerController) CreateAndRunGameControllerAndMultiplayerController()
+    private (GameController, MockMultiPlayerInfoController) CreateAndRunGameControllerAndMultiPlayerInfoController()
     {
-        var mockMultiPlayerController = new MockMultiplayerController();
-        var gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore), mockMultiPlayerController, mockMultiPlayerController);
+        var mockMultiPlayerInfoController = new MockMultiPlayerInfoController();
+        var gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore), mockMultiPlayerInfoController, mockMultiPlayerInfoController);
         gameController.Run();
-        return (gameController, mockMultiPlayerController);
+        return (gameController, mockMultiPlayerInfoController);
     }
-    
-    private List<(Player,string)> MakeRandomGameLobbyListWithSize(int listSize, List<Player> players)
+
+    private List<(PlayerInfo, string)> MakeRandomGameLobbyListWithSize(int listSize, List<PlayerInfo> PlayerInfos)
     {
-        List<(Player,string)> newGames = new List<(Player,string)>(listSize);
-        int playerIndex = 0;
+        List<(PlayerInfo, string)> newGames = new List<(PlayerInfo, string)>(listSize);
+        int PlayerInfoIndex = 0;
         for (int _ = 0; _ < listSize; _++)
         {
-            Player player = default;
-            if (playerIndex == players.Count) playerIndex = 0;
-            if (players.Count != 0) player = players[playerIndex];
-            newGames.Add(MakeRandomLobbyWithPlayer(player));
+            PlayerInfo PlayerInfo = default;
+            if (PlayerInfoIndex == PlayerInfos.Count) PlayerInfoIndex = 0;
+            if (PlayerInfos.Count != 0) PlayerInfo = PlayerInfos[PlayerInfoIndex];
+            newGames.Add(MakeRandomLobbyWithPlayerInfo(PlayerInfo));
         }
 
         return newGames;
     }
 
-    private (Player,string) MakeRandomLobbyWithPlayer(Player player)
+    private (PlayerInfo, string) MakeRandomLobbyWithPlayerInfo(PlayerInfo PlayerInfo)
     {
         Random generator = new Random();
-        return (player, generator.Next().ToString());
+        return (PlayerInfo, generator.Next().ToString());
     }
 
-    private List<Player> MakeRandomPlayerListWithSize(int listSize)
+    private List<PlayerInfo> MakeRandomPlayerInfoListWithSize(int listSize)
     {
-        List<Player> players = new List<Player>(listSize);
+        List<PlayerInfo> PlayerInfos = new List<PlayerInfo>(listSize);
         for (int _ = 0; _ < listSize; _++)
         {
-            Player newPlayer = MakeRandomPlayer();
-            while (players.Any(player => player.UniqueID == newPlayer.UniqueID))
+            PlayerInfo newPlayerInfo = MakeRandomPlayerInfo();
+            while (PlayerInfos.Any(PlayerInfo => PlayerInfo.UniqueID == newPlayerInfo.UniqueID))
             {
-                newPlayer = MakeRandomPlayer();
+                newPlayerInfo = MakeRandomPlayerInfo();
             }
-            players.Add(newPlayer);
+            PlayerInfos.Add(newPlayerInfo);
         }
 
-        return players;
+        return PlayerInfos;
     }
 
-    private Player MakeRandomPlayer()
+    private PlayerInfo MakeRandomPlayerInfo()
     {
-        
-        Player player = new Player();
-        player.Name = MakeRandomNumber().ToString();
-        player.UniqueID = MakeRandomNumber();
-        player.InGameID = 1;
-        return player;
+
+        PlayerInfo PlayerInfo = new PlayerInfo();
+        PlayerInfo.Name = MakeRandomNumber().ToString();
+        PlayerInfo.UniqueID = MakeRandomNumber();
+        PlayerInfo.InGameID = 1;
+        return PlayerInfo;
     }
 
     private int MakeRandomNumber()
@@ -196,10 +196,10 @@ public class GameControllerTest : IDisposable
         Random generator = new Random();
         return generator.Next();
     }
-    
-    private Node MakeRandomNode()
+
+    private NodeInfo MakeRandomNode()
     {
-        Node node = default;
+        NodeInfo node = default;
         node.ID = MakeRandomNumber();
         return node;
     }

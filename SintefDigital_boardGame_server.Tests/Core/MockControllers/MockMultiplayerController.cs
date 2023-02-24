@@ -1,43 +1,43 @@
-using SintefDigital_boardGame_server.Core;
+using Core;
 
-namespace SintefDigital_boardGame_server.Test.Core.MockControllers;
+namespace Test.Core.MockControllers;
 
-public class MockMultiplayerController : IMultiplayerViewController, IMultiplayerPlayerInputController
+public class MockMultiPlayerInfoController : IMultiPlayerInfoViewController, IMultiPlayerInfoPlayerInfoInputController
 {
-    private List<GameState> _createdGameStates = new List<GameState>();
-    private List<(Player,string)> _newGames = new List<(Player,string)>();
+    private List<GameStateInfo> _createdGameStateInfos = new List<GameStateInfo>();
+    private List<(PlayerInfo, string)> _newGames = new List<(PlayerInfo, string)>();
     private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
     private List<Input> _inputs = new List<Input>();
 
-    public MockMultiplayerController()
+    public MockMultiPlayerInfoController()
     {
-        
-    }
-    
-    public void SendNewGameStateToPlayers(GameState state)
-    {
-        VerifyLock();
-        Console.WriteLine(_createdGameStates.Count);
-        _createdGameStates.RemoveAll(gameState => gameState.ID == state.ID);
-        Console.WriteLine(_createdGameStates.Count);
-        _createdGameStates.Add(state);
+
     }
 
-    public List<(Player,string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayer()
+    public void SendNewGameStateInfoToPlayerInfos(GameStateInfo state)
     {
         VerifyLock();
-        var clone = new List<(Player,string)>(_newGames);
+        Console.WriteLine(_createdGameStateInfos.Count);
+        _createdGameStateInfos.RemoveAll(GameStateInfo => GameStateInfo.ID == state.ID);
+        Console.WriteLine(_createdGameStateInfos.Count);
+        _createdGameStateInfos.Add(state);
+    }
+
+    public List<(PlayerInfo, string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayerInfo()
+    {
+        VerifyLock();
+        var clone = new List<(PlayerInfo, string)>(_newGames);
         _newGames.Clear();
         return clone;
     }
 
-    public void AddNewWantedGames(List<(Player,string)> wantedGameList)
+    public void AddNewWantedGames(List<(PlayerInfo, string)> wantedGameList)
     {
         VerifyLock();
         _newGames.AddRange(wantedGameList);
     }
 
-    public List<Input> FetchPlayerInputs(int gameID)
+    public List<Input> FetchPlayerInfoInputs(int gameID)
     {
         VerifyLock();
         List<Input> inputs = new List<Input>(_inputs);
@@ -45,10 +45,10 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
         return inputs;
     }
 
-    public List<GameState> FetchCreatedGames()
+    public List<GameStateInfo> FetchCreatedGames()
     {
         VerifyLock();
-        return new List<GameState>(_createdGameStates);
+        return new List<GameStateInfo>(_createdGameStateInfos);
     }
 
     public void AddInput(Input input)
@@ -56,7 +56,7 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
         VerifyLock();
         _inputs.Add(input);
     }
-    
+
     public void Lock()
     {
         _lock.EnterWriteLock();
@@ -66,7 +66,7 @@ public class MockMultiplayerController : IMultiplayerViewController, IMultiplaye
     {
         _lock.ExitWriteLock();
     }
-    
+
     public void VerifyLock()
     {
         if (!_lock.IsWriteLockHeld) throw new InvalidOperationException("Before making any calls to this object " +
