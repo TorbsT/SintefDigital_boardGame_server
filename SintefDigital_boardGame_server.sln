@@ -1,8 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SintefDigital_boardGame_server", "SintefDigital_boardGame_server\SintefDigital_boardGame_server.csproj", "{6C349C05-E165-446E-93ED-76FE6FF0D01E}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33213.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MainProgram", "SintefDigital_boardGame_server\MainProgram.csproj", "{6C349C05-E165-446E-93ED-76FE6FF0D01E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SintefDigital_boardGame_server.Tests", "SintefDigital_boardGame_server.Tests\SintefDigital_boardGame_server.Tests.csproj", "{45676477-05FD-4273-A5D0-3F227B501FE5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "SintefDigital_boardGame_server.Tests\Tests.csproj", "{45676477-05FD-4273-A5D0-3F227B501FE5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{93AA1D3A-4905-4C47-83C9-466D93033F98}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Communication", "Communication\Communication.csproj", "{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Helpers", "Helpers\Helpers.csproj", "{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging", "Logging\Logging.csproj", "{5B9D7212-FF17-44ED-B96D-91398385C184}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rules", "Rules\Rules.csproj", "{82A27E47-A42B-4E19-A1BD-9FCC93087404}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +31,31 @@ Global
 		{45676477-05FD-4273-A5D0-3F227B501FE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45676477-05FD-4273-A5D0-3F227B501FE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45676477-05FD-4273-A5D0-3F227B501FE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{93AA1D3A-4905-4C47-83C9-466D93033F98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{93AA1D3A-4905-4C47-83C9-466D93033F98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{93AA1D3A-4905-4C47-83C9-466D93033F98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{93AA1D3A-4905-4C47-83C9-466D93033F98}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B9D7212-FF17-44ED-B96D-91398385C184}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B9D7212-FF17-44ED-B96D-91398385C184}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B9D7212-FF17-44ED-B96D-91398385C184}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B9D7212-FF17-44ED-B96D-91398385C184}.Release|Any CPU.Build.0 = Release|Any CPU
+		{82A27E47-A42B-4E19-A1BD-9FCC93087404}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82A27E47-A42B-4E19-A1BD-9FCC93087404}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82A27E47-A42B-4E19-A1BD-9FCC93087404}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82A27E47-A42B-4E19-A1BD-9FCC93087404}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AAF694B4-11B0-4F47-8D08-31B023ADF549}
 	EndGlobalSection
 EndGlobal
