@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Core;
 
-internal class GameState
+public class GameState //TODO: protect later
 {
     private GameStateInfo _gameStateInfo;
     private List<Player> _players;
