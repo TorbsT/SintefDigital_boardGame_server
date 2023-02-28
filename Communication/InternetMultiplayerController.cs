@@ -49,4 +49,14 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
                                                                         "it needs to be locked unsing Lock() and " +
                                                                         "needs to be released once done!");
     }
+
+    public void HandleGeneratedUniqueIDs(List<int> uniqueIDs)
+    {
+        throw new NotImplementedException();
+    }
+
+    public int FetchWantedAmountOfUniqueIDs()
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -7,4 +7,5 @@ public interface IMultiPlayerInfoPlayerInfoInputController : ILocker
 {
     List<(PlayerInfo, string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayerInfo();
     List<Input> FetchPlayerInfoInputs(int gameID);
+    int FetchWantedAmountOfUniqueIDs();
 }

@@ -8,6 +8,8 @@ public class MockMultiPlayerInfoController : IMultiPlayerInfoViewController, IMu
     private List<(PlayerInfo, string)> _newGames = new List<(PlayerInfo, string)>();
     private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
     private List<Input> _inputs = new List<Input>();
+    private int _wantedUniqueIDs = 0;
+    private List<int> _uniqueIDs = new List<int>();
 
     public MockMultiPlayerInfoController()
     {
@@ -72,5 +74,34 @@ public class MockMultiPlayerInfoController : IMultiPlayerInfoViewController, IMu
         if (!_lock.IsWriteLockHeld) throw new InvalidOperationException("Before making any calls to this object " +
                                                                         "it needs to be locked unsing Lock() and " +
                                                                         "needs to be released once done!");
+    }
+
+    public void HandleGeneratedUniqueIDs(List<int> uniqueIDs)
+    {
+        VerifyLock();
+        _uniqueIDs.AddRange(uniqueIDs);
+    }
+
+    public int FetchWantedAmountOfUniqueIDs()
+    {
+        VerifyLock();
+        int wanted_amount = _wantedUniqueIDs;
+        _wantedUniqueIDs = 0;
+        return wanted_amount;
+    }
+
+    public void NotifyWantID()
+    {
+        VerifyLock();
+        _wantedUniqueIDs++;
+    }
+
+    public (bool, int) FetchUniqueID()
+    {
+        VerifyLock();
+        if (_uniqueIDs.Count <= 0) return (false, 0);
+        int id = _uniqueIDs.First();
+        _uniqueIDs.Remove(id);
+        return (true, id);
     }
 }

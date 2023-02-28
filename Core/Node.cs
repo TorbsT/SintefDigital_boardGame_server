@@ -29,6 +29,7 @@ public class Node
     public void AddNeighbour(Node node)
     {
         this.neighbours.Add(node);
+        node.GetNeighbours().Add(this);
     }
 
     //Returns a list of all neighbours
