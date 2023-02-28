@@ -10,7 +10,7 @@ namespace Core;
 public class GameState //TODO: protect later
 {
     private GameStateInfo _gameStateInfo;
-    private List<Player> _players;
+    //private List<Player> _players;
 
     public GameState(string gameName, int gameID)
     {
@@ -18,7 +18,7 @@ public class GameState //TODO: protect later
         _gameStateInfo.Name = gameName;
         _gameStateInfo.ID = gameID;
         _gameStateInfo.PlayerInfos = new List<PlayerInfo>();
-        _players = new List<Player>();
+        //_players = new List<Player>();
     }
 
     //Updates internal gamestate
@@ -30,23 +30,23 @@ public class GameState //TODO: protect later
     //Returns internal gamestate
     public GameStateInfo GetGameStateInfo()
     {
-        UpdateGameStateInfoPlayerInfos();
         return _gameStateInfo;
     }
 
     public void AssignPlayerToGame(PlayerInfo playerInfo)
     {
-        if (_players.Any(player => player.RetrievePlayerInfo().UniqueID == playerInfo.UniqueID)) throw new ArgumentException("This player already exists in this game");
-        _players.Add(new Player(playerInfo));
+        if (_gameStateInfo.PlayerInfos.Any(player => player.UniqueID == playerInfo.UniqueID)) throw new ArgumentException("This player already exists in this game");
+        _gameStateInfo.PlayerInfos.Add(playerInfo);
     }
 
     public void UpdatePlayersBasedOnInfos(List<PlayerInfo> playerInfos)
     {
         foreach (PlayerInfo playerInfo in playerInfos)
         {
-            if (_players.Any(player => player.RetrievePlayerInfo().UniqueID == playerInfo.UniqueID))
+            if (_gameStateInfo.PlayerInfos.Any(player => player.UniqueID == playerInfo.UniqueID))
             {
-                _players.First(player => player.RetrievePlayerInfo().UniqueID == playerInfo.UniqueID).UpdatePlayer(playerInfo);
+                _gameStateInfo.PlayerInfos.RemoveAll(player => player.UniqueID == playerInfo.UniqueID);
+                _gameStateInfo.PlayerInfos.Add(playerInfo);
             }
         }
     }
@@ -54,12 +54,5 @@ public class GameState //TODO: protect later
     public static implicit operator GameStateInfo(GameState gameState)
     {
         return gameState._gameStateInfo;
-    }
-
-    private void UpdateGameStateInfoPlayerInfos()
-    {
-        List<PlayerInfo> playerInfos = new List<PlayerInfo>();
-        foreach (var player in _players) playerInfos.Add(player.RetrievePlayerInfo());
-        _gameStateInfo.PlayerInfos = playerInfos;
     }
 }
