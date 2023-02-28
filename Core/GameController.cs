@@ -166,7 +166,7 @@ public class GameController : IDisposable
     private GameState CreateNewGameAndAssignHost((PlayerInfo, string) lobbyNameAndPlayerInfo)
     {
         _logger.Log(LogLevel.Debug, "Creating new game state.");
-        foreach (GameState gameState in _games) if (gameState.ContainsUniquePlayerID(lobbyNameAndPlayerInfo.Item1)) throw new ArgumentException($"Player with unique ID {lobbyNameAndPlayerInfo.Item1} is connected to a game in progress");
+        foreach (GameState gameState in _games) if (gameState.ContainsUniquePlayerID(lobbyNameAndPlayerInfo.Item1)) throw new ArgumentException($"Player with unique ID {lobbyNameAndPlayerInfo.Item1} is connected to a game in progress"); //TODO: This line is causing problems for the tests
         var newGame = new GameState(lobbyNameAndPlayerInfo.Item2, GenerateUnusedGameID());
         newGame.AssignPlayerToGame(lobbyNameAndPlayerInfo.Item1);
         _logger.Log(LogLevel.Debug, $"Done creating new Game State with ID {newGame.GetGameStateInfo().ID} and name {newGame.GetGameStateInfo().Name}.");

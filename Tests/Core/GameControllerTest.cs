@@ -90,7 +90,7 @@ public class GameControllerTest : IDisposable
         
         List<GameStateInfo> gamesCreatedList = new List<GameStateInfo>();
         int timesToCheckForNewGame = 10 * amountOfNewPlayerInfos;
-        int msToSleepBetweenEachCheck = 10;
+        int msToSleepBetweenEachCheck = 1;
         for (int _ = 0; _ < timesToCheckForNewGame; _++)
         {
             Thread.Sleep(msToSleepBetweenEachCheck);
