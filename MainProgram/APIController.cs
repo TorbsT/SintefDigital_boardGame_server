@@ -8,12 +8,12 @@ namespace MainProgram
 {
     [ApiController]
     [Route("[controller]")]
-    public class APIController : ControllerBase
+    public class APIController : ControllerBase, IDisposable
     {
         private GameState gamestate = new GameState("example", 42);
         private ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
         private InternetMultiPlayerInfoController internetMultiPlayerInfoController = new InternetMultiPlayerInfoController();
-        private GameController? gameController;
+        private GameController gameController;
 
         public APIController()
         {
@@ -24,17 +24,41 @@ namespace MainProgram
 
         [Route("")]
         [HttpGet]
-        public ActionResult<String> test()
+        public ActionResult<PlayerInfo> test()
         {
-            thresholdLogger.Log(LogLevel.Debug, gameController.IsMainLoopRunning().ToString());
-            return Ok("bruh");
+            PlayerInfo p1 = new PlayerInfo();
+            p1.UniqueID = 12345;
+            p1.Name = "67890";
+            return Ok(JsonConvert.SerializeObject((p1, "bruh")));
         }
 
         [Route("")]
         [HttpPost]
         public ActionResult<String> CreateGameAndAssignHost([FromBody] (PlayerInfo, string) playerInfoAndLobbyName)
         {
+            //{"ConnectedGameID":0,"InGameID":0,"UniqueID":12345,"Name":"67890","Position":{"ID":0,"Name":null}}
+            //{"Item1":{"ConnectedGameID":0,"InGameID":0,"UniqueID":12345,"Name":"67890","Position":{"ID":0,"Name":null}},"Item2":"bruh"}
+            //curl -X POST -H "Content-Type: application/json" -d '{"Item1":{"ConnectedGameID":0,"InGameID":0,"UniqueID":12345,"Name":"67890","Position":{"ID":0,"Name":null}},"Item2":"bruh"}' localhost:5000/API
+            Console.WriteLine(playerInfoAndLobbyName.Item2);
             return Ok("Game created!");
+        }
+
+        [Route("playerID")]
+        [HttpGet]
+        public ActionResult<int> GetUniquePlayerID()
+        {
+            internetMultiPlayerInfoController.Lock();
+            internetMultiPlayerInfoController.NotifyWantID();
+            var (gotId, id) = internetMultiPlayerInfoController.FetchUniqueID();
+            internetMultiPlayerInfoController.ReleaseLock();
+            while (gotId == false)
+            {
+                internetMultiPlayerInfoController.Lock();
+                (gotId, id) = internetMultiPlayerInfoController.FetchUniqueID();
+                internetMultiPlayerInfoController.ReleaseLock();
+                Thread.Sleep(10);
+            }
+            return id;
         }
 
         [Route("gamestate/{id}")]
@@ -76,6 +100,11 @@ namespace MainProgram
             {
                 return Unauthorized("Error(401): Authentication failed");
             }
+        }
+
+        public void Dispose()
+        {
+            gameController.Dispose();
         }
     }
 }

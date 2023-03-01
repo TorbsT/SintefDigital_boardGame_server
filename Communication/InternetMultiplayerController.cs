@@ -4,12 +4,15 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Xml;
 
 namespace Communication;
 
 public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController, IMultiPlayerInfoPlayerInfoInputController
 {
     private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
+    private int _wantedUniqueIDs;
+    private List<int> _availableUniqueIDs = new List<int>();
 
     public List<(PlayerInfo, string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayerInfo()
     {
@@ -52,11 +55,25 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
 
     public void HandleGeneratedUniqueIDs(List<int> uniqueIDs)
     {
-        throw new NotImplementedException();
+        _availableUniqueIDs.AddRange(uniqueIDs);
+        _wantedUniqueIDs -= uniqueIDs.Count;
     }
 
     public int FetchWantedAmountOfUniqueIDs()
     {
-        throw new NotImplementedException();
+        return _wantedUniqueIDs;
+    }
+    public void NotifyWantID()
+    {
+        VerifyLock();
+        _wantedUniqueIDs++;
+    }
+    public (bool, int) FetchUniqueID()
+    {
+        VerifyLock();
+        if (_availableUniqueIDs.Count <= 0) return (false, 0);
+        int id = _availableUniqueIDs.First();
+        _availableUniqueIDs.Remove(id);
+        return (true, id);
     }
 }
