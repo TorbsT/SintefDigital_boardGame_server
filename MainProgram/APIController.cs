@@ -4,6 +4,25 @@ using Logging;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+
+public struct PlayerInfoJson
+{
+    [JsonPropertyName("connectedGameId")]
+    public int ConnectedGameID { get; set; }
+
+    [JsonPropertyName("inGameId")]
+    public int InGameID { get; set; }
+
+    [JsonPropertyName("uniqueId")]
+    public int UniqueID { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
+    [JsonPropertyName("position")]
+    public NodeInfo Position { get; set; }
+}
 
 namespace MainProgram
 {
@@ -30,18 +49,15 @@ namespace MainProgram
             PlayerInfo p1 = new PlayerInfo();
             p1.UniqueID = 12345;
             p1.Name = "67890";
-            return Ok(JsonConvert.SerializeObject((p1, "bruh")));
+            return Ok(JsonConvert.SerializeObject(new WantedLobbyInfo(){PlayerInfo = p1, LobbyName = "bruh"}));
         }
 
         [Route("")]
         [HttpPost]
-        public ActionResult<String> CreateGameAndAssignHost([FromBody] (PlayerInfo, string) playerInfoAndLobbyName)
+        public ActionResult<string> CreateGameAndAssignHost([FromBody] WantedLobbyInfo playerInfoAndLobbyName)
         {
             //curl -X POST -H "Content-Type: application/json" -d "{\"Item1\":{\"ConnectedGameID\":1,\"InGameID\":2,\"UniqueID\":3,\"Name\":\"John\",\"Position\":{\"ID\":4,\"Name\":\"PositionName\"}},\"Item2\":\"bruh\"}" localhost:5000/API
-            Console.WriteLine("Before");
-            Console.WriteLine(playerInfoAndLobbyName.Item2);
-            Console.WriteLine("After");
-            return Ok("Success");
+            return Ok($"Success player {playerInfoAndLobbyName.PlayerInfo.Name}");
         }
 
         [Route("playerID")]

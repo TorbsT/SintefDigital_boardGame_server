@@ -4,8 +4,8 @@ namespace Core;
 
 public struct NodeInfo
 {
-    public int ID;
-    public string Name;
+    public int ID { get; set; }
+    public string? Name { get; set; }
 
     public NodeInfo(int id, string name)
     {
