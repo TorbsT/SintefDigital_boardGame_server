@@ -3,19 +3,23 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "Core\Core.csproj", "{93AA1D3A-4905-4C47-83C9-466D93033F98}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Core", "Core\Core.csproj", "{93AA1D3A-4905-4C47-83C9-466D93033F98}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Communication", "Communication\Communication.csproj", "{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Communication", "Communication\Communication.csproj", "{ACD6DE21-9C0C-4B82-8AB9-E387E505E2EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Helpers", "Helpers\Helpers.csproj", "{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Helpers", "Helpers\Helpers.csproj", "{8CBB79FE-E906-49F3-B67C-5FF5F06C3859}"
+	ProjectSection(ProjectDependencies) = postProject
+		{82A27E47-A42B-4E19-A1BD-9FCC93087404} = {82A27E47-A42B-4E19-A1BD-9FCC93087404}
+		{93AA1D3A-4905-4C47-83C9-466D93033F98} = {93AA1D3A-4905-4C47-83C9-466D93033F98}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging", "Logging\Logging.csproj", "{5B9D7212-FF17-44ED-B96D-91398385C184}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Logging", "Logging\Logging.csproj", "{5B9D7212-FF17-44ED-B96D-91398385C184}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rules", "Rules\Rules.csproj", "{82A27E47-A42B-4E19-A1BD-9FCC93087404}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Rules", "Rules\Rules.csproj", "{82A27E47-A42B-4E19-A1BD-9FCC93087404}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{2DE41943-20B5-4263-8275-11D37DA51A15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{2DE41943-20B5-4263-8275-11D37DA51A15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MainProgram", "MainProgram\MainProgram.csproj", "{8FC22FDB-3FA7-4AAA-85CD-40396931B25A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MainProgram", "MainProgram\MainProgram.csproj", "{8FC22FDB-3FA7-4AAA-85CD-40396931B25A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

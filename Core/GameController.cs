@@ -19,6 +19,7 @@ public class GameController : IDisposable
     private Thread _mainLoopThread;
     private object _stopMonitor = new object();
     private bool _stopMainThread = false;
+    private List<int> _uniqueIDs= new List<int>();
 
     public GameController(ILogger logger, IMultiPlayerInfoViewController viewController, IMultiPlayerInfoPlayerInfoInputController inputController)
     {
@@ -58,51 +59,93 @@ public class GameController : IDisposable
     private void RunMainLoop()
     {
         bool stop;
-        lock (_stopMonitor)
-        {
-            stop = _stopMainThread;
-        }
+        lock (_stopMonitor) {stop = _stopMainThread;}
 
         while (!stop)
         {
             try
             {
-                List<(PlayerInfo, string)> newGames = new List<(PlayerInfo, string)>();
+                int amountOfNewIDs = 0;
                 try
                 {
                     _inputController.Lock();
-                    newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayerInfo();
-                }
-                catch (Exception e)
-                {
-                    _logger.Log(LogLevel.Error, $"Failed to fetch new game lobbies. Error {e}");
-                }
-                finally
-                {
-                    _inputController.ReleaseLock();
-                }
-                foreach (var lobbyNameAndPlayerInfo in newGames) HandleNewGameCreation(lobbyNameAndPlayerInfo);
-            }
-            catch (Exception e)
+                    amountOfNewIDs = _inputController.FetchWantedAmountOfUniqueIDs();
+                } 
+                catch (Exception e) {_logger.Log(LogLevel.Error, $"Failed to fetch amount of wanted IDs. Error {e}");}
+                finally {_inputController.ReleaseLock();}
+
+                HandleNewIDs(amountOfNewIDs);
+
+            } catch (Exception e)
             {
-                _logger.Log(LogLevel.Error, $"Failed to create new game(s). Error {e}.");
-
+                _logger.Log(LogLevel.Error, $"Failed to make new unique IDs. Error: {e}");
             }
 
+
+            List<(PlayerInfo, string)> newGames = new List<(PlayerInfo, string)>();
             try
             {
-                HandlePlayerInfoInputs();
+                _inputController.Lock();
+                newGames = _inputController.FetchRequestedGameLobbiesWithLobbyNameAndPlayerInfo();
+            }
+            catch (Exception e) { _logger.Log(LogLevel.Error, $"Failed to fetch new game lobbies. Error {e}"); }
+            finally { _inputController.ReleaseLock(); }
+
+            foreach (var lobbyNameAndPlayerInfo in newGames)
+            {
+                _logger.Log(LogLevel.Debug, $"New games to create {newGames.Count.ToString()}. Next playerinfo {lobbyNameAndPlayerInfo.Item1.ToString()}");
+                try { HandleNewGameCreation(lobbyNameAndPlayerInfo); }
+                catch (Exception e) { _logger.Log(LogLevel.Error, $"Failed to create new game(s). Error {e}."); }
+            }
+
+            try { HandlePlayerInfoInputs(); }
+            catch (Exception e) {_logger.Log(LogLevel.Error, $"Failed to handle PlayerInfo inputs {e}.");}
+
+            lock (_stopMonitor) {stop = _stopMainThread;}
+        }
+    }
+
+    private void HandleNewIDs(int amountOfNewIDs)
+    {
+        try
+        {
+            List<int> newIDs = GenerateUnusedGameIDs(amountOfNewIDs);
+            _uniqueIDs.AddRange(newIDs);
+            try
+            {
+                _viewController.Lock();
+                _viewController.HandleGeneratedUniqueIDs(newIDs);
             }
             catch (Exception e)
             {
-                _logger.Log(LogLevel.Error, $"Failed to handle PlayerInfo inputs {e}.");
+                _logger.Log(LogLevel.Error, $"Something went wrong when trying to give the viewController the new IDs. Error: {e}");
             }
-
-            lock (_stopMonitor)
-            {
-                stop = _stopMainThread;
-            }
+            finally { _viewController.ReleaseLock(); }
+        } 
+        catch(Exception e)
+        {
+            _logger.Log(LogLevel.Error, $"Something went wrong when creating new unique IDs. Error: {e}");
         }
+        
+    }
+
+    private List<int> GenerateUnusedGameIDs(int amountOfNewIDs)
+    {
+        Random generator = new Random();
+        List<int> newIDs = new List<int>();
+        for (int i = 0; i < amountOfNewIDs; i++)
+        {
+            int id = generator.Next();
+
+            for (int _ = 0; _ < 100_000; _++)
+            {
+                if (!_uniqueIDs.Contains(id) && !newIDs.Contains(id)) break;
+                id = generator.Next();
+            }
+            newIDs.Add(id);
+        }
+        if (newIDs.Count < amountOfNewIDs) throw new Exception("Failed to generate the wanted amount of new unique IDs");
+        return newIDs;
     }
 
     private void HandleNewGameCreation((PlayerInfo, string) lobbyNameAndPlayerInfo)
@@ -114,20 +157,17 @@ public class GameController : IDisposable
             _viewController.Lock();
             _viewController.SendNewGameStateInfoToPlayerInfos(newGame.GetGameStateInfo());
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             _logger.Log(LogLevel.Error, "Something went wrong when trying to send new game state to the PlayerInfos." +
                                         $" Error: {e}");
         }
-        finally
-        {
-            _viewController.ReleaseLock();
-        }
+        finally {_viewController.ReleaseLock();}
     }
 
     private GameState CreateNewGameAndAssignHost((PlayerInfo, string) lobbyNameAndPlayerInfo)
     {
         _logger.Log(LogLevel.Debug, "Creating new game state.");
+        foreach (GameState gameState in _games) if (gameState.ContainsUniquePlayerID(lobbyNameAndPlayerInfo.Item1)) throw new ArgumentException($"Player with unique ID {lobbyNameAndPlayerInfo.Item1.UniqueID} is connected to a game in progress"); //TODO: This line is causing problems for the tests
         var newGame = new GameState(lobbyNameAndPlayerInfo.Item2, GenerateUnusedGameID());
         newGame.AssignPlayerToGame(lobbyNameAndPlayerInfo.Item1);
         _logger.Log(LogLevel.Debug, $"Done creating new Game State with ID {newGame.GetGameStateInfo().ID} and name {newGame.GetGameStateInfo().Name}.");
@@ -156,12 +196,6 @@ public class GameController : IDisposable
             }
         }
         return true;
-    }
-
-    private void AssignGameToPlayerInfo(ref PlayerInfo PlayerInfo, GameStateInfo game)
-    {
-        PlayerInfo.ConnectedGameID = game.ID;
-        _logger.Log(LogLevel.Debug, $"Assigned PlayerInfo with uniqueID {PlayerInfo.UniqueID} to game with id {game.ID}");
     }
 
     private void HandlePlayerInfoInputs()
@@ -232,7 +266,7 @@ public class GameController : IDisposable
         {
             _logger.Log(LogLevel.Error, "Failed to move PlayerInfo because the game the PlayerInfo refers to " +
                                         $"doesn't exist or the PlayerInfo isn't in the game. " +
-                                        $"GameID: {playerInfo.ConnectedGameID}. InGame PlayerInfoID {playerInfo.InGameID}.");
+                                        $"GameID: {playerInfo.ConnectedGameID}. InGame PlayerInfoID {playerInfo.InGameID}. Error: {e}");
         }
         catch (Exception e)
         {
