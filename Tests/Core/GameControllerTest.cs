@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Test.Core;
 
-
 public class GameControllerTest : IDisposable
 {
 
