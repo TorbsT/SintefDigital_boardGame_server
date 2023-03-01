@@ -3,6 +3,7 @@ using Core;
 using Logging;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace MainProgram
 {
@@ -36,11 +37,11 @@ namespace MainProgram
         [HttpPost]
         public ActionResult<String> CreateGameAndAssignHost([FromBody] (PlayerInfo, string) playerInfoAndLobbyName)
         {
-            //{"ConnectedGameID":0,"InGameID":0,"UniqueID":12345,"Name":"67890","Position":{"ID":0,"Name":null}}
-            //{"Item1":{"ConnectedGameID":0,"InGameID":0,"UniqueID":12345,"Name":"67890","Position":{"ID":0,"Name":null}},"Item2":"bruh"}
-            //curl -X POST -H "Content-Type: application/json" -d '{"Item1":{"ConnectedGameID":0,"InGameID":0,"UniqueID":12345,"Name":"67890","Position":{"ID":0,"Name":null}},"Item2":"bruh"}' localhost:5000/API
+            //curl -X POST -H "Content-Type: application/json" -d "{\"Item1\":{\"ConnectedGameID\":1,\"InGameID\":2,\"UniqueID\":3,\"Name\":\"John\",\"Position\":{\"ID\":4,\"Name\":\"PositionName\"}},\"Item2\":\"bruh\"}" localhost:5000/API
+            Console.WriteLine("Before");
             Console.WriteLine(playerInfoAndLobbyName.Item2);
-            return Ok("Game created!");
+            Console.WriteLine("After");
+            return Ok("Success");
         }
 
         [Route("playerID")]
