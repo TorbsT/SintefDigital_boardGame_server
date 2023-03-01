@@ -1,4 +1,6 @@
-﻿using Core;
+﻿using Communication;
+using Core;
+using Logging;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
@@ -9,6 +11,31 @@ namespace MainProgram
     public class APIController : ControllerBase
     {
         private GameState gamestate = new GameState("example", 42);
+        private ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
+        private InternetMultiPlayerInfoController internetMultiPlayerInfoController = new InternetMultiPlayerInfoController();
+        private GameController? gameController;
+
+        public APIController()
+        {
+            gameController = new GameController(thresholdLogger, internetMultiPlayerInfoController, internetMultiPlayerInfoController);
+            gameController.Run();
+        }
+
+
+        [Route("")]
+        [HttpGet]
+        public ActionResult<String> test()
+        {
+            thresholdLogger.Log(LogLevel.Debug, gameController.IsMainLoopRunning().ToString());
+            return Ok("bruh");
+        }
+
+        [Route("")]
+        [HttpPost]
+        public ActionResult<String> CreateGameAndAssignHost([FromBody] (PlayerInfo, string) playerInfoAndLobbyName)
+        {
+            return Ok("Game created!");
+        }
 
         [Route("gamestate/{id}")]
         [HttpGet]

@@ -40,7 +40,7 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
 
     public void ReleaseLock()
     {
-        _lock.ExitReadLock();
+        _lock.ExitWriteLock();
     }
 
     public void VerifyLock()
