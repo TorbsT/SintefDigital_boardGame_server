@@ -19,9 +19,7 @@ public class MockMultiPlayerInfoController : IMultiPlayerInfoViewController, IMu
     public void SendNewGameStateInfoToPlayerInfos(GameStateInfo state)
     {
         VerifyLock();
-        Console.WriteLine(_createdGameStateInfos.Count);
         _createdGameStateInfos.RemoveAll(GameStateInfo => GameStateInfo.ID == state.ID);
-        Console.WriteLine(_createdGameStateInfos.Count);
         _createdGameStateInfos.Add(state);
     }
 

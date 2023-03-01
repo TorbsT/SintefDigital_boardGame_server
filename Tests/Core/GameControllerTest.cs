@@ -86,7 +86,7 @@ public class GameControllerTest : IDisposable
         _mockMultiPlayerInfoController.Lock();
         _mockMultiPlayerInfoController.AddNewWantedGames(new List<(PlayerInfo, string)>(newGames));
         _mockMultiPlayerInfoController.ReleaseLock();
-        
+
         List<GameStateInfo> gamesCreatedList = new List<GameStateInfo>();
         int timesToCheckForNewGame = 10 * amountOfNewPlayerInfos;
         int msToSleepBetweenEachCheck = 1;
@@ -102,7 +102,14 @@ public class GameControllerTest : IDisposable
         // Because a player cannot be in more than one game at a time
         Assert.Equal(amountOfNewPlayerInfos, gamesCreatedList.Count);
         
-        foreach (var (PlayerInfo, gameName) in newGames)
+        var actualGamesToCreateFromFullList = new List<(PlayerInfo, string)>();
+        for (int i = 0; i < newGames.Count; i++)
+        {
+            if (actualGamesToCreateFromFullList.Any((tuple) => newGames[i].Item1.UniqueID == tuple.Item1.UniqueID)) continue;
+            actualGamesToCreateFromFullList.Add(newGames[i]);
+        }
+
+        foreach (var (PlayerInfo, gameName) in actualGamesToCreateFromFullList)
         {
             Assert.Contains(gamesCreatedList, GameStateInfo =>
             {
@@ -187,9 +194,9 @@ public class GameControllerTest : IDisposable
         int playerInfoIndex = 0;
         for (int _ = 0; _ < listSize; _++)
         {
-            PlayerInfo playerInfo = MakeRandomPlayerInfo();
+            if (playerInfos.Count == 0) break;
+            PlayerInfo playerInfo = playerInfos[playerInfoIndex++];
             if (playerInfoIndex == playerInfos.Count) playerInfoIndex = 0;
-            if (playerInfos.Count != 0) playerInfo = playerInfos[playerInfoIndex];
             newGames.Add(MakeRandomLobbyWithPlayerInfo(playerInfo));
         }
 

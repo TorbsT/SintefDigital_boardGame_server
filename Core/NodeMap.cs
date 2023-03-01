@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -25,7 +25,7 @@ namespace Core
             nodeMap.Add(new Node(new NodeInfo(10, "Central Station")));
             nodeMap.Add(new Node(new NodeInfo(11, "City Square")));
             nodeMap.Add(new Node(new NodeInfo(12, "Concert Hall")));
-            nodeMap.Add(new Node(new NodeInfo(13, "Park & Ride")));
+            nodeMap.Add(new Node(new NodeInfo(13, "Eastside Mart")));
             nodeMap.Add(new Node(new NodeInfo(14, "East Town")));
             nodeMap.Add(new Node(new NodeInfo(15, "Food Court")));
             nodeMap.Add(new Node(new NodeInfo(16, "City Park")));
