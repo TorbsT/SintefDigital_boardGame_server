@@ -35,6 +35,7 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
     public void SendNewGameStateInfoToPlayerInfos(GameStateInfo state)
     {
         VerifyLock();
+        _gameStateInfos.RemoveAll(game => game.ID == state.ID);
         _gameStateInfos.Add(state);
         // TODO: Send game state to the PlayerInfos in the game connected to the game state input
     }
@@ -86,5 +87,10 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
         int id = _availableUniqueIDs.First();
         _availableUniqueIDs.Remove(id);
         return (true, id);
+    }
+
+    public GameStateInfo FetchGameWithPlayer(PlayerInfo player)
+    {
+        return _gameStateInfos.Find(game => game.PlayerInfos.Any(p => p.UniqueID == player.UniqueID));
     }
 }

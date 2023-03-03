@@ -168,7 +168,7 @@ public class GameController : IDisposable
     private GameState CreateNewGameAndAssignHost((PlayerInfo, string) lobbyNameAndPlayerInfo)
     {
         _logger.Log(LogLevel.Debug, "Creating new game state.");
-        if (!_uniqueIDs.Contains(lobbyNameAndPlayerInfo.Item1.UniqueID)) throw new Exception($"Player with unique ID {lobbyNameAndPlayerInfo.Item1.UniqueID} does not exist on the server side. Unable to create game");
+        if (!_uniqueIDs.Contains(lobbyNameAndPlayerInfo.Item1.UniqueID)) throw new Exception($"Player with unique ID {lobbyNameAndPlayerInfo.Item1.UniqueID} does not exist on the server side. Unable to create game. Unique ids: {string.Join(", ", _uniqueIDs)}");
         foreach (GameState gameState in _games) if (gameState.ContainsUniquePlayerID(lobbyNameAndPlayerInfo.Item1)) throw new ArgumentException($"Player with unique ID {lobbyNameAndPlayerInfo.Item1.UniqueID} is connected to a game in progress"); //TODO: This line is causing problems for the tests
         var newGame = new GameState(lobbyNameAndPlayerInfo.Item2, GenerateUnusedGameID());
         newGame.AssignPlayerToGame(lobbyNameAndPlayerInfo.Item1);
@@ -281,5 +281,6 @@ public class GameController : IDisposable
     {
         Stop();
         _mainLoopThread.Join();
+        _logger.Log(LogLevel.Debug, "Shutting down game controller");
     }
 }

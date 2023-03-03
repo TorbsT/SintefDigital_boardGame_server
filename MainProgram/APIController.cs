@@ -12,11 +12,15 @@ namespace MainProgram
     [Route("[controller]")]
     public class APIController : ControllerBase, IDisposable
     {
-        private GameState gamestate = new GameState("example", 42);
-        private ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
-        private InternetMultiPlayerInfoController internetMultiPlayerInfoController = new InternetMultiPlayerInfoController();
-        private GameController gameController;
+        private static readonly GameState gamestate = new GameState("example", 42);
+        private static readonly ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
+        private static readonly InternetMultiPlayerInfoController internetMultiPlayerInfoController = new InternetMultiPlayerInfoController();
+        private static GameController gameController;
 
+        private static readonly Lazy<APIController> _instance = new Lazy<APIController>(() => new APIController());
+
+        public static APIController Instance => _instance.Value;
+        
         public APIController()
         {
             gameController = new GameController(thresholdLogger, internetMultiPlayerInfoController, internetMultiPlayerInfoController);
@@ -36,11 +40,36 @@ namespace MainProgram
 
         [Route("")]
         [HttpPost]
-        public ActionResult<string> CreateGameAndAssignHost([FromBody] WantedLobbyInfo playerInfoAndLobbyName)
+        public ActionResult<GameState> CreateGameAndAssignHost([FromBody] WantedLobbyInfo playerInfoAndLobbyName)
         {
             //curl -X POST -H "Content-Type: application/json" -d "{\"Item1\":{\"ConnectedGameID\":1,\"InGameID\":2,\"UniqueID\":3,\"Name\":\"John\",\"Position\":{\"ID\":4,\"Name\":\"PositionName\"}},\"Item2\":\"bruh\"}" localhost:5000/API
+            internetMultiPlayerInfoController.Lock();
+            internetMultiPlayerInfoController.AddNewWantedGameLobby(playerInfoAndLobbyName);
+            internetMultiPlayerInfoController.ReleaseLock();
+
+            Thread.Sleep(10);
             
-            return Ok($"Success player {playerInfoAndLobbyName.PlayerInfo.Name}");
+            internetMultiPlayerInfoController.Lock();
+            var game = internetMultiPlayerInfoController.FetchGameWithPlayer(playerInfoAndLobbyName.PlayerInfo);
+            internetMultiPlayerInfoController.ReleaseLock();
+
+            Console.WriteLine(playerInfoAndLobbyName.PlayerInfo.UniqueID);
+            
+            int counter = 0;
+            
+            while (game.PlayerInfos.All(p => p.UniqueID != playerInfoAndLobbyName.PlayerInfo.UniqueID) && counter < 1_000)
+            {
+                internetMultiPlayerInfoController.Lock();
+                game = internetMultiPlayerInfoController.FetchGameWithPlayer(playerInfoAndLobbyName.PlayerInfo);
+                internetMultiPlayerInfoController.ReleaseLock();
+                Thread.Sleep(10);
+                counter++;
+            }
+
+            if (game.PlayerInfos.Any(p => p.UniqueID == playerInfoAndLobbyName.PlayerInfo.UniqueID))
+                return Ok(JsonConvert.SerializeObject(game));
+            
+            return NotFound($"Failed to get the game state, but it might come later");
         }
 
         [Route("playerID")]
