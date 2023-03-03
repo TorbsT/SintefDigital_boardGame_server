@@ -13,12 +13,14 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
     private ReaderWriterLockSlim _lock = new ReaderWriterLockSlim();
     private int _wantedUniqueIDs;
     private List<int> _availableUniqueIDs = new List<int>();
+    private List<(PlayerInfo, string)> _wantedLobbyInfos = new List<(PlayerInfo, string)>();
+    private List<GameStateInfo> _gameStateInfos = new List<GameStateInfo>();
 
     public List<(PlayerInfo, string)> FetchRequestedGameLobbiesWithLobbyNameAndPlayerInfo()
     {
         VerifyLock();
-        var newGames = new List<(PlayerInfo, string)>();
-        // TODO: Return all the new wanted games
+        var newGames = new List<(PlayerInfo, string)>(_wantedLobbyInfos);
+        _wantedLobbyInfos.Clear();
         return newGames;
     }
 
@@ -33,6 +35,7 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
     public void SendNewGameStateInfoToPlayerInfos(GameStateInfo state)
     {
         VerifyLock();
+        _gameStateInfos.Add(state);
         // TODO: Send game state to the PlayerInfos in the game connected to the game state input
     }
 
@@ -55,12 +58,20 @@ public class InternetMultiPlayerInfoController : IMultiPlayerInfoViewController,
 
     public void HandleGeneratedUniqueIDs(List<int> uniqueIDs)
     {
+        VerifyLock();
         _availableUniqueIDs.AddRange(uniqueIDs);
         _wantedUniqueIDs -= uniqueIDs.Count;
     }
 
+    public void AddNewWantedGameLobby(WantedLobbyInfo info)
+    {
+        VerifyLock();
+        _wantedLobbyInfos.Add(info);
+    }
+    
     public int FetchWantedAmountOfUniqueIDs()
     {
+        VerifyLock();
         return _wantedUniqueIDs;
     }
     public void NotifyWantID()

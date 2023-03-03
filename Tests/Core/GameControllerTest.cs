@@ -71,6 +71,7 @@ public class GameControllerTest : IDisposable
     [InlineData(0, 0)]
     [InlineData(0, 1)]
     [InlineData(1, 1)]
+    [InlineData(3, 3)]
     [InlineData(5, 10)]
     [InlineData(100, 110)]
     [InlineData(1000, 1000)]
@@ -123,8 +124,6 @@ public class GameControllerTest : IDisposable
     {
 
         Node startNode = new Node( new NodeInfo() {Name = "Start", ID = 1});
-        
-
         Node endNode = new Node(new NodeInfo() {Name = "End", ID = 2 });
 
         startNode.AddNeighbour(endNode);
