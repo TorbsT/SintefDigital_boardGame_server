@@ -7,31 +7,14 @@ using Xunit;
 
 namespace Test.Core;
 
-public class GameControllerTest : IDisposable
+public class GameControllerTest
 {
 
     private GameController _gameController;
-    private MockMultiPlayerInfoController _mockMultiPlayerInfoController;
 
     public GameControllerTest()
     {
-        (_gameController, _mockMultiPlayerInfoController) = CreateAndRunGameControllerAndMultiPlayerInfoController();
-    }
-
-    public void Dispose()
-    {
-        _gameController.Dispose();
-    }
-
-    [Fact]
-    public void TestRunningController()
-    {
-        var mockMultiPlayerInfoController = new MockMultiPlayerInfoController();
-        var gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore), mockMultiPlayerInfoController, mockMultiPlayerInfoController);
-        Assert.False(gameController.IsMainLoopRunning());
-        gameController.Run();
-        Assert.True(gameController.IsMainLoopRunning());
-        gameController.Dispose();
+        _gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore));
     }
 
 
@@ -45,23 +28,13 @@ public class GameControllerTest : IDisposable
     [InlineData(50000)]
     public void TestUniquePlayerIDs(int amountOfPlayersToCreate)
     {
-        _mockMultiPlayerInfoController.Lock();
-        for (int _ = 0; _ < amountOfPlayersToCreate; _++) _mockMultiPlayerInfoController.NotifyWantID();
-        _mockMultiPlayerInfoController.ReleaseLock();
         
         List<int> IDs = new List<int>();
-        int msTimeForEachUniqueID = 50;
-        int averageMaxRetryForEachID = 10;
-        for (int _ = 0; _ < amountOfPlayersToCreate*averageMaxRetryForEachID; _++)
+        for (int _ = 0; _ < amountOfPlayersToCreate; _++)
         {
-            _mockMultiPlayerInfoController.Lock();
-            var (gotID, newID) = _mockMultiPlayerInfoController.FetchUniqueID();
-            _mockMultiPlayerInfoController.ReleaseLock();
-            if (gotID)
-            {
-                Assert.True(!IDs.Contains(newID));
-                IDs.Add(newID);
-            } else Thread.Sleep(msTimeForEachUniqueID);
+            int newID = _gameController.MakeNewPlayerID();
+            Assert.True(!IDs.Contains(newID));
+            IDs.Add(newID);
             if (IDs.Count >= amountOfPlayersToCreate) break;
         }
         Assert.Equal(IDs.Count, amountOfPlayersToCreate);
@@ -77,29 +50,23 @@ public class GameControllerTest : IDisposable
     [InlineData(1000, 1000)]
     public void TestCreatingNewGame(int amountOfNewPlayerInfos, int amountOfNewGames)
     {
-        _mockMultiPlayerInfoController.Lock();
-        Assert.Empty(_mockMultiPlayerInfoController.FetchCreatedGames());
-        _mockMultiPlayerInfoController.ReleaseLock();
-        
         List<PlayerInfo> playerInfos = MakeRandomPlayerInfoListWithSize(amountOfNewPlayerInfos);
 
         List<(PlayerInfo, string)> newGames = MakeRandomGameLobbyListWithSize(amountOfNewGames, playerInfos);
-        _mockMultiPlayerInfoController.Lock();
-        _mockMultiPlayerInfoController.AddNewWantedGames(new List<(PlayerInfo, string)>(newGames));
-        _mockMultiPlayerInfoController.ReleaseLock();
-
-        List<GameStateInfo> gamesCreatedList = new List<GameStateInfo>();
-        int timesToCheckForNewGame = 10 * amountOfNewPlayerInfos;
-        int msToSleepBetweenEachCheck = 1;
-        for (int _ = 0; _ < timesToCheckForNewGame; _++)
+        foreach (var newGame in newGames)
         {
-            Thread.Sleep(msToSleepBetweenEachCheck);
-            _mockMultiPlayerInfoController.Lock();
-            gamesCreatedList = _mockMultiPlayerInfoController.FetchCreatedGames();
-            _mockMultiPlayerInfoController.ReleaseLock();
-            if (gamesCreatedList.Count >= newGames.Count) break;
+            try
+            {
+                _gameController.CreateNewGame(newGame);
+            }
+            catch (Exception)
+            {
+                
+            }
         }
-        
+
+        List<GameStateInfo> gamesCreatedList = _gameController.GetGameStateInfos();
+
         // Because a player cannot be in more than one game at a time
         Assert.Equal(amountOfNewPlayerInfos, gamesCreatedList.Count);
         
@@ -132,26 +99,8 @@ public class GameControllerTest : IDisposable
         PlayerInfo playerInfo = MakeRandomPlayerInfo();
         playerInfo.Position = startNode;
         var newGame = (playerInfo, "TestMovement");
-        List<(PlayerInfo, string)> newGameList = new List<(PlayerInfo, string)>();
-        newGameList.Add(newGame);
-
-        _mockMultiPlayerInfoController.Lock();
-        _mockMultiPlayerInfoController.AddNewWantedGames(new List<(PlayerInfo, string)>(newGameList));
-        _mockMultiPlayerInfoController.ReleaseLock();
-
-        GameStateInfo gameStateInfo = new GameStateInfo();
-        for (int _ = 0; _ < 100; _++)
-        {
-            Thread.Sleep(100);
-            _mockMultiPlayerInfoController.Lock();
-            var createdGames = _mockMultiPlayerInfoController.FetchCreatedGames();
-            _mockMultiPlayerInfoController.ReleaseLock();
-            if (createdGames.Count == 1)
-            {
-                gameStateInfo = createdGames.First();
-                break;
-            }
-        }
+        
+        GameStateInfo gameStateInfo = _gameController.CreateNewGame(newGame);
 
         gameStateInfo.PlayerInfos ??= new List<PlayerInfo>();
 
@@ -164,27 +113,15 @@ public class GameControllerTest : IDisposable
         input.Type = PlayerInfoInputType.Movement;
         input.RelatedNode = endNode;
 
-        _mockMultiPlayerInfoController.Lock();
-        _mockMultiPlayerInfoController.AddInput(input);
-        _mockMultiPlayerInfoController.ReleaseLock();
+        _gameController.HandlePlayerInput(input);
 
         Thread.Sleep(500); // Let the game controller handle the inputs
 
-        _mockMultiPlayerInfoController.Lock();
-        gameStateInfo = _mockMultiPlayerInfoController.FetchCreatedGames().First();
-        _mockMultiPlayerInfoController.ReleaseLock();
+        gameStateInfo = _gameController.GetGameStateInfos().First();
 
         Assert.Contains(gameStateInfo.PlayerInfos, player => player.UniqueID == playerInfo.UniqueID);
 
         Assert.Contains(gameStateInfo.PlayerInfos, playerInfo1 => playerInfo1.Position.ID == ((NodeInfo) endNode).ID);
-    }
-
-    private (GameController, MockMultiPlayerInfoController) CreateAndRunGameControllerAndMultiPlayerInfoController()
-    {
-        var mockMultiPlayerInfoController = new MockMultiPlayerInfoController();
-        var gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore), mockMultiPlayerInfoController, mockMultiPlayerInfoController);
-        gameController.Run();
-        return (gameController, mockMultiPlayerInfoController);
     }
 
     private List<(PlayerInfo, string)> MakeRandomGameLobbyListWithSize(int listSize, List<PlayerInfo> playerInfos)
@@ -228,7 +165,7 @@ public class GameControllerTest : IDisposable
     {
         PlayerInfo PlayerInfo = new PlayerInfo();
         PlayerInfo.Name = MakeRandomNumber().ToString();
-        PlayerInfo.UniqueID = RetrieveUniquePlayerID();
+        PlayerInfo.UniqueID = _gameController.MakeNewPlayerID();
         PlayerInfo.InGameID = 1;
         return PlayerInfo;
     }
@@ -237,30 +174,6 @@ public class GameControllerTest : IDisposable
     {
         Random generator = new Random();
         return generator.Next();
-    }
-
-    private int RetrieveUniquePlayerID()
-    {
-        _mockMultiPlayerInfoController.Lock();
-        _mockMultiPlayerInfoController.NotifyWantID();
-        _mockMultiPlayerInfoController.ReleaseLock();
-        int id = 0;
-        bool gotID = false;
-        for (int _ = 0; _ < 10_000; _++)
-        {
-            Thread.Sleep(10);
-            _mockMultiPlayerInfoController.Lock();
-            var (isNewID, uniqueID) = _mockMultiPlayerInfoController.FetchUniqueID();
-            _mockMultiPlayerInfoController.ReleaseLock();
-            if (isNewID)
-            {
-                id = uniqueID;
-                gotID = true;
-                break;
-            }
-        }
-        if (!gotID) throw new Exception("Failed to get unique ID!");
-        return id;
     }
 
     private NodeInfo MakeRandomNode()
