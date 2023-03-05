@@ -97,44 +97,34 @@ public class GameController
         return true;
     }
 
-    public void HandlePlayerInput(Input input)
+    public GameStateInfo HandlePlayerInput(Input input)
     {
         // TODO check if input is legal based on the game state once applicable
         _logger.Log(LogLevel.Debug, $"Handling inputs for PlayerInfo with uniqueID {input.PlayerInfo.UniqueID} and " +
                                                    $"name {input.PlayerInfo.Name} and input type {input.Type}.");
+        GameStateInfo game;
         switch (input.Type)
         {
             case PlayerInfoInputType.Movement:
-                HandleMovement(input.PlayerInfo, input.RelatedNode);
+                game = HandleMovement(input.PlayerInfo, input.RelatedNode);
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
         _logger.Log(LogLevel.Debug, $"Finished handling inputs for PlayerInfo with ID {input.PlayerInfo.UniqueID}.");
+        return game;
     }
 
-    private void HandleMovement(PlayerInfo playerInfo, NodeInfo toNodeCopy)
+    private GameState HandleMovement(PlayerInfo playerInfo, NodeInfo toNodeCopy)
     {
-        try
-        {
-            lock(_games) {
-                var game = _games.First(state => state.GetGameStateInfo().ID == playerInfo.ConnectedGameID);
-                // TODO: Check here if the movement is valid once applicable and dont use toNodeCopy.
-                playerInfo.Position = toNodeCopy;
-                game.UpdatePlayersBasedOnInfos(new List<PlayerInfo>() {playerInfo});
-            }
+        lock(_games) {
+            var game = _games.First(state => state.GetGameStateInfo().ID == playerInfo.ConnectedGameID);
+            // TODO: Check here if the movement is valid once applicable and dont use toNodeCopy.
+            playerInfo.Position = toNodeCopy;
+            game.UpdatePlayersBasedOnInfos(new List<PlayerInfo>() {playerInfo});
             _logger.Log(LogLevel.Debug, $"Moved player {playerInfo.InGameID} in {playerInfo.ConnectedGameID} to " +
                                         $"node with nodeID {toNodeCopy.ID}");
-        }
-        catch (InvalidOperationException e)
-        {
-            _logger.Log(LogLevel.Error, "Failed to move PlayerInfo because the game the PlayerInfo refers to " +
-                                        $"doesn't exist or the PlayerInfo isn't in the game. " +
-                                        $"GameID: {playerInfo.ConnectedGameID}. InGame PlayerInfoID {playerInfo.InGameID}. Error: {e}");
-        }
-        catch (Exception e)
-        {
-            _logger.Log(LogLevel.Error, $"Something went wrong when trying to move the PlayerInfo. Error {e}");
+            return game;
         }
     }
 

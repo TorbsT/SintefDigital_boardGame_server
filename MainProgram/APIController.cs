@@ -12,17 +12,11 @@ namespace MainProgram
     [Route("[controller]")]
     public class APIController : ControllerBase
     {
-        private static readonly GameState gamestate = new GameState("example", 42);
-        //private static readonly ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
-        private readonly IGameControllerService gameController;
+        private readonly IGameControllerService _gameController;
 
-        //private static readonly Lazy<APIController> _instance = new Lazy<APIController>(() => new APIController());
-
-        //public static APIController Instance => _instance.Value;
-        
         public APIController(IGameControllerService service)
         {
-            gameController = service;
+            _gameController = service;
         }
 
 
@@ -36,14 +30,14 @@ namespace MainProgram
             return Ok(JsonConvert.SerializeObject(new WantedLobbyInfo(){PlayerInfo = p1, LobbyName = "bruh"}));
         }
 
-        [Route("")]
+        [Route("create/game")]
         [HttpPost]
         public ActionResult<GameState> CreateGameAndAssignHost([FromBody] WantedLobbyInfo playerInfoAndLobbyName)
         {
             //curl -X POST -H "Content-Type: application/json" -d "{\"Item1\":{\"ConnectedGameID\":1,\"InGameID\":2,\"UniqueID\":3,\"Name\":\"John\",\"Position\":{\"ID\":4,\"Name\":\"PositionName\"}},\"Item2\":\"bruh\"}" localhost:5000/API
             try
             {
-                var game = gameController.CreateNewGame(playerInfoAndLobbyName);
+                var game = _gameController.CreateNewGame(playerInfoAndLobbyName);
 
                 if (game.PlayerInfos.Any(p => p.UniqueID == playerInfoAndLobbyName.PlayerInfo.UniqueID))
                     return Ok(JsonConvert.SerializeObject(game));
@@ -56,21 +50,21 @@ namespace MainProgram
             return NotFound($"Failed to get the new game state");
         }
 
-        [Route("playerID")]
+        [Route("create/playerID")]
         [HttpGet]
         public ActionResult<int> GetUniquePlayerID()
         {
-            return gameController.MakeNewPlayerID();
+            return _gameController.MakeNewPlayerID();
         }
 
-        [Route("playerID/amount")]
+        [Route("debug/playerIDs/amount")]
         [HttpGet]
         public ActionResult<int> GetAmountOfUniquePlayerIDs()
         {
-            return gameController.GetAmountOfCreatedPlayerIDs();
+            return _gameController.GetAmountOfCreatedPlayerIDs();
         }
 
-        [Route("gamestate/{id}")]
+        [Route("games/{id}")]
         [HttpGet]
         public ActionResult<GameState> GetGamestate(int id)
         {
@@ -78,18 +72,15 @@ namespace MainProgram
              TODO: authenticate other players by comparing the player ID to the IDs of the connected players
                    return gamestate if player is successfully authenticated
              */
-            if (id == 1)
-            {
-                return Ok(JsonConvert.SerializeObject(gamestate));
-            }
-            else
-            {
-                return Unauthorized("Error(401): Authentication failed");
-            }
+            var games = _gameController.GetGameStateInfos();
+
+            if (games.All(g => g.ID != id)) return NotFound($"There is no game with {id}");
+            return Ok(JsonConvert.SerializeObject(games.Find(g => g.ID == id)));
         }
+        
         [HttpPost]
-        [Route("gamestate/{id}")]
-        public IActionResult UpdateGameState(int id, [FromBody] GameState gamestate = default)
+        [Route("games/input")]
+        public ActionResult<GameStateInfo> HandlePlayerInput([FromBody] Input input)
         {
             /*
              TODO: Validate gamestate parameter (Creating a static method for validation is probably the best approach for this)
@@ -97,17 +88,18 @@ namespace MainProgram
                    Return 401(Unauthorized) if gamestate is valid but player is not in the session or if it's not the player's turn
                    Make sure the method only returns 200(OK) if the gamestate is valid, the player is in the session, and it's the player's turn
              */
-            if (gamestate.Equals(default(GameState)))
+            
+            var games = _gameController.GetGameStateInfos();
+
+            if (games.All(g => g.ID != input.PlayerInfo.ConnectedGameID)) return NotFound($"There is no game with {input.PlayerInfo.ConnectedGameID}");
+            try
             {
-                return BadRequest("Error(400): Bad Request");
+                var game = _gameController.HandlePlayerInput(input);
+                return Ok(JsonConvert.SerializeObject(game));
             }
-            if (id == 1)
+            catch (Exception e)
             {
-                return Ok(JsonConvert.SerializeObject(gamestate));
-            }
-            else
-            {
-                return Unauthorized("Error(401): Authentication failed");
+                return Problem($"Failed to handle input because {e}");
             }
         }
     }

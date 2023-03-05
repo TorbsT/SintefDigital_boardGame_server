@@ -15,7 +15,7 @@ namespace MainProgram
         public List<GameStateInfo> GetGameStateInfos();
         public int MakeNewPlayerID();
         public GameStateInfo CreateNewGame(WantedLobbyInfo lobbyNameAndPlayerInfo);
-        public void HandlePlayerInput(Input input);
+        public GameStateInfo HandlePlayerInput(Input input);
         public int GetAmountOfCreatedPlayerIDs();
     }
     
@@ -49,9 +49,11 @@ namespace MainProgram
             return info;
         }
 
-        public void HandlePlayerInput(Input input)
+        public GameStateInfo HandlePlayerInput(Input input)
         {
-            lock (_gameController) _gameController.HandlePlayerInput(input);
+            GameStateInfo game;
+            lock (_gameController) game = _gameController.HandlePlayerInput(input);
+            return game;
         }
 
         public int GetAmountOfCreatedPlayerIDs()
@@ -64,7 +66,6 @@ namespace MainProgram
     
     public class Startup
     {
-        
         
         public Startup(IConfiguration configuration)
         {
