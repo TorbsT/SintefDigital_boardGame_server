@@ -2,7 +2,6 @@ using Core;
 using Logging;
 using System.ComponentModel;
 using System.Xml.Linq;
-using Test.Core.MockControllers;
 using Xunit;
 
 namespace Test.Core;
@@ -12,9 +11,9 @@ public class GameControllerTest
 
     private GameController _gameController;
 
-    public GameControllerTest()
+    public GameControllerTest(GameController controller)
     {
-        _gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore));
+        _gameController = controller;
     }
 
 

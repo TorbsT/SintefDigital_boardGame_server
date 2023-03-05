@@ -7,9 +7,6 @@ using System.Threading;
 
 namespace Core;
 
-/// <summary>
-/// Remember to Dispose the GameController when stopping the application!
-/// </summary>
 public class GameController
 {
     //TODO: handle unused unique IDs
@@ -36,6 +33,7 @@ public class GameController
     {
         int newID = GenerateUnusedGameIDs(1).First();
         lock (_uniqueIDs) _uniqueIDs.Add(newID);
+        lock (_uniqueIDs) _logger.Log(LogLevel.Debug, _uniqueIDs.Count.ToString());
         return newID;
     }
 
@@ -138,5 +136,12 @@ public class GameController
         {
             _logger.Log(LogLevel.Error, $"Something went wrong when trying to move the PlayerInfo. Error {e}");
         }
+    }
+
+    public int GetAmountOfCreatedPlayerIDs()
+    {
+        int amount;
+        lock (_uniqueIDs) amount = _uniqueIDs.Count;
+        return amount;
     }
 }

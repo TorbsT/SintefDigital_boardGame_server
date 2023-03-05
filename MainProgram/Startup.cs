@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using Core;
+using Logging;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,8 +9,63 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 
 namespace MainProgram
 {
+
+    public interface IGameControllerService
+    {
+        public List<GameStateInfo> GetGameStateInfos();
+        public int MakeNewPlayerID();
+        public GameStateInfo CreateNewGame(WantedLobbyInfo lobbyNameAndPlayerInfo);
+        public void HandlePlayerInput(Input input);
+        public int GetAmountOfCreatedPlayerIDs();
+    }
+    
+    public class GameControllerService : IGameControllerService
+    {
+        private readonly GameController _gameController;
+
+        public GameControllerService()
+        {
+            _gameController = new GameController(new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore));
+        }
+
+        public List<GameStateInfo> GetGameStateInfos()
+        {
+            var info = new List<GameStateInfo>();
+            lock (_gameController) info = _gameController.GetGameStateInfos();
+            return info;
+        }
+
+        public int MakeNewPlayerID()
+        {
+            int i;
+            lock (_gameController) i = _gameController.MakeNewPlayerID();
+            return i;
+        }
+
+        public GameStateInfo CreateNewGame(WantedLobbyInfo lobbyNameAndPlayerInfo)
+        {
+            GameStateInfo info;
+            lock (_gameController) info = _gameController.CreateNewGame(lobbyNameAndPlayerInfo);
+            return info;
+        }
+
+        public void HandlePlayerInput(Input input)
+        {
+            lock (_gameController) _gameController.HandlePlayerInput(input);
+        }
+
+        public int GetAmountOfCreatedPlayerIDs()
+        {
+            int amount;
+            lock (_gameController) amount = _gameController.GetAmountOfCreatedPlayerIDs();
+            return amount;
+        }
+    }
+    
     public class Startup
     {
+        
+        
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -19,6 +76,8 @@ namespace MainProgram
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddScoped<IGameControllerService, GameControllerService>();
+            
             services.AddControllers().ConfigureApplicationPartManager(apm =>
             {
                 var feature = new ControllerFeature();

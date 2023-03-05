@@ -13,16 +13,16 @@ namespace MainProgram
     public class APIController : ControllerBase
     {
         private static readonly GameState gamestate = new GameState("example", 42);
-        private static readonly ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
-        private static GameController gameController;
+        //private static readonly ThresholdLogger thresholdLogger = new ThresholdLogger(LogLevel.Debug, LogLevel.Ignore);
+        private readonly IGameControllerService gameController;
 
-        private static readonly Lazy<APIController> _instance = new Lazy<APIController>(() => new APIController());
+        //private static readonly Lazy<APIController> _instance = new Lazy<APIController>(() => new APIController());
 
-        public static APIController Instance => _instance.Value;
+        //public static APIController Instance => _instance.Value;
         
-        public APIController()
+        public APIController(IGameControllerService service)
         {
-            gameController = new GameController(thresholdLogger);
+            gameController = service;
         }
 
 
@@ -41,12 +41,19 @@ namespace MainProgram
         public ActionResult<GameState> CreateGameAndAssignHost([FromBody] WantedLobbyInfo playerInfoAndLobbyName)
         {
             //curl -X POST -H "Content-Type: application/json" -d "{\"Item1\":{\"ConnectedGameID\":1,\"InGameID\":2,\"UniqueID\":3,\"Name\":\"John\",\"Position\":{\"ID\":4,\"Name\":\"PositionName\"}},\"Item2\":\"bruh\"}" localhost:5000/API
-            var game = gameController.CreateNewGame(playerInfoAndLobbyName);
+            try
+            {
+                var game = gameController.CreateNewGame(playerInfoAndLobbyName);
+
+                if (game.PlayerInfos.Any(p => p.UniqueID == playerInfoAndLobbyName.PlayerInfo.UniqueID))
+                    return Ok(JsonConvert.SerializeObject(game));
+            }
+            catch (Exception)
+            {
+                
+            }
             
-            if (game.PlayerInfos.Any(p => p.UniqueID == playerInfoAndLobbyName.PlayerInfo.UniqueID))
-                return Ok(JsonConvert.SerializeObject(game));
-            
-            return NotFound($"Failed to get the game state, but it might come later");
+            return NotFound($"Failed to get the new game state");
         }
 
         [Route("playerID")]
@@ -54,6 +61,13 @@ namespace MainProgram
         public ActionResult<int> GetUniquePlayerID()
         {
             return gameController.MakeNewPlayerID();
+        }
+
+        [Route("playerID/amount")]
+        [HttpGet]
+        public ActionResult<int> GetAmountOfUniquePlayerIDs()
+        {
+            return gameController.GetAmountOfCreatedPlayerIDs();
         }
 
         [Route("gamestate/{id}")]
