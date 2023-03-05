@@ -76,7 +76,7 @@ namespace MainProgram
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddScoped<IGameControllerService, GameControllerService>();
+            services.AddSingleton<IGameControllerService, GameControllerService>();
             
             services.AddControllers().ConfigureApplicationPartManager(apm =>
             {
