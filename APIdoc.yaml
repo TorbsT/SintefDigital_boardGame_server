@@ -1,20 +1,202 @@
 swagger: "2.0"
 info:
   title: Sintef Digital Board Game API documentation
-  description: This is the API documentation for the sintef digital board game server
-  version: 0.1.0
-host: example.com
-basePath: /api/v1
+  description: |-
+    This is the API documentation for the sintef digital board game server.
+    This documentation serves the purpose of making it easier to port the API over to another desired framework, as well as giving a detailed overview of every API call the server can handle.
+    The provided server runs on *.NET 6.0* (**or the Rust equivalent**) which is written in C# (**or Rust**).
+    The standard gateway for any API call is at **server:port/API/**
+
+    ***In example:*** obtaining a unique ID from the server is done by sending the request **GET** to **server:port/API/create/playerID**
+
+    ***server:*** The IP address the server is hosted on
+    ***port:*** The port the server is being hosted on (5000 by default in the provided server)
+  termsOfService: http://swagger.io/terms/
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 0.1.1
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
 schemes:
   - https
 consumes:
   - application/json
 produces:
   - application/json
-
+tags:
+  - name: player
+    description: Any API calls that are player specific
+  - name: game
+    description: Any API calls that are game specific
+  - name: debug
+    description: API calls used for debugging purposes
 paths:
-  /gameState:
+  /create/playerID:
     get:
+      tags:
+        - player
+      summary: Returns a unique ID which is used as a player identifier
+      description: This API call is run when the client starts up, to assign it a unique identifier which the server uses for validation
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Returns a unique ID
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                ID:
+                  type: integer
+                  description: unique ID number
+  /create/game:
+    post:
+      tags:
+        - game
+      summary: Creates a new game
+      description: Creates a new game. The player that created the game will be assigned as the game host.
+      consumes:
+        - application/json
+      parameters:
+        - name: playerInfoAndLobbyName
+          in: body
+          description: JSON object containing a WantedLobbyInfo struct
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                playerInfo:
+                  type: object
+                  properties:
+                    ConnectedGameID (Not used):
+                      type: integer
+                      description: The ID of the lobby the player is connected to
+                    InGameID (Not used):
+                      type: integer
+                      description: The in-game ID of the player
+                    UniqueID:
+                      type: integer
+                      description: The unique ID of the player
+                    Name:
+                      type: string
+                      description: The display name of the player
+                    Position (Not used):
+                      type: object
+                      properties:
+                        ID:
+                          type: integer
+                          description: The ID of the node
+                        name:
+                          type: string
+                          description: Name of the node
+                LobbyName:
+                  type: string
+                  description: name of the lobby
+      produces:
+        - application/json
+      responses:
+        201:
+          description: The initial gamestate is returned if the game was created successfully
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                GameStateInfo:
+                  type: object
+                  description: Struct containing lobby metadata
+                  properties:
+                    ID:
+                      type: integer
+                      description: ID of the game lobby
+                    Name:
+                      type: string
+                      description: Name of the game lobby
+                    PlayerInfos:
+                      type: array
+                      description: List over all connected players
+                      items:
+                        type: object
+                        properties:
+                          PlayerInfo:
+                            type: object
+                            properties:
+                              ConnectedGameID:
+                                type: integer
+                                description: The ID of the lobby the player is connected to
+                              InGameID:
+                                type: integer
+                                description: The in-game ID of the player
+                              UniqueID:
+                                type: integer
+                                description: The unique ID of the player
+                              Name:
+                                type: string
+                                description: The display name of the player
+                              Position:
+                                type: object
+                                properties:
+                                  ID:
+                                    type: integer
+                                    description: The ID of the node
+                                  name:
+                                    type: string
+                                    description: Name of the node
+                              
+                NodeMap:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      Node:
+                        type: object
+                        properties:
+                          NodeInfo:
+                            type: object
+                            properties:
+                              ID:
+                                type: integer
+                                description: The ID of the node
+                              Name:
+                                type: string
+                                description: The name of the node
+                          Neighbours:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                Node:
+                                  type: object
+                                  description: A node object with the NodeInfo and Neighbours properties
+        400:
+          description: If the POST body is invalid, the server will throw a 400 (Bad Request)
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                errorMessage:
+                  type: string
+                  description: Error message received by the client upon a bad request (may contain error code or some form of error catching)
+        404:
+          description: In the case where a server has a problem creating a new game, the 
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                errorMessage:
+                  type: string
+                  description: Error message for when the server can't create a new game
+  /games/{id}:
+    get:
+      tags:
+        - game
       summary: Retrieves the current state of the game
       description: Returns the current state of the game stored on the server side
       produces:
@@ -59,55 +241,121 @@ paths:
                 errorMessage:
                   type: string
                   description: Error message which the client receives when attempting to access to access the gamestate of a game the client is not connected to
+        404:
+          description: If a player requests a gamestate that does not exist, the request will return a 404 (Not found)
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                errorMessage:
+                  type: string
+                  description: Error message which the client receives when attempting to access to access the gamestate of a game that does not exist
+  /games/input:
     post:
+      tags:
+        - game
       summary: Updates the state of the game
       description: "**After a valid move has been made by the player**, the server receives an updated gamestate from the players client"
       consumes:
         - application/json
       parameters:
         - in: body
-          name: user
-          description: The updated gamestate (or move)
-          schema:
-            type: object
-            properties:
-              move:
-                type: string
-                description: Move executed
-              other inputs?:
-                type: string
-                description: Anything else that is relevant as input data
-          required: true
-      responses:
-        200:
-          description: The updated gamestate
+          name: Input
+          description: Input from the player
           schema:
             type: array
             items:
               type: object
               properties:
-                playerTurn:
-                  type: integer
-                  description: Determines whose turn it is
-                players:
-                  type: array
-                  description: Contains the data of every player connected to the session
-                  items:
-                    type: object
-                    description: Player data
-                    properties:
-                      displayName:
-                        type: string
-                        description: Name of the player as it shows up in-game
-                      colour:
-                        type: array
-                        description: The player's colour in RGB format
-                        items:
+                Input:
+                  type: object
+                  properties:
+                    PlayerInfo:
+                      type: object
+                      properties:
+                        ConnectedGameID:
                           type: integer
-                          minimum: 0
-                          maximum: 255
-                        minItems: 3
-                        maxItems: 3
+                          description: The ID of the lobby the player is connected to
+                        InGameID:
+                          type: integer
+                          description: The in-game ID of the player
+                        UniqueID:
+                          type: integer
+                          description: The unique ID of the player
+                        Name:
+                          type: string
+                          description: The display name of the player
+                        Position:
+                          type: object
+                          properties:
+                            ID:
+                              type: integer
+                              description: The ID of the node
+                            name:
+                              type: string
+                              description: Name of the node
+                    PlayerInfoInputType:
+                      type: integer
+                      description: enum for the movement type
+                    RelatedNode:
+                      type: object
+                      properties:
+                        ID:
+                          type: integer
+                          description: The ID of the node
+                        Name:
+                          type: string
+                          description: The name of the node
+
+          required: true
+      responses:
+        200:
+          description: "The updated gamestate (TODO: return type should be player positions)"
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                GameStateInfo:
+                  type: object
+                  properties:
+                    ID:
+                      type: integer
+                      description: ID of the game lobby
+                    Name:
+                      type: string
+                      description: Name of the game lobby
+                    PlayerInfos:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          PlayerInfo:
+                            type: object
+                            properties:
+                              ConnectedGameID:
+                                type: integer
+                                description: The ID of the lobby the player is connected to
+                              InGameID:
+                                type: integer
+                                description: The in-game ID of the player
+                              UniqueID:
+                                type: integer
+                                description: The unique ID of the player
+                              Name:
+                                type: string
+                                description: The display name of the player
+                              Position:
+                                type: object
+                                properties:
+                                  ID:
+                                    type: integer
+                                    description: The ID of the node
+                                  name:
+                                    type: string
+                                    description: Name of the node
+
         400:
           description: If the POST body is invalid, the server will throw a 400 (Bad Request)
           schema:
@@ -128,3 +376,22 @@ paths:
                 errorMessage:
                   type: string
                   description: Error message which the client receives when attempting to access to access the gamestate of a game the client is not connected to
+  /debug/playerIDs/amount:
+    get:
+      tags:
+        - debug
+      summary: Retrieves the amount of player IDs used by the game controller
+      description: Retrieves the amount of player IDs used by the game controller.
+      produces:
+        - application/json
+      responses:
+        200:
+          description: Returns the amount of unique Player IDs
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                amount:
+                  type: integer
+                  description: Amount of unique player IDs
