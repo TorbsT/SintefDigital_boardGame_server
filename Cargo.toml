@@ -1,0 +1,22 @@
+[package]
+name = "sintefdigital_boardgame_server_rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[workspace]
+members = [
+    "game_core",
+    "helpers",
+    "logging",
+    "rules",
+]
+
+[dependencies]
+game_core = {path = "game_core"}
+logging = {path = "logging"}
+actix-web = "4.3.1"
+serde = "1.0.152"
+serde_json = "1.0.93"
+parameterized = "1.0.1"
