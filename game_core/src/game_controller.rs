@@ -1,7 +1,6 @@
-use std::{sync::{Arc, RwLock}, thread::{JoinHandle, self}, any::type_name, cmp::min};
+use std::{sync::{Arc, RwLock}, any::type_name, cmp::min};
 
 use logging::logger::{Logger, LogData, LogLevel};
-use rand::Rng;
 
 use crate::{game_data::{GameState, NewGameInfo, self, PlayerInput, Player, InGameID, Node}};
 
@@ -31,7 +30,7 @@ impl GameController {
         
         self.unique_ids.push(new_id.clone());
 
-        self.logger.write().unwrap().Log(LogData::new(LogLevel::Debug, "Made unique ID", type_name::<Self>()));
+        self.logger.write().unwrap().log(LogData::new(LogLevel::Debug, "Made unique ID", type_name::<Self>()));
         Ok(new_id)
     }
 
@@ -54,7 +53,7 @@ impl GameController {
         
         match Self::handle_input(player_input, &mut related_game) {
             Ok(_) => (),
-            Err(e) => self.logger.write().unwrap().Log(LogData { severity_level: LogLevel::Error, log_data: format!("Failed to handle player input because: {}", e).as_str(), caller_identifier: type_name::<Self>() }),
+            Err(e) => self.logger.write().unwrap().log(LogData { severity_level: LogLevel::Error, log_data: format!("Failed to handle player input because: {}", e).as_str(), caller_identifier: type_name::<Self>() }),
         };
 
         Ok(related_game.clone())
@@ -65,7 +64,7 @@ impl GameController {
     }
 
     fn generate_unused_unique_id(&mut self) -> Option<i32> {
-        self.logger.write().unwrap().Log(LogData::new(LogLevel::Debug, "Making new player ID", type_name::<Self>()));
+        self.logger.write().unwrap().log(LogData::new(LogLevel::Debug, "Making new player ID", type_name::<Self>()));
         
         let mut id: i32 = rand::random::<i32>();
 
@@ -84,7 +83,7 @@ impl GameController {
             return None
         }
 
-        self.logger.write().unwrap().Log(LogData::new(LogLevel::Debug, "Done making new player ID", type_name::<Self>()));
+        self.logger.write().unwrap().log(LogData::new(LogLevel::Debug, "Done making new player ID", type_name::<Self>()));
         Some(id)
     }
 
@@ -100,7 +99,10 @@ impl GameController {
         }
 
         let mut new_game = GameState::new(new_lobby.name, self.generate_unused_game_id());
-        new_game.assign_player_to_game(new_lobby.host);
+        match new_game.assign_player_to_game(new_lobby.host) {
+            Ok(_) => (),
+            Err(e) => return Err(format!("Failed to create new game because: {}", e)),
+        };
         Ok(new_game)
     }
 

@@ -10,7 +10,7 @@ struct AppData {
 }
 
 #[get("/test")]
-async fn test(shared_data: web::Data<AppData>) -> impl Responder {
+async fn test() -> impl Responder {
     let p = Player {connected_game_id: 0, in_game_id: InGameID::PlayerOne, unique_id: 0, name: "Player one".to_string(), position: Node {id: 1, name: "One".to_string(), neighbours_id: Vec::new()}};
     let lobby = NewGameInfo {host: p, name: "Lobby one".to_string()};
     HttpResponse::Ok().json(json!(lobby))
@@ -83,7 +83,7 @@ async fn main() -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{http::{self, header::ContentType, StatusCode}, test, dev::Service, App, web};
+    use actix_web::{http::StatusCode, test, dev::Service, App, web};
     
     #[actix_web::test]
     async fn test_getting_player_ids() {
@@ -92,7 +92,7 @@ mod tests {
         let app_data = web::Data::new(AppData {game_controller: Mutex::new(GameController::new(logger.clone()))});
 
         // Create App instance
-        let mut app = test::init_service(
+        let app = test::init_service(
             App::new()
                 .app_data(app_data.clone())
                 .service(get_unique_id),

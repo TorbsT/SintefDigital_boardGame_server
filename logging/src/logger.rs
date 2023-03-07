@@ -1,4 +1,4 @@
-use std::fmt::{Display};
+use std::fmt::Display;
 use chrono::Local;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -31,5 +31,5 @@ impl Display for LogData<'_> {
 
 pub trait Logger {
     // Template for LogData ```LogData::new(LogLevel::Debug, "", type_name::<Self>()```
-    fn Log(&mut self, data: LogData);
+    fn log(&mut self, data: LogData);
 }

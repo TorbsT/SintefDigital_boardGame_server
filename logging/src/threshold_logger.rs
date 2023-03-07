@@ -1,14 +1,12 @@
 use chrono::Local;
 
-use crate::MAX_FILE_SIZE;
+use crate::{MAX_FILE_SIZE, LOG_FOLDER_NAME};
 use crate::logger::{Logger, LogLevel, LogData};
-use std::convert::Infallible;
 use std::path::Path;
-use std::{env, path};
+use std::env;
 use std::fs::{OpenOptions, metadata};
 use std::io::Write;
 use std::any::type_name;
-use std::str::FromStr;
 
 pub struct ThresholdLogger {
     print_threshold: LogLevel,
@@ -94,7 +92,7 @@ impl ThresholdLogger {
             Ok(path) => {
                 match path.parent() {
                     Some(exe_folder) => {
-                        let file_path = Path::new(exe_folder).join(file_name);
+                        let file_path = Path::new(exe_folder).join(LOG_FOLDER_NAME.to_string() + "/" + &file_name.to_string());
                         return Ok(file_path.to_string_lossy().to_string());
                     },
                     None => return Err("Failed to get path of the folder the executable is in.".to_string()),
@@ -108,7 +106,7 @@ impl ThresholdLogger {
 
 
 impl Logger for ThresholdLogger {
-    fn Log(&mut self, data: LogData) {
+    fn log(&mut self, data: LogData) {
         self.handle_log_print(data);
         self.handle_storing_of_log(data);
     }
