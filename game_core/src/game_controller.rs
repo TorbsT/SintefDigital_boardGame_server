@@ -3,9 +3,7 @@ use std::{sync::{Arc, RwLock}, thread::{JoinHandle, self}, any::type_name, cmp::
 use logging::logger::{Logger, LogData, LogLevel};
 use rand::Rng;
 
-use crate::{game_data::{GameState, NewGameInfo, self, PlayerInput, Player, InGameID, Node}, multiplayer_controller::{MultiplayerController, self}};
-
-pub mod mock_multiplayer_controller;
+use crate::{game_data::{GameState, NewGameInfo, self, PlayerInput, Player, InGameID, Node}};
 
 // TODO: Jobbet fra 04:00 til 09:00
 // TODO: Jobbet fra 13:00 til 
@@ -145,10 +143,8 @@ impl GameController {
 
 
 
-// =========== For testing and benchmarking ===========
-use std::time::Duration;
+// =========== For testing ===========
 use logging::threshold_logger::ThresholdLogger;
-use self::mock_multiplayer_controller::MockMultiplayerController;  
 
 fn make_game_controller() -> GameController {
     let logger = Arc::new(RwLock::new(ThresholdLogger::new(LogLevel::Ignore, LogLevel::Ignore)));
