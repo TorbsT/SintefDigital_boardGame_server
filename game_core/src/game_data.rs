@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 //// =============== Enums ===============
 #[derive(Clone, Serialize, Deserialize)]
@@ -15,7 +15,6 @@ pub enum InGameID {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum PlayerInputType {
     Movement,
-
 }
 
 //// =============== Structs ===============
@@ -57,8 +56,13 @@ pub struct PlayerInput {
 
 //// =============== Structs impls ===============
 impl GameState {
-    pub fn new(name: String, game_id: i32) -> GameState {
-        GameState { id: game_id, name: name, players: Vec::new() }
+    #[must_use]
+    pub const fn new(name: String, game_id: i32) -> Self {
+        Self {
+            id: game_id,
+            name,
+            players: Vec::new(),
+        }
     }
 
     pub fn contains_player_with_unique_id(&self, unique_id: i32) -> bool {
@@ -67,12 +71,14 @@ impl GameState {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     pub fn assign_player_to_game(&mut self, mut player: Player) -> Result<(), String> {
         if self.contains_player_with_unique_id(player.unique_id) {
-            return Err("A player that is already assigned to a game cannot be assigned again".to_string());
+            return Err(
+                "A player that is already assigned to a game cannot be assigned again".to_string(),
+            );
         }
         player.connected_game_id = self.id;
         self.players.push(player);
@@ -86,12 +92,12 @@ impl GameState {
             }
             player.position = player_to_update.position;
             // TODO: Add the ability to change role in the game aswell when applicable
-            return Ok(()); 
+            return Ok(());
         }
         Err("There were no players in this game that match the player to update".to_string())
     }
 
-    pub fn update_game(&mut self, update: GameState) {
+    pub fn update_game(&mut self, update: Self) {
         self.players = update.players;
     }
 }

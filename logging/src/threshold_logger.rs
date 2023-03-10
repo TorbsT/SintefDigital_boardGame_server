@@ -1,12 +1,12 @@
 use chrono::Local;
 
-use crate::{MAX_FILE_SIZE, LOG_FOLDER_NAME};
-use crate::logger::{Logger, LogLevel, LogData};
-use std::path::Path;
-use std::env;
-use std::fs::{OpenOptions, metadata};
-use std::io::Write;
+use crate::logger::{LogData, LogLevel, Logger};
+use crate::{LOG_FOLDER_NAME, MAX_FILE_SIZE};
 use std::any::type_name;
+use std::env;
+use std::fs::{metadata, OpenOptions};
+use std::io::Write;
+use std::path::Path;
 
 pub struct ThresholdLogger {
     print_threshold: LogLevel,
@@ -15,8 +15,13 @@ pub struct ThresholdLogger {
 }
 
 impl ThresholdLogger {
-    pub fn new(print_threshold: LogLevel, store_threshold: LogLevel) -> ThresholdLogger {
-        ThresholdLogger { print_threshold: print_threshold, store_threshold: store_threshold, file_index: 0 }
+    #[must_use]
+    pub const fn new(print_threshold: LogLevel, store_threshold: LogLevel) -> Self {
+        Self {
+            print_threshold,
+            store_threshold,
+            file_index: 0,
+        }
     }
 
     fn handle_log_print(&mut self, data: LogData) {
@@ -24,7 +29,7 @@ impl ThresholdLogger {
             return;
         }
 
-        println!("{}", data);
+        println!("{data}");
     }
 
     fn handle_storing_of_log(&mut self, data: LogData) {
@@ -35,48 +40,50 @@ impl ThresholdLogger {
         let file_path: String = match self.create_file_path() {
             Ok(path) => path,
             Err(e) => {
-                let error_string = format!("Failed to make get filepath because: {}", e);
-                let write_log = LogData::new(LogLevel::Error, error_string.as_str(), type_name::<Self>());
+                let error_string = format!("Failed to make get filepath because: {e}");
+                let write_log =
+                    LogData::new(LogLevel::Error, error_string.as_str(), type_name::<Self>());
                 self.handle_log_print(write_log);
                 return;
-            },
+            }
         };
-        
+
         match OpenOptions::new().append(true).create(true).open(file_path) {
             Ok(file) => self.write_to_file(file, data),
             Err(e) => {
-                let error_string = format!("Failed to open file because: {}", e);
-                let write_log = LogData::new(LogLevel::Error, error_string.as_str(), type_name::<Self>());
+                let error_string = format!("Failed to open file because: {e}");
+                let write_log =
+                    LogData::new(LogLevel::Error, error_string.as_str(), type_name::<Self>());
                 self.handle_log_print(write_log);
-                return;
-            },
+            }
         }
     }
 
     fn write_to_file(&mut self, mut file: std::fs::File, data: LogData) {
-        match writeln!(file, "{}", data) {
+        match writeln!(file, "{data}") {
             Ok(_) => (),
             Err(e) => {
-                let error_string = format!("Failed to write {} to file. Error: {}", data, e);
-                let write_log = LogData::new(LogLevel::Error, error_string.as_str(), type_name::<Self>());
+                let error_string = format!("Failed to write {data} to file. Error: {e}");
+                let write_log =
+                    LogData::new(LogLevel::Error, error_string.as_str(), type_name::<Self>());
                 self.handle_log_print(write_log);
-            },
+            }
         }
     }
 
     fn create_file_path(&mut self) -> Result<String, String> {
         let mut file_name: String = self.create_file_name();
-        let mut file_path: String = match self.create_file_path_for_file_name(&file_name) {
+        let mut file_path: String = match Self::create_file_path_for_file_name(&file_name) {
             Ok(path) => path,
-            Err(e) => return Err(format!("Failed to create file path because: {}", e)),
+            Err(e) => return Err(format!("Failed to create file path because: {e}")),
         };
 
         while metadata(&file_path).map(|m| m.len()).unwrap_or(0) >= MAX_FILE_SIZE {
             self.file_index += 1;
             file_name = self.create_file_name();
-            file_path = match self.create_file_path_for_file_name(&file_name) {
+            file_path = match Self::create_file_path_for_file_name(&file_name) {
                 Ok(path) => path,
-                Err(e) => return Err(format!("Failed to create file path because: {}", e)),
+                Err(e) => return Err(format!("Failed to create file path because: {e}")),
             };
         }
 
@@ -84,26 +91,27 @@ impl ThresholdLogger {
     }
 
     fn create_file_name(&self) -> String {
-        format!("threshold_logger_{}_{}.txt", Local::now().format("%d-%m-%Y").to_string(), self.file_index)
+        format!(
+            "threshold_logger_{}_{}.txt",
+            Local::now().format("%d-%m-%Y"),
+            self.file_index
+        )
     }
 
-    fn create_file_path_for_file_name(&self, file_name: &str) -> Result<String, String> {
+    fn create_file_path_for_file_name(file_name: &str) -> Result<String, String> {
         match env::current_exe() {
-            Ok(path) => {
-                match path.parent() {
-                    Some(exe_folder) => {
-                        let file_path = Path::new(exe_folder).join(LOG_FOLDER_NAME.to_string() + "/" + &file_name.to_string());
-                        return Ok(file_path.to_string_lossy().to_string());
-                    },
-                    None => return Err("Failed to get path of the folder the executable is in.".to_string()),
+            Ok(path) => match path.parent() {
+                Some(exe_folder) => {
+                    let file_path =
+                        Path::new(exe_folder).join(LOG_FOLDER_NAME.to_string() + "/" + file_name);
+                    return Ok(file_path.to_string_lossy().to_string());
                 }
+                None => Err("Failed to get path of the folder the executable is in.".to_string()),
             },
-            Err(_) => return Err("Failed to get the path to the executable.".to_string()),
-        };
+            Err(_) => Err("Failed to get the path to the executable.".to_string()),
+        }
     }
 }
-
-
 
 impl Logger for ThresholdLogger {
     fn log(&mut self, data: LogData) {

@@ -1,8 +1,11 @@
-use game_core::{game_controller::GameController, game_data::{Player, InGameID, Node, NewGameInfo, PlayerInput}};
-use std::sync::{Arc, RwLock, Mutex};
+use game_core::{
+    game_controller::GameController,
+    game_data::{InGameID, NewGameInfo, Node, Player, PlayerInput},
+};
+use std::sync::{Arc, Mutex, RwLock};
 
-use actix_web::{get, post, App, Responder, HttpResponse, HttpServer, web};
-use logging::{threshold_logger::ThresholdLogger, logger::LogLevel};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
 
 struct AppData {
@@ -11,55 +14,118 @@ struct AppData {
 
 #[get("/test")]
 async fn test() -> impl Responder {
-    let p = Player {connected_game_id: 0, in_game_id: InGameID::PlayerOne, unique_id: 0, name: "Player one".to_string(), position: Node {id: 1, name: "One".to_string(), neighbours_id: Vec::new()}};
-    let lobby = NewGameInfo {host: p, name: "Lobby one".to_string()};
+    let p = Player {
+        connected_game_id: 0,
+        in_game_id: InGameID::PlayerOne,
+        unique_id: 0,
+        name: "Player one".to_string(),
+        position: Node {
+            id: 1,
+            name: "One".to_string(),
+            neighbours_id: Vec::new(),
+        },
+    };
+    let lobby = NewGameInfo {
+        host: p,
+        name: "Lobby one".to_string(),
+    };
     HttpResponse::Ok().json(json!(lobby))
 }
 
 #[get("/create/playerID")]
 async fn get_unique_id(shared_data: web::Data<AppData>) -> impl Responder {
-    match shared_data.game_controller.lock().unwrap().generate_player_id() {
-        Ok(id) => HttpResponse::Ok().body(id.to_string()),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to make player ID because: {e}")),
+    let data = shared_data.game_controller.lock();
+    match data {
+        Ok(mut game_controller) => {
+            let player_result = game_controller.generate_player_id();
+            match player_result {
+                Ok(id) => HttpResponse::Ok().body(id.to_string()),
+                Err(e) => HttpResponse::InternalServerError()
+                    .body(format!("Failed to make player ID because: {e}")),
+            }
+        }
+        Err(e) => HttpResponse::InternalServerError()
+            .body(format!("Failed to make player ID because: {e}")),
     }
 }
 
 #[post("/create/game")]
-async fn create_new_game(json_data: web::Json<NewGameInfo>, shared_data: web::Data<AppData>) -> impl Responder {
+async fn create_new_game(
+    json_data: web::Json<NewGameInfo>,
+    shared_data: web::Data<AppData>,
+) -> impl Responder {
     let lobby_info = json_data.into_inner();
-    match shared_data.game_controller.lock().unwrap().create_new_game(lobby_info) {
-        Ok(g) => HttpResponse::Ok().json(json!(g)),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to create game because: {e}")),
+    let data = shared_data.game_controller.lock();
+    match data {
+        Ok(mut game_controller) => {
+            let game_result = game_controller.create_new_game(lobby_info);
+            match game_result {
+                Ok(g) => HttpResponse::Ok().json(json!(g)),
+                Err(e) => HttpResponse::InternalServerError()
+                    .body(format!("Failed to create game because: {e}")),
+            }
+        }
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to create game because {e}"))
+        }
     }
 }
 
 #[get("/debug/playerIDs/amount")]
 async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> impl Responder {
-    HttpResponse::Ok().body(shared_data.game_controller.lock().unwrap().get_amount_of_created_player_ids().to_string())
+    let Ok(game_controller) = shared_data.game_controller.lock() else { 
+        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+        };
+    HttpResponse::Ok().body(
+        game_controller
+            .get_amount_of_created_player_ids()
+            .to_string(),
+    )
 }
 
 #[get("/games/{id}")]
 async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
-    let games = shared_data.game_controller.lock().unwrap().get_created_games();
-    match games.iter().find(|&g| g.id == *id) {
-        Some(game) => HttpResponse::Ok().json(json!(game.clone())),
-        None => HttpResponse::InternalServerError().body(format!("Could not find the game with id {}", id.clone()))
-    }
+    
+    let Ok(game_controller) = shared_data.game_controller.lock() else { 
+        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    };
+    
+    let games = game_controller.get_created_games();
+    
+    games.iter().find(|&g| g.id == *id).map_or_else(||
+        HttpResponse::InternalServerError().body(format!("Could not find the game with id {}", id.clone())), 
+        |game| HttpResponse::Ok().json(json!(game.clone())))
 }
 
 #[post("/games/input")]
-async fn handle_player_input(json_data: web::Json<PlayerInput>, shared_data: web::Data<AppData>) -> impl Responder {
+async fn handle_player_input(
+    json_data: web::Json<PlayerInput>,
+    shared_data: web::Data<AppData>,
+) -> impl Responder {
     let input = json_data.into_inner();
-    match shared_data.game_controller.lock().unwrap().handle_player_input(input) {
+    
+    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
+        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    };
+
+    let gamestate_result = game_controller.handle_player_input(input); 
+    match gamestate_result {
         Ok(g) => HttpResponse::Ok().json(json!(g)),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to make move because {e}")),
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to make move because {e}"))
+        }
     }
 }
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let logger = Arc::new(RwLock::new(ThresholdLogger::new(LogLevel::Ignore, LogLevel::Ignore)));
-    let app_data = web::Data::new(AppData {game_controller: Mutex::new(GameController::new(logger.clone()))});
+    let logger = Arc::new(RwLock::new(ThresholdLogger::new(
+        LogLevel::Ignore,
+        LogLevel::Ignore,
+    )));
+    let app_data = web::Data::new(AppData {
+        game_controller: Mutex::new(GameController::new(logger.clone())),
+    });
 
     HttpServer::new(move || {
         App::new()
@@ -70,39 +136,40 @@ async fn main() -> std::io::Result<()> {
             .service(get_gamestate)
             .service(handle_player_input)
             .service(test)
-
     })
     .bind(("127.0.0.1", 5000))?
     .run()
     .await
 }
 
-
 // ================= Tests =================
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{http::StatusCode, test, dev::Service, App, web};
-    
+    use actix_web::{dev::Service, http::StatusCode, test, web, App};
+
     #[actix_web::test]
     async fn test_getting_player_ids() {
-
-        let logger = Arc::new(RwLock::new(ThresholdLogger::new(LogLevel::Ignore, LogLevel::Ignore)));
-        let app_data = web::Data::new(AppData {game_controller: Mutex::new(GameController::new(logger.clone()))});
+        let logger = Arc::new(RwLock::new(ThresholdLogger::new(
+            LogLevel::Ignore,
+            LogLevel::Ignore,
+        )));
+        let app_data = web::Data::new(AppData {
+            game_controller: Mutex::new(GameController::new(logger.clone())),
+        });
 
         // Create App instance
-        let app = test::init_service(
-            App::new()
-                .app_data(app_data.clone())
-                .service(get_unique_id),
-        ).await;
+        let app =
+            test::init_service(App::new().app_data(app_data.clone()).service(get_unique_id)).await;
 
         let mut ids: Vec<i32> = Vec::new();
 
         // Make `num_requests` GET requests to /create/playerID
         for _ in 0..50_000 {
-            let req = test::TestRequest::get().uri("/create/playerID").to_request();
+            let req = test::TestRequest::get()
+                .uri("/create/playerID")
+                .to_request();
             let resp = app.call(req).await.unwrap();
 
             // Check that the response is a 200 OK
