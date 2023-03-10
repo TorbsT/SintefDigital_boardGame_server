@@ -20,16 +20,16 @@ async fn test() -> impl Responder {
 async fn get_unique_id(shared_data: web::Data<AppData>) -> impl Responder {
     match shared_data.game_controller.lock().unwrap().generate_player_id() {
         Ok(id) => HttpResponse::Ok().body(id.to_string()),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to make player ID because: {}", e)),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to make player ID because: {e}")),
     }
 }
 
 #[post("/create/game")]
 async fn create_new_game(json_data: web::Json<NewGameInfo>, shared_data: web::Data<AppData>) -> impl Responder {
     let lobby_info = json_data.into_inner();
-    match shared_data.game_controller.lock().unwrap().create_new_game(lobby_info.clone()) {
-        Ok(g) => HttpResponse::Ok().json(json!(g.clone())),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to create game because: {}", e)),
+    match shared_data.game_controller.lock().unwrap().create_new_game(lobby_info) {
+        Ok(g) => HttpResponse::Ok().json(json!(g)),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to create game because: {e}")),
     }
 }
 
@@ -41,7 +41,7 @@ async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> im
 #[get("/games/{id}")]
 async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     let games = shared_data.game_controller.lock().unwrap().get_created_games();
-    match games.iter().find(|&g| g.id == id.clone()) {
+    match games.iter().find(|&g| g.id == *id) {
         Some(game) => HttpResponse::Ok().json(json!(game.clone())),
         None => HttpResponse::InternalServerError().body(format!("Could not find the game with id {}", id.clone()))
     }
@@ -52,7 +52,7 @@ async fn handle_player_input(json_data: web::Json<PlayerInput>, shared_data: web
     let input = json_data.into_inner();
     match shared_data.game_controller.lock().unwrap().handle_player_input(input) {
         Ok(g) => HttpResponse::Ok().json(json!(g)),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to make move because {}", e)),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Failed to make move because {e}")),
     }
 }
 
