@@ -1,6 +1,6 @@
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput},
+    game_data::{NewGameInfo, Player, PlayerInput, InGameID},
 };
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -16,7 +16,7 @@ struct AppData {
 async fn test() -> impl Responder {
     let p = Player {
         connected_game_id: None,
-        in_game_id: None,
+        in_game_id: InGameID::Undecided,
         unique_id: 0,
         name: "Player one".to_string(),
         position: None,
@@ -153,7 +153,7 @@ mod tests {
         )));
                 
         web::Data::new(AppData {
-            game_controller: Mutex::new(GameController::new(logger.clone())),
+            game_controller: Mutex::new(GameController::new(logger)),
         })
     }
 

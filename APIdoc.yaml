@@ -1,130 +1,166 @@
-swagger: "2.0"
+openapi: 3.0.0
 info:
-  title: Sintef Digital Board Game API documentation
-  description: This is the API documentation for the sintef digital board game server
-  version: 0.1.0
-host: example.com
-basePath: /api/v1
-schemes:
-  - https
-consumes:
-  - application/json
-produces:
-  - application/json
-
+  title: Board Game REST API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Local server
 paths:
-  /gameState:
+  /create/playerID:
     get:
-      summary: Retrieves the current state of the game
-      description: Returns the current state of the game stored on the server side
-      produces:
-        - application/json
+      summary: Create a new player ID
+      description: Create a new player ID
       responses:
         200:
-          description: The current gamestate
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                playerTurn:
-                  type: integer
-                  description: Determines whose turn it is
-                players:
-                  type: array
-                  description: Contains the data of every player connected to the session
-                  items:
-                    type: object
-                    description: Player data
-                    properties:
-                      displayName:
-                        type: string
-                        description: Name of the player as it shows up in-game
-                      colour:
-                        type: array
-                        description: The player's colour in RGB format
-                        items:
-                          type: integer
-                          minimum: 0
-                          maximum: 255
-                        minItems: 3
-                        maxItems: 3
-        401:
-          description: If a player outside of the game session requests a gamestate, the server will return a 401 (Unauthorized)
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                errorMessage:
-                  type: string
-                  description: Error message which the client receives when attempting to access to access the gamestate of a game the client is not connected to
+          description: The new player ID
+          content:
+            text/plain:
+              schema:
+                type: integer
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /create/game:
     post:
-      summary: Updates the state of the game
-      description: "**After a valid move has been made by the player**, the server receives an updated gamestate from the players client"
-      consumes:
-        - application/json
-      parameters:
-        - in: body
-          name: user
-          description: The updated gamestate (or move)
-          schema:
-            type: object
-            properties:
-              move:
-                type: string
-                description: Move executed
-              other inputs?:
-                type: string
-                description: Anything else that is relevant as input data
-          required: true
+      summary: Create a new game
+      description: Create a new game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewGameInfo"
       responses:
         200:
-          description: The updated gamestate
+          description: The new game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /games/{id}:
+    get:
+      summary: Get the game state
+      description: Get the game state
+      parameters:
+        - in: path
+          name: id
           schema:
-            type: array
-            items:
-              type: object
-              properties:
-                playerTurn:
-                  type: integer
-                  description: Determines whose turn it is
-                players:
-                  type: array
-                  description: Contains the data of every player connected to the session
-                  items:
-                    type: object
-                    description: Player data
-                    properties:
-                      displayName:
-                        type: string
-                        description: Name of the player as it shows up in-game
-                      colour:
-                        type: array
-                        description: The player's colour in RGB format
-                        items:
-                          type: integer
-                          minimum: 0
-                          maximum: 255
-                        minItems: 3
-                        maxItems: 3
-        400:
-          description: If the POST body is invalid, the server will throw a 400 (Bad Request)
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                errorMessage:
-                  type: string
-                  description: Error message received by the client upon a bad request (may contain error code or some form of error catching)
-        401:
-          description: If a player outside of the game session posts a gamestate update, the server will return a 401 (Unauthorized)
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                errorMessage:
-                  type: string
-                  description: Error message which the client receives when attempting to access to access the gamestate of a game the client is not connected to
+            type: string
+          required: true
+          description: The game ID
+      responses:
+        200:
+          description: The game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /games/input:
+    post:
+      summary: Handle player input
+      description: Handle player input
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        200:
+          description: The new game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  schemas:
+    InGameID:
+      type: string
+      enum:
+        - Undecided
+        - PlayerOne
+        - PlayerTwo
+        - PlayerThree
+        - PlayerFour
+        - PlayerFive
+        - Orchestrator
+    PlayerInputType:
+      type: string
+      enum:
+        - Movement
+    GameState:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        is_lobby:
+          type: boolean
+    Player:
+      type: object
+      properties:
+        connected_game_id:
+          type: integer
+          nullable: true
+        in_game_id:
+          $ref: "#/components/schemas/InGameID"
+        unique_id:
+          type: integer
+        name:
+          type: string
+        position:
+          oneOf:
+            - $ref: "#/components/schemas/Node"
+            - nullable: true
+    Node:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        neighbours_id:
+          type: array
+          items:
+            type: integer
+    NewGameInfo:
+      type: object
+      properties:
+        host:
+          $ref: "#/components/schemas/Player"
+        name:
+          type: string
+    PlayerInput:
+      type: object
+      properties:
+        player:
+          $ref: "#/components/schemas/Player"
+        input_type:
+          $ref: "#/components/schemas/PlayerInputType"
+        related_node:
+          $ref: "#/components/schemas/Node"

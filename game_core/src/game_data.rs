@@ -29,7 +29,7 @@ pub struct GameState {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
     pub connected_game_id: Option<i32>,
-    pub in_game_id: Option<InGameID>,
+    pub in_game_id: InGameID,
     pub unique_id: i32,
     pub name: String,
     pub position: Option<Node>,
@@ -109,7 +109,7 @@ impl Player {
     pub const fn new(unique_id: i32, name: String) -> Self {
         Self {
             connected_game_id: None,
-            in_game_id: None,
+            in_game_id: InGameID::Undecided,
             unique_id,
             name,
             position: None,
