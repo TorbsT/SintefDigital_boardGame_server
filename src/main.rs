@@ -190,6 +190,31 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_creating_game() {
+        let app_data = create_game_controller();
+        let app =
+            test::init_service(App::new().app_data(app_data.clone()).service(get_unique_id).service(create_new_game).service(handle_player_input)).await;
+
+        let id_req = test::TestRequest::get().uri("/create/playerID").to_request();
+        let id_resp = app.call(id_req).await.unwrap();
+        let id = body_to_player_id(test::read_body(id_resp).await);
+        
+        let mut player = Player::new(id, "P1".to_string());
+
+        let new_game_info = NewGameInfo {host: player.clone(), name: "Lobby one".to_string()};
+        
+        let create_new_game_req = test::TestRequest::post().uri("/create/game").set_json(&new_game_info).to_request();
+        let new_game_resp = app.call(create_new_game_req).await.unwrap();
+        assert_eq!(new_game_resp.status(), StatusCode::OK);
+        let game_state: GameState = test::read_body_json(new_game_resp).await;
+
+        assert!(game_state.players.clone().into_iter().any(|p| p.unique_id == player.unique_id));
+        player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
+        assert!(player.connected_game_id.is_some());
+        assert!(player.connected_game_id.unwrap() == game_state.id);       
+    }
+    
+    #[actix_web::test]
     async fn test_moving_player() {
         let app_data = create_game_controller();
         let app =
@@ -203,7 +228,7 @@ mod tests {
         let id = body_to_player_id(test::read_body(id_resp).await);
         
         let mut player = Player::new(id, "P1".to_string());
-            player.position = Some(start_node.clone());
+        player.position = Some(start_node.clone());
 
         let new_game_info = NewGameInfo {host: player.clone(), name: "Lobby one".to_string()};
         
