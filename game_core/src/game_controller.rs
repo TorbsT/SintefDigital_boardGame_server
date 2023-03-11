@@ -6,7 +6,7 @@ use std::{
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, InGameID, NewGameInfo, Node, Player, PlayerInput};
+use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput};
 
 // TODO: Jobbet fra 04:00 til 09:00
 // TODO: Jobbet fra 13:00 til
@@ -60,11 +60,14 @@ impl GameController {
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, &str> {
         let mut games_iter = self.games.iter_mut();
-        let related_game =
-            match games_iter.find(|game| game.id == player_input.player.connected_game_id) {
-                Some(game) => game,
-                None => return Err("Could not find the game the player has done an input for!"),
-            };
+        let Some(connected_game_id) = player_input.player.connected_game_id else {
+            return Err("Player is not connected to a game");
+        };
+
+        let related_game = match games_iter.find(|game| game.id == connected_game_id) {
+            Some(game) => game,
+            None => return Err("Could not find the game the player has done an input for!"),
+        };
 
         match Self::handle_input(player_input, related_game) {
             Ok(_) => (),
@@ -171,7 +174,7 @@ impl GameController {
     fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
         // TODO: Check here if the movement is valid once applicable
         let mut player = input.player;
-        player.position = input.related_node;
+        player.position = Some(input.related_node);
         match game.update_player(player) {
             Ok(_) => Ok(()),
             Err(e) => return Err(format!("Failed to move player because: {e}")),
@@ -310,15 +313,11 @@ fn make_random_player_list_with_size(
 #[allow(clippy::unwrap_used)]
 fn make_random_player_info(controller: &mut GameController) -> Player {
     let player: Player = Player {
-        connected_game_id: 0,
-        in_game_id: InGameID::PlayerOne,
+        connected_game_id: None,
+        in_game_id: None,
         unique_id: get_unique_player_id(controller).unwrap(),
         name: rand::random::<i32>().to_string(),
-        position: Node {
-            id: 0,
-            name: "".to_string(),
-            neighbours_id: Vec::new(),
-        },
+        position: None,
     };
     player
 }
@@ -332,7 +331,7 @@ fn get_unique_player_id(controller: &mut GameController) -> Result<i32, ()> {
 #[cfg(test)]
 mod tests {
 
-    use crate::game_data::PlayerInputType;
+    use crate::game_data::{Node, PlayerInputType};
 
     use super::*;
 
@@ -376,7 +375,7 @@ mod tests {
         end_node.add_neighbour_id(start_node.id);
 
         let mut player = make_random_player_info(&mut controller);
-        player.position = start_node;
+        player.position = Some(start_node);
         let lobby = NewGameInfo {
             host: player.clone(),
             name: "Test".to_string(),
@@ -384,10 +383,8 @@ mod tests {
 
         let mut game = controller.create_new_game(lobby).expect("Expected to get GameState but did not get it. Seems like the game failed to be created.");
 
-        assert!(game
-            .players
-            .iter()
-            .any(|p| p.unique_id == player.unique_id && p.position.id == player.position.id));
+        assert!(game.players.iter().any(|p| p.unique_id == player.unique_id
+            && p.clone().position.unwrap().id == player.clone().position.unwrap().id));
 
         player = game
             .players
@@ -405,6 +402,9 @@ mod tests {
         game = controller.handle_player_input(input).expect("Expected to get GameState after doing an input. Seems like something went wrong when handling the input");
 
         assert!(game.players.iter().any(|p| p.unique_id == player.unique_id));
-        assert!(game.players.iter().any(|p| p.position.id == end_node.id));
+        assert!(game
+            .players
+            .iter()
+            .any(|p| p.clone().position.unwrap().id == end_node.id));
     }
 }

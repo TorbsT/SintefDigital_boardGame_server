@@ -23,15 +23,16 @@ pub struct GameState {
     pub id: i32,
     pub name: String,
     pub players: Vec<Player>,
+    pub is_lobby: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
-    pub connected_game_id: i32,
-    pub in_game_id: InGameID,
+    pub connected_game_id: Option<i32>,
+    pub in_game_id: Option<InGameID>,
     pub unique_id: i32,
     pub name: String,
-    pub position: Node,
+    pub position: Option<Node>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -62,6 +63,7 @@ impl GameState {
             id: game_id,
             name,
             players: Vec::new(),
+            is_lobby: true,
         }
     }
 
@@ -80,7 +82,7 @@ impl GameState {
                 "A player that is already assigned to a game cannot be assigned again".to_string(),
             );
         }
-        player.connected_game_id = self.id;
+        player.connected_game_id = Some(self.id);
         self.players.push(player);
         Ok(())
     }
@@ -102,7 +104,29 @@ impl GameState {
     }
 }
 
+impl Player {
+    #[must_use]
+    pub const fn new(unique_id: i32, name: String) -> Self {
+        Self {
+            connected_game_id: None,
+            in_game_id: None,
+            unique_id,
+            name,
+            position: None,
+        }
+    }
+}
+
 impl Node {
+    #[must_use]
+    pub const fn new(id: i32, name: String) -> Self {
+        Self {
+            id,
+            name,
+            neighbours_id: Vec::new(),
+        }
+    }
+
     pub fn add_neighbour_id(&mut self, neighbour_id: i32) {
         self.neighbours_id.push(neighbour_id);
     }
