@@ -1,0 +1,166 @@
+openapi: 3.0.0
+info:
+  title: Board Game REST API
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Local server
+paths:
+  /create/playerID:
+    get:
+      summary: Create a new player ID
+      description: Create a new player ID
+      responses:
+        200:
+          description: The new player ID
+          content:
+            text/plain:
+              schema:
+                type: integer
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /create/game:
+    post:
+      summary: Create a new game
+      description: Create a new game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewGameInfo"
+      responses:
+        200:
+          description: The new game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /games/{id}:
+    get:
+      summary: Get the game state
+      description: Get the game state
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: The game ID
+      responses:
+        200:
+          description: The game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /games/input:
+    post:
+      summary: Handle player input
+      description: Handle player input
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlayerInput"
+      responses:
+        200:
+          description: The new game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+
+components:
+  schemas:
+    InGameID:
+      type: string
+      enum:
+        - Undecided
+        - PlayerOne
+        - PlayerTwo
+        - PlayerThree
+        - PlayerFour
+        - PlayerFive
+        - Orchestrator
+    PlayerInputType:
+      type: string
+      enum:
+        - Movement
+    GameState:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/Player"
+        is_lobby:
+          type: boolean
+    Player:
+      type: object
+      properties:
+        connected_game_id:
+          type: integer
+          nullable: true
+        in_game_id:
+          $ref: "#/components/schemas/InGameID"
+        unique_id:
+          type: integer
+        name:
+          type: string
+        position:
+          oneOf:
+            - $ref: "#/components/schemas/Node"
+            - nullable: true
+    Node:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        neighbours_id:
+          type: array
+          items:
+            type: integer
+    NewGameInfo:
+      type: object
+      properties:
+        host:
+          $ref: "#/components/schemas/Player"
+        name:
+          type: string
+    PlayerInput:
+      type: object
+      properties:
+        player:
+          $ref: "#/components/schemas/Player"
+        input_type:
+          $ref: "#/components/schemas/PlayerInputType"
+        related_node:
+          $ref: "#/components/schemas/Node"
