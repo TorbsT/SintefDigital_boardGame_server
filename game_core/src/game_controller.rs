@@ -6,7 +6,7 @@ use std::{
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID};
+use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput};
 
 // TODO: Jobbet fra 04:00 til 09:00
 // TODO: Jobbet fra 13:00 til
@@ -312,14 +312,10 @@ fn make_random_player_list_with_size(
 
 #[allow(clippy::unwrap_used)]
 fn make_random_player_info(controller: &mut GameController) -> Player {
-    let player: Player = Player {
-        connected_game_id: None,
-        in_game_id: InGameID::Undecided,
-        unique_id: get_unique_player_id(controller).unwrap(),
-        name: rand::random::<i32>().to_string(),
-        position: None,
-    };
-    player
+    Player::new(
+        get_unique_player_id(controller).unwrap(),
+        rand::random::<i32>().to_string(),
+    )
 }
 
 #[allow(clippy::unwrap_used)]

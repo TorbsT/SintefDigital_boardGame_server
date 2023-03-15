@@ -1,6 +1,6 @@
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, InGameID},
+    game_data::{NewGameInfo, Player, PlayerInput},
 };
 use std::sync::{Arc, Mutex, RwLock};
 
@@ -14,13 +14,7 @@ struct AppData {
 
 #[get("/test/newLobby")]
 async fn test() -> impl Responder {
-    let p = Player {
-        connected_game_id: None,
-        in_game_id: InGameID::Undecided,
-        unique_id: 0,
-        name: "Player one".to_string(),
-        position: None,
-    };
+    let p = Player::new(0, "Player one".to_string()); 
     let lobby = NewGameInfo {
         host: p,
         name: "Lobby one".to_string(),
