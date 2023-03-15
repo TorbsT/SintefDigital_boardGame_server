@@ -672,6 +672,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration_tests"
+version = "0.1.0"
+dependencies = [
+ "game_core",
+ "logging",
+ "rand",
+ "rules",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -985,6 +995,9 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 [[package]]
 name = "rules"
 version = "0.1.0"
+dependencies = [
+ "game_core",
+]
 
 [[package]]
 name = "rustc_version"
@@ -1088,8 +1101,10 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "game_core",
+ "integration_tests",
  "logging",
  "parameterized",
+ "rules",
  "serde",
  "serde_json",
 ]

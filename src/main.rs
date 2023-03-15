@@ -2,6 +2,7 @@ use game_core::{
     game_controller::GameController,
     game_data::{NewGameInfo, Player, PlayerInput},
 };
+use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
@@ -114,7 +115,7 @@ async fn main() -> std::io::Result<()> {
         LogLevel::Ignore,
     )));
     let app_data = web::Data::new(AppData {
-        game_controller: Mutex::new(GameController::new(logger.clone())),
+        game_controller: Mutex::new(GameController::new(logger.clone(), Box::new(GameRuleChecker::new()))),
     });
 
     HttpServer::new(move || {
@@ -147,7 +148,7 @@ mod tests {
         )));
                 
         web::Data::new(AppData {
-            game_controller: Mutex::new(GameController::new(logger)),
+            game_controller: Mutex::new(GameController::new(logger, Box::new(GameRuleChecker::new()))),
         })
     }
 
@@ -234,7 +235,7 @@ mod tests {
         player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.clone().position.unwrap().id == start_node.id);
 
-        let input = PlayerInput {player: player.clone(), input_type: PlayerInputType::Movement, related_node: end_node.clone()};
+        let input = PlayerInput {player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_node: end_node.clone()};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::OK);
