@@ -60,8 +60,9 @@ impl GameController {
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, &str> {
         let mut games_iter = self.games.iter_mut();
-        let Some(connected_game_id) = player_input.player.connected_game_id else {
-            return Err("Player is not connected to a game");
+        let connected_game_id = match player_input.player.connected_game_id {
+            Some(id) => id,
+            None => return Err("Player is not connected to a game")
         };
 
         let related_game = match games_iter.find(|game| game.id == connected_game_id) {
@@ -177,7 +178,7 @@ impl GameController {
         player.position = Some(input.related_node);
         match game.update_player(player) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(format!("Failed to move player because: {e}")),
+            Err(e) => Err(format!("Failed to move player because: {e}")),
         }
     }
 }
