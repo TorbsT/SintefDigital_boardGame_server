@@ -139,8 +139,8 @@ impl Node {
         }
     }
 
-    pub fn add_neighbour_id(&mut self, neighbour_id: u8) {
-        self.neighbours_id.push(neighbour_id);
+    pub fn add_neighbour_id(&mut self, neighbour_id: u8, relationship: NeighbourRelationship) {
+        self.neighbours_id.push((neighbour_id, relationship));
     }
 }
 
@@ -150,7 +150,7 @@ impl NeighbourRelationship {
         Self {
             id,
             group,
-            cost: u8,
+            cost: 1,
         }
     }
 
