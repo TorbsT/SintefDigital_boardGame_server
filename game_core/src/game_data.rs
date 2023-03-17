@@ -37,9 +37,21 @@ pub struct Player {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Node {
-    pub id: i32,
+    pub id: u8,
     pub name: String,
-    pub neighbours_id: Vec<i32>,
+    pub neighbours_id: Vec<(u8, NeighbourRelationship)>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NeighbourRelationship {
+    pub id: u8,
+    pub group: u8,
+    pub cost: u8,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct NodeMap {
+    pub map: Vec<Node>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -119,7 +131,7 @@ impl Player {
 
 impl Node {
     #[must_use]
-    pub const fn new(id: i32, name: String) -> Self {
+    pub const fn new(id: u8, name: String) -> Self {
         Self {
             id,
             name,
@@ -129,5 +141,27 @@ impl Node {
 
     pub fn add_neighbour_id(&mut self, neighbour_id: i32) {
         self.neighbours_id.push(neighbour_id);
+    }
+}
+
+impl NeighbourRelationship {
+    #[must_use]
+    pub const fn new(id: u8, group: u8) -> Self {
+        Self {
+            id,
+            group,
+            cost: u8,
+        }
+    }
+
+    pub fn update_cost(&mut self) {}
+}
+
+impl NodeMap {
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            map: Vec::new(),
+        }
     }
 }
