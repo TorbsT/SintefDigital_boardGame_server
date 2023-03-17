@@ -139,7 +139,7 @@ impl Node {
         }
     }
 
-    pub fn add_neighbour_id(&mut self, neighbour_id: i32) {
+    pub fn add_neighbour_id(&mut self, neighbour_id: u8) {
         self.neighbours_id.push(neighbour_id);
     }
 }
@@ -154,7 +154,9 @@ impl NeighbourRelationship {
         }
     }
 
-    pub fn update_cost(&mut self) {}
+    pub fn update_cost(&mut self, update: u8) {
+        self.cost = update;
+    }
 }
 
 impl NodeMap {
