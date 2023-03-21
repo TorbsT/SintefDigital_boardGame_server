@@ -10,3 +10,4 @@ assignees: ''
 Solves (what):
 - [ ] <Implement>
 - [ ] Tests
+- [ ] (If applicable) Update APIdoc.yaml
