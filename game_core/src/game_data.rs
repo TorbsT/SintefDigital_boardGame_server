@@ -140,9 +140,9 @@ impl Node {
         }
     }
 
-    pub fn add_neighbour(&mut self, neighbour: Node, relationship: NeighbourRelationship) {
+    pub fn add_neighbour(&mut self, mut neighbour: Node, relationship: NeighbourRelationship) {
         self.neighbours.push((neighbour, relationship));
-        neighbour.neighbours.push((self, relationship));
+        neighbour.neighbours.push((self.to_owned(), relationship));
     }
 }
 
@@ -155,22 +155,26 @@ enum Neighbourhood {
     Airport,
 }
 
-let groupArray: [u8; 6] = [1, 1, 1, 1, 1, 1];
+const groupCostArray: [u8; 6] = [1, 1, 1, 1, 1, 1];
 
 impl NeighbourRelationship {
     #[must_use]
-    pub const fn new(id: u8, group: Neighbourhood) -> Self {
-        self.group = groupArray[group];
+    pub const fn new(id: u8, neighbourhood: Neighbourhood) -> Self {
+        let group: u8 = groupCostArray[neighbourhood as usize];
         Self {
             id,
             group,
             individualCost: 0,
-            totalCost: individualCost+group,
+            totalCost: 1,
         }
     }
 
     pub fn update_individual_cost(&mut self, update: u8) {
         self.individualCost = update;
+    }
+
+    pub fn update_total_cost(&mut self) {
+        self.totalCost = self.group + self.individualCost;
     }
 }
 
@@ -208,7 +212,16 @@ impl NodeMap {
         map.push(Node::new(27, String::from("Terminal 1")));
         map.push(Node::new(28, String::from("Terminal 2")));
         map[0].add_neighbour(map[1], NeighbourRelationship::new(0, Neighbourhood::IndustryPark));
-        map[0].add_neighbour(map[2], NeighbourRelationship::new(0, Neighbourhood::IndustryPark));
+        map[0].add_neighbour(map[2], NeighbourRelationship::new(1, Neighbourhood::IndustryPark));
+        map[1].add_neighbour(map[2], NeighbourRelationship::new(2, Neighbourhood::IndustryPark));
+        map[2].add_neighbour(map[3], NeighbourRelationship::new(3, Neighbourhood::Suburbs));
+        map[3].add_neighbour(map[4], NeighbourRelationship::new(4, Neighbourhood::RingRoad));
+        map[3].add_neighbour(map[9], NeighbourRelationship::new(5, Neighbourhood::RingRoad));
+        map[4].add_neighbour(map[5], NeighbourRelationship::new(6, Neighbourhood::Port));
+        map[4].add_neighbour(map[6], NeighbourRelationship::new(7, Neighbourhood::RingRoad));
+        map[6].add_neighbour(map[13], NeighbourRelationship::new(8, Neighbourhood::RingRoad));
+        map[6].add_neighbour(map[7], NeighbourRelationship::new(9, Neighbourhood::Suburbs));
+        map[7].add_neighbour(map[8], NeighbourRelationship::new(10, Neighbourhood::Suburbs));
         /*
         TODO: Add neighbour relations to nodes
               Remember to refer to issue 47 for anything involving path costs
