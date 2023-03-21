@@ -46,8 +46,8 @@ pub struct Node {
 pub struct NeighbourRelationship {
     pub id: u8,
     pub group: u8,
-    pub individualCost: u8,
-    pub totalCost: u8,
+    pub individual_cost: u8,
+    pub total_cost: u8,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -164,17 +164,17 @@ impl NeighbourRelationship {
         Self {
             id,
             group,
-            individualCost: 0,
-            totalCost: 1,
+            individual_cost: 0,
+            total_cost: 1,
         }
     }
 
     pub fn update_individual_cost(&mut self, update: u8) {
-        self.individualCost = update;
+        self.individual_cost = update;
     }
 
     pub fn update_total_cost(&mut self) {
-        self.totalCost = self.group + self.individualCost;
+        self.total_cost = self.group + self.individual_cost;
     }
 }
 
