@@ -39,14 +39,15 @@ pub struct Player {
 pub struct Node {
     pub id: u8,
     pub name: String,
-    pub neighbours_id: Vec<(u8, NeighbourRelationship)>,
+    pub neighbours: Vec<(Node, NeighbourRelationship)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NeighbourRelationship {
     pub id: u8,
     pub group: u8,
-    pub cost: u8,
+    pub individualCost: u8,
+    pub totalCost: u8,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -135,27 +136,41 @@ impl Node {
         Self {
             id,
             name,
-            neighbours_id: Vec::new(),
+            neighbours: Vec::new(),
         }
     }
 
-    pub fn add_neighbour_id(&mut self, neighbour_id: u8, relationship: NeighbourRelationship) {
-        self.neighbours_id.push((neighbour_id, relationship));
+    pub fn add_neighbour(&mut self, neighbour: Node, relationship: NeighbourRelationship) {
+        self.neighbours.push((neighbour, relationship));
+        neighbour.neighbours.push((self, relationship));
     }
 }
 
+enum Neighbourhood {
+    IndustryPark,
+    Port,
+    Suburbs,
+    RingRoad,
+    CityCentre,
+    Airport,
+}
+
+let groupArray: [u8; 6] = [1, 1, 1, 1, 1, 1];
+
 impl NeighbourRelationship {
     #[must_use]
-    pub const fn new(id: u8, group: u8) -> Self {
+    pub const fn new(id: u8, group: Neighbourhood) -> Self {
+        self.group = groupArray[group];
         Self {
             id,
             group,
-            cost: 1,
+            individualCost: 0,
+            totalCost: individualCost+group,
         }
     }
 
-    pub fn update_cost(&mut self, update: u8) {
-        self.cost = update;
+    pub fn update_individual_cost(&mut self, update: u8) {
+        self.individualCost = update;
     }
 }
 
@@ -192,6 +207,8 @@ impl NodeMap {
         map.push(Node::new(26, String::from("I10")));
         map.push(Node::new(27, String::from("Terminal 1")));
         map.push(Node::new(28, String::from("Terminal 2")));
+        map[0].add_neighbour(map[1], NeighbourRelationship::new(0, Neighbourhood::IndustryPark));
+        map[0].add_neighbour(map[2], NeighbourRelationship::new(0, Neighbourhood::IndustryPark));
         /*
         TODO: Add neighbour relations to nodes
               Remember to refer to issue 47 for anything involving path costs
