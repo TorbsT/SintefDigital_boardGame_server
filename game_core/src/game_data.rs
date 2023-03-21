@@ -192,6 +192,10 @@ impl NodeMap {
         map.push(Node::new(26, String::from("I10")));
         map.push(Node::new(27, String::from("Terminal 1")));
         map.push(Node::new(28, String::from("Terminal 2")));
+        /*
+        TODO: Add neighbour relations to nodes
+              Remember to refer to issue 47 for anything involving path costs
+        */
         Self {
             map,
         }
