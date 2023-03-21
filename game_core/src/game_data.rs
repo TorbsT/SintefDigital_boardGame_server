@@ -161,9 +161,11 @@ impl NeighbourRelationship {
 
 impl NodeMap {
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
+        let mut map: Vec<Node> = Vec::new();
+        map.push(Node::new(0, String::from("Factory")));
         Self {
-            map: Vec::new(),
+            map,
         }
     }
 }
