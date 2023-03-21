@@ -164,6 +164,34 @@ impl NodeMap {
     pub fn new() -> Self {
         let mut map: Vec<Node> = Vec::new();
         map.push(Node::new(0, String::from("Factory")));
+        map.push(Node::new(1, String::from("Refinery")));
+        map.push(Node::new(2, String::from("Industry Park")));
+        map.push(Node::new(3, String::from("I1")));
+        map.push(Node::new(4, String::from("I2")));
+        map.push(Node::new(5, String::from("Port")));
+        map.push(Node::new(6, String::from("I3")));
+        map.push(Node::new(7, String::from("Beach")));
+        map.push(Node::new(8, String::from("Northside")));
+        map.push(Node::new(9, String::from("I4")));
+        map.push(Node::new(10, String::from("Central Station")));
+        map.push(Node::new(11, String::from("City Square")));
+        map.push(Node::new(12, String::from("Concert Hall")));
+        map.push(Node::new(13, String::from("Eastside Mart")));
+        map.push(Node::new(14, String::from("East Town")));
+        map.push(Node::new(15, String::from("Food Court")));
+        map.push(Node::new(16, String::from("City Park")));
+        map.push(Node::new(17, String::from("Quarry")));
+        map.push(Node::new(18, String::from("I5")));
+        map.push(Node::new(19, String::from("I6")));
+        map.push(Node::new(20, String::from("I7")));
+        map.push(Node::new(21, String::from("I8")));
+        map.push(Node::new(22, String::from("West Town")));
+        map.push(Node::new(23, String::from("Lakeside")));
+        map.push(Node::new(24, String::from("Warehouses")));
+        map.push(Node::new(25, String::from("I9")));
+        map.push(Node::new(26, String::from("I10")));
+        map.push(Node::new(27, String::from("Terminal 1")));
+        map.push(Node::new(28, String::from("Terminal 2")));
         Self {
             map,
         }
