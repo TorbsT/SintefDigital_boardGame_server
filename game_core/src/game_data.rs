@@ -33,6 +33,7 @@ pub struct Player {
     pub unique_id: i32,
     pub name: String,
     pub position: Option<Node>,
+    pub remaining_moves: i32,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -117,6 +118,7 @@ impl Player {
             unique_id,
             name,
             position: None,
+            remaining_moves: 0,
         }
     }
 }

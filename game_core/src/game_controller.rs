@@ -1,12 +1,11 @@
 use std::{
     any::type_name,
-    cmp::min,
     sync::{Arc, RwLock},
 };
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID};
+use crate::game_data::{self, GameState, NewGameInfo, PlayerInput};
 
 // TODO: Jobbet fra 04:00 til 09:00
 // TODO: Jobbet fra 13:00 til
@@ -87,6 +86,16 @@ impl GameController {
 
     pub fn get_amount_of_created_player_ids(&self) -> i32 {
         self.unique_ids.len() as i32
+    }
+
+    pub fn get_all_lobbies(&self) -> Vec<GameState> {
+        let mut lobbies = Vec::new();
+        self.games.clone().into_iter().for_each(|game| {
+            if game.is_lobby {
+                lobbies.push(game);
+            }
+        });
+        lobbies
     }
 
     pub fn remove_player_from_game(&mut self, player_id: i32) {
@@ -185,163 +194,162 @@ impl GameController {
         player.position = Some(input.related_node);
         match game.update_player(player) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(format!("Failed to move player because: {e}")),
+            Err(e) => Err(format!("Failed to move player because: {e}")),
         }
     }
-}
-
-// =========== For testing ===========
-use logging::threshold_logger::ThresholdLogger;
-
-fn make_game_controller() -> GameController {
-    let logger = Arc::new(RwLock::new(ThresholdLogger::new(
-        LogLevel::Ignore,
-        LogLevel::Ignore,
-    )));
-    GameController::new(logger)
-}
-
-pub fn get_all_wanted_unique_player_ids(amount_of_new_ids_to_create: usize) -> bool {
-    let mut controller = make_game_controller();
-
-    let mut ids = Vec::with_capacity(amount_of_new_ids_to_create);
-    for _ in 0..amount_of_new_ids_to_create {
-        match controller.generate_player_id() {
-            Ok(id) => {
-                if ids.contains(&id) {
-                    return false;
-                }
-
-                ids.push(id);
-            }
-            Err(_) => return false,
-        }
-    }
-
-    true
-}
-
-#[allow(clippy::unwrap_used)]
-pub fn test_creating_new_games(
-    amount_of_new_players_to_create: i32,
-    amount_of_new_games: i32,
-) -> bool {
-    let mut controller = make_game_controller();
-
-    let random_players: Vec<Player> =
-        make_random_player_list_with_size(amount_of_new_players_to_create, &mut controller);
-
-    let new_lobbies: Vec<NewGameInfo> =
-        make_random_new_lobbies(amount_of_new_games, random_players);
-
-    let mut games_created: Vec<GameState> = Vec::new();
-
-    for new_lobby in &new_lobbies {
-        if let Ok(game) = controller.create_new_game(new_lobby.clone()) {
-            games_created.push(game)
-        }
-    }
-
-    if games_created.len()
-        != min(
-            amount_of_new_players_to_create as usize,
-            amount_of_new_games as usize,
-        )
-    {
-        return false;
-    }
-
-    let mut actual_games_to_create_from_full_list: Vec<NewGameInfo> = Vec::new();
-    for i in 0..new_lobbies.len() {
-        if actual_games_to_create_from_full_list
-            .iter()
-            .any(|lobby| lobby.host.unique_id == new_lobbies.get(i).unwrap().host.unique_id)
-        {
-            continue;
-        }
-        actual_games_to_create_from_full_list.push(new_lobbies.get(i).unwrap().clone());
-    }
-
-    for lobby in actual_games_to_create_from_full_list {
-        if !games_created.iter().any(|game| {
-            game.players
-                .iter()
-                .any(|player| player.unique_id == lobby.host.unique_id)
-                && game.name == lobby.name
-        }) {
-            return false;
-        }
-    }
-    true
-}
-
-// ========= Helpers ===========
-#[allow(clippy::unwrap_used)]
-fn make_random_new_lobbies(
-    amount_of_new_games: i32,
-    random_players: Vec<Player>,
-) -> Vec<NewGameInfo> {
-    let mut new_lobbies: Vec<NewGameInfo> = Vec::with_capacity(amount_of_new_games as usize);
-    let mut player_index = 0;
-    for _ in 0..amount_of_new_games {
-        if random_players.is_empty() {
-            break;
-        }
-        let player = random_players.get(player_index).unwrap();
-        player_index += 1;
-        if player_index == random_players.len() {
-            player_index = 0;
-        }
-        new_lobbies.push(NewGameInfo {
-            host: player.clone(),
-            name: rand::random::<i32>().to_string(),
-        });
-    }
-
-    new_lobbies
-}
-
-#[allow(clippy::unwrap_used)]
-fn make_random_player_list_with_size(
-    amount_of_new_players_to_create: i32,
-    controller: &mut GameController,
-) -> Vec<Player> {
-    let mut players: Vec<Player> = Vec::with_capacity(amount_of_new_players_to_create as usize);
-    for _ in 0..amount_of_new_players_to_create {
-        let mut p: Player = make_random_player_info(controller);
-        while players.iter().any(|p1| p1.unique_id == p.unique_id) {
-            p = make_random_player_info(controller);
-        }
-        players.push(p);
-    }
-
-    players
-}
-
-#[allow(clippy::unwrap_used)]
-fn make_random_player_info(controller: &mut GameController) -> Player {
-    let player: Player = Player {
-        connected_game_id: None,
-        in_game_id: InGameID::Undecided,
-        unique_id: get_unique_player_id(controller).unwrap(),
-        name: rand::random::<i32>().to_string(),
-        position: None,
-    };
-    player
-}
-
-#[allow(clippy::unwrap_used)]
-fn get_unique_player_id(controller: &mut GameController) -> Result<i32, ()> {
-    controller.generate_player_id().map_or(Err(()), Ok)
 }
 
 //#[cfg(not(test))]
 #[cfg(test)]
 mod tests {
 
-    use crate::game_data::{Node, PlayerInputType};
+    use std::cmp::min;
+
+    use crate::game_data::{Node, PlayerInputType, Player};
 
     use super::*;
+
+    use logging::threshold_logger::ThresholdLogger;
+
+    // =============== Helpers ================
+
+    fn make_game_controller() -> GameController {
+        let logger = Arc::new(RwLock::new(ThresholdLogger::new(
+            LogLevel::Ignore,
+            LogLevel::Ignore,
+        )));
+        GameController::new(logger)
+    }
+    
+    pub fn get_all_wanted_unique_player_ids(amount_of_new_ids_to_create: usize) -> bool {
+        let mut controller = make_game_controller();
+    
+        let mut ids = Vec::with_capacity(amount_of_new_ids_to_create);
+        for _ in 0..amount_of_new_ids_to_create {
+            match controller.generate_player_id() {
+                Ok(id) => {
+                    if ids.contains(&id) {
+                        return false;
+                    }
+    
+                    ids.push(id);
+                }
+                Err(_) => return false,
+            }
+        }
+    
+        true
+    }
+    
+    #[allow(clippy::unwrap_used)]
+    fn make_random_new_lobbies(
+        amount_of_new_games: i32,
+        random_players: Vec<Player>,
+    ) -> Vec<NewGameInfo> {
+        let mut new_lobbies: Vec<NewGameInfo> = Vec::with_capacity(amount_of_new_games as usize);
+        let mut player_index = 0;
+        for _ in 0..amount_of_new_games {
+            if random_players.is_empty() {
+                break;
+            }
+            let player = random_players.get(player_index).unwrap();
+            player_index += 1;
+            if player_index == random_players.len() {
+                player_index = 0;
+            }
+            new_lobbies.push(NewGameInfo {
+                host: player.clone(),
+                name: rand::random::<i32>().to_string(),
+            });
+        }
+    
+        new_lobbies
+    }
+    
+    #[allow(clippy::unwrap_used)]
+    fn make_random_player_list_with_size(
+        amount_of_new_players_to_create: i32,
+        controller: &mut GameController,
+    ) -> Vec<Player> {
+        let mut players: Vec<Player> = Vec::with_capacity(amount_of_new_players_to_create as usize);
+        for _ in 0..amount_of_new_players_to_create {
+            let mut p: Player = make_random_player_info(controller);
+            while players.iter().any(|p1| p1.unique_id == p.unique_id) {
+                p = make_random_player_info(controller);
+            }
+            players.push(p);
+        }
+    
+        players
+    }
+    
+    #[allow(clippy::unwrap_used)]
+    fn make_random_player_info(controller: &mut GameController) -> Player {
+        Player::new(
+            get_unique_player_id(controller).unwrap(),
+            rand::random::<i32>().to_string(),
+        )
+    }
+    
+    #[allow(clippy::unwrap_used)]
+    fn get_unique_player_id(controller: &mut GameController) -> Result<i32, ()> {
+        controller.generate_player_id().map_or(Err(()), Ok)
+    }
+
+    // ========= Tests ===========
+
+    pub fn test_creating_new_games(
+        amount_of_new_players_to_create: i32,
+        amount_of_new_games: i32,
+    ) -> bool {
+        let mut controller = make_game_controller();
+    
+        let random_players: Vec<Player> =
+            make_random_player_list_with_size(amount_of_new_players_to_create, &mut controller);
+    
+        let new_lobbies: Vec<NewGameInfo> =
+            make_random_new_lobbies(amount_of_new_games, random_players);
+    
+        let mut games_created: Vec<GameState> = Vec::new();
+    
+        for new_lobby in &new_lobbies {
+            if let Ok(game) = controller.create_new_game(new_lobby.clone()) {
+                games_created.push(game)
+            }
+        }
+    
+        if games_created.len()
+            != min(
+                amount_of_new_players_to_create as usize,
+                amount_of_new_games as usize,
+            )
+        {
+            return false;
+        }
+    
+        let mut actual_games_to_create_from_full_list: Vec<NewGameInfo> = Vec::new();
+        for i in 0..new_lobbies.len() {
+            if actual_games_to_create_from_full_list
+                .iter()
+                .any(|lobby| lobby.host.unique_id == new_lobbies.get(i).unwrap().host.unique_id)
+            {
+                continue;
+            }
+            actual_games_to_create_from_full_list.push(new_lobbies.get(i).unwrap().clone());
+        }
+    
+        for lobby in actual_games_to_create_from_full_list {
+            if !games_created.iter().any(|game| {
+                game.players
+                    .iter()
+                    .any(|player| player.unique_id == lobby.host.unique_id)
+                    && game.name == lobby.name
+            }) {
+                return false;
+            }
+        }
+        true
+    }
 
     #[test]
     fn test_generation_of_unique_player_ids() {
@@ -415,4 +423,5 @@ mod tests {
             .iter()
             .any(|p| p.clone().position.unwrap().id == end_node.id));
     }
+
 }
