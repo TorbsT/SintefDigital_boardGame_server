@@ -4,7 +4,7 @@ use game_core::{
 };
 use std::sync::{Arc, Mutex, RwLock};
 
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
 
@@ -115,6 +115,15 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
 
     let lobbies = game_controller.get_all_lobbies();
     HttpResponse::Ok().json(json!(lobbies))
+}
+
+#[delete("/games/leave/{id}")]
+async fn leave_game(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
+    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
+        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    };
+    game_controller.remove_player_from_game(*id);
+    HttpResponse::Ok().body("")
 }
 
 macro_rules! server_app_with_data {
@@ -297,7 +306,6 @@ mod tests {
         player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.position.unwrap().id == end_node.id);
     }
-
 
     #[actix_web::test]
     async fn test_getting_lobbies() {

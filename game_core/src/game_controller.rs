@@ -98,6 +98,14 @@ impl GameController {
         lobbies
     }
 
+    pub fn remove_player_from_game(&mut self, player_id: i32) {
+        self.games.iter_mut().for_each(|game| {
+            if game.players.iter().any(|p| p.unique_id == player_id) {
+                game.remove_player_with_id(player_id);
+            }
+        })
+    }
+
     fn generate_unused_unique_id(&mut self) -> Option<i32> {
         if let Ok(mut logger) = self.logger.write() {
             logger.log(LogData::new(

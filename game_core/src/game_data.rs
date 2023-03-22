@@ -103,6 +103,10 @@ impl GameState {
     pub fn update_game(&mut self, update: Self) {
         self.players = update.players;
     }
+
+    pub fn remove_player_with_id(&mut self, player_id: i32) {
+        self.players.retain(|player| player.unique_id != player_id);
+    }
 }
 
 impl Player {
