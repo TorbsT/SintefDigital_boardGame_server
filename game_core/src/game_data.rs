@@ -223,6 +223,16 @@ impl NodeMap {
         let mut node27: Node = Node::new(27, String::from("Terminal 1"));
         let mut node28: Node = Node::new(28, String::from("Terminal 2"));
         Self::add_relationship(&mut node0, &mut node1, NeighbourRelationship::new(0, Neighbourhood::IndustryPark));
+        Self::add_relationship(&mut node0, &mut node2, NeighbourRelationship::new(1, Neighbourhood::IndustryPark));
+        Self::add_relationship(&mut node1, &mut node2, NeighbourRelationship::new(2, Neighbourhood::IndustryPark));
+        Self::add_relationship(&mut node2, &mut node3, NeighbourRelationship::new(3, Neighbourhood::Suburbs));
+        Self::add_relationship(&mut node3, &mut node4, NeighbourRelationship::new(4, Neighbourhood::RingRoad));
+        Self::add_relationship(&mut node3, &mut node9, NeighbourRelationship::new(5, Neighbourhood::RingRoad));
+        Self::add_relationship(&mut node4, &mut node5, NeighbourRelationship::new(6, Neighbourhood::Port));
+        Self::add_relationship(&mut node4, &mut node6, NeighbourRelationship::new(7, Neighbourhood::RingRoad));
+        Self::add_relationship(&mut node6, &mut node13, NeighbourRelationship::new(8, Neighbourhood::RingRoad));
+        Self::add_relationship(&mut node6, &mut node7, NeighbourRelationship::new(9, Neighbourhood::Suburbs));
+        Self::add_relationship(&mut node7, &mut node8, NeighbourRelationship::new(10, Neighbourhood::Suburbs));
         Self::add_to_map(&mut map, node0);
         Self::add_to_map(&mut map, node1);
         Self::add_to_map(&mut map, node2);
@@ -252,21 +262,6 @@ impl NodeMap {
         Self::add_to_map(&mut map, node26);
         Self::add_to_map(&mut map, node27);
         Self::add_to_map(&mut map, node28);
-        //map[0].add_neighbour(map[1].clone(), Arc::new(NeighbourRelationship::new(0, Neighbourhood::IndustryPark)));
-        //map[0].add_neighbour(map[2].clone(), Arc::new(NeighbourRelationship::new(1, Neighbourhood::IndustryPark)));
-        //map[1].add_neighbour(map[2].clone(), Arc::new(NeighbourRelationship::new(2, Neighbourhood::IndustryPark)));
-        //map[2].add_neighbour(map[3].clone(), Arc::new(NeighbourRelationship::new(3, Neighbourhood::Suburbs)));
-        //map[3].add_neighbour(map[4].clone(), Arc::new(NeighbourRelationship::new(4, Neighbourhood::RingRoad)));
-        //map[3].add_neighbour(map[9].clone(), Arc::new(NeighbourRelationship::new(5, Neighbourhood::RingRoad)));
-        //map[4].add_neighbour(map[5].clone(), Arc::new(NeighbourRelationship::new(6, Neighbourhood::Port)));
-        //map[4].add_neighbour(map[6].clone(), Arc::new(NeighbourRelationship::new(7, Neighbourhood::RingRoad)));
-        //map[6].add_neighbour(map[13].clone(), Arc::new(NeighbourRelationship::new(8, Neighbourhood::RingRoad)));
-        //map[6].add_neighbour(map[7].clone(), Arc::new(NeighbourRelationship::new(9, Neighbourhood::Suburbs)));
-        //map[7].add_neighbour(map[8].clone(), Arc::new(NeighbourRelationship::new(10, Neighbourhood::Suburbs)));
-        /*
-        TODO: Add neighbour relations to nodes
-              Remember to refer to issue 47 for anything involving path costs
-        */
         Self {
             map,
         }
