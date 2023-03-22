@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
     game_data::{NewGameInfo, Player, PlayerInput},
@@ -63,8 +64,9 @@ async fn create_new_game(
 
 #[get("/debug/playerIDs/amount")]
 async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> impl Responder {
-    let Ok(game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let game_controller = match shared_data.game_controller.lock() {
+        Ok(controller) => controller, 
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
         };
     HttpResponse::Ok().body(
         game_controller
@@ -76,8 +78,9 @@ async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> im
 #[get("/games/{id}")]
 async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     
-    let Ok(game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
     
     let games = game_controller.get_created_games();
@@ -94,8 +97,9 @@ async fn handle_player_input(
 ) -> impl Responder {
     let input = json_data.into_inner();
     
-    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let mut game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
 
     let gamestate_result = game_controller.handle_player_input(input); 
@@ -118,7 +122,14 @@ async fn main() -> std::io::Result<()> {
     });
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .supports_credentials();
+
         App::new()
+            .wrap(cors)
             .app_data(app_data.clone())
             .service(get_unique_id)
             .service(create_new_game)
