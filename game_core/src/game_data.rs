@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 //// =============== Enums ===============
@@ -39,7 +41,8 @@ pub struct Player {
 pub struct Node {
     pub id: u8,
     pub name: String,
-    pub neighbours: Vec<(Node, NeighbourRelationship)>,
+    #[serde(skip)]
+    pub neighbours: Vec<(u8, Arc<NeighbourRelationship>)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -50,9 +53,9 @@ pub struct NeighbourRelationship {
     pub total_cost: u8,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct NodeMap {
-    pub map: Vec<Node>,
+    pub map: Vec<Arc<Node>>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -140,9 +143,9 @@ impl Node {
         }
     }
 
-    pub fn add_neighbour(&mut self, mut neighbour: Node, relationship: NeighbourRelationship) {
-        self.neighbours.push((neighbour, relationship));
-        neighbour.neighbours.push((self.to_owned(), relationship));
+    pub fn add_neighbour(&mut self, neighbour: &mut Arc<Node>, relationship: Arc<NeighbourRelationship>) {
+        self.neighbours.push((neighbour.id, relationship.clone()));
+        neighbour.neighbours.push((self.id, relationship));
     }
 }
 
@@ -171,6 +174,7 @@ impl NeighbourRelationship {
 
     pub fn update_individual_cost(&mut self, update: u8) {
         self.individual_cost = update;
+        self.update_total_cost();
     }
 
     pub fn update_total_cost(&mut self) {
@@ -181,47 +185,47 @@ impl NeighbourRelationship {
 impl NodeMap {
     #[must_use]
     pub fn new() -> Self {
-        let mut map: Vec<Node> = Vec::new();
-        map.push(Node::new(0, String::from("Factory")));
-        map.push(Node::new(1, String::from("Refinery")));
-        map.push(Node::new(2, String::from("Industry Park")));
-        map.push(Node::new(3, String::from("I1")));
-        map.push(Node::new(4, String::from("I2")));
-        map.push(Node::new(5, String::from("Port")));
-        map.push(Node::new(6, String::from("I3")));
-        map.push(Node::new(7, String::from("Beach")));
-        map.push(Node::new(8, String::from("Northside")));
-        map.push(Node::new(9, String::from("I4")));
-        map.push(Node::new(10, String::from("Central Station")));
-        map.push(Node::new(11, String::from("City Square")));
-        map.push(Node::new(12, String::from("Concert Hall")));
-        map.push(Node::new(13, String::from("Eastside Mart")));
-        map.push(Node::new(14, String::from("East Town")));
-        map.push(Node::new(15, String::from("Food Court")));
-        map.push(Node::new(16, String::from("City Park")));
-        map.push(Node::new(17, String::from("Quarry")));
-        map.push(Node::new(18, String::from("I5")));
-        map.push(Node::new(19, String::from("I6")));
-        map.push(Node::new(20, String::from("I7")));
-        map.push(Node::new(21, String::from("I8")));
-        map.push(Node::new(22, String::from("West Town")));
-        map.push(Node::new(23, String::from("Lakeside")));
-        map.push(Node::new(24, String::from("Warehouses")));
-        map.push(Node::new(25, String::from("I9")));
-        map.push(Node::new(26, String::from("I10")));
-        map.push(Node::new(27, String::from("Terminal 1")));
-        map.push(Node::new(28, String::from("Terminal 2")));
-        map[0].add_neighbour(map[1], NeighbourRelationship::new(0, Neighbourhood::IndustryPark));
-        map[0].add_neighbour(map[2], NeighbourRelationship::new(1, Neighbourhood::IndustryPark));
-        map[1].add_neighbour(map[2], NeighbourRelationship::new(2, Neighbourhood::IndustryPark));
-        map[2].add_neighbour(map[3], NeighbourRelationship::new(3, Neighbourhood::Suburbs));
-        map[3].add_neighbour(map[4], NeighbourRelationship::new(4, Neighbourhood::RingRoad));
-        map[3].add_neighbour(map[9], NeighbourRelationship::new(5, Neighbourhood::RingRoad));
-        map[4].add_neighbour(map[5], NeighbourRelationship::new(6, Neighbourhood::Port));
-        map[4].add_neighbour(map[6], NeighbourRelationship::new(7, Neighbourhood::RingRoad));
-        map[6].add_neighbour(map[13], NeighbourRelationship::new(8, Neighbourhood::RingRoad));
-        map[6].add_neighbour(map[7], NeighbourRelationship::new(9, Neighbourhood::Suburbs));
-        map[7].add_neighbour(map[8], NeighbourRelationship::new(10, Neighbourhood::Suburbs));
+        let mut map: Vec<Arc<Node>> = Vec::new();
+        map.push(Arc::new(Node::new(0, String::from("Factory"))));
+        map.push(Arc::new(Node::new(1, String::from("Refinery"))));
+        map.push(Arc::new(Node::new(2, String::from("Industry Park"))));
+        map.push(Arc::new(Node::new(3, String::from("I1"))));
+        map.push(Arc::new(Node::new(4, String::from("I2"))));
+        map.push(Arc::new(Node::new(5, String::from("Port"))));
+        map.push(Arc::new(Node::new(6, String::from("I3"))));
+        map.push(Arc::new(Node::new(7, String::from("Beach"))));
+        map.push(Arc::new(Node::new(8, String::from("Northside"))));
+        map.push(Arc::new(Node::new(9, String::from("I4"))));
+        map.push(Arc::new(Node::new(10, String::from("Central Station"))));
+        map.push(Arc::new(Node::new(11, String::from("City Square"))));
+        map.push(Arc::new(Node::new(12, String::from("Concert Hall"))));
+        map.push(Arc::new(Node::new(13, String::from("Eastside Mart"))));
+        map.push(Arc::new(Node::new(14, String::from("East Town"))));
+        map.push(Arc::new(Node::new(15, String::from("Food Court"))));
+        map.push(Arc::new(Node::new(16, String::from("City Park"))));
+        map.push(Arc::new(Node::new(17, String::from("Quarry"))));
+        map.push(Arc::new(Node::new(18, String::from("I5"))));
+        map.push(Arc::new(Node::new(19, String::from("I6"))));
+        map.push(Arc::new(Node::new(20, String::from("I7"))));
+        map.push(Arc::new(Node::new(21, String::from("I8"))));
+        map.push(Arc::new(Node::new(22, String::from("West Town"))));
+        map.push(Arc::new(Node::new(23, String::from("Lakeside"))));
+        map.push(Arc::new(Node::new(24, String::from("Warehouses"))));
+        map.push(Arc::new(Node::new(25, String::from("I9"))));
+        map.push(Arc::new(Node::new(26, String::from("I10"))));
+        map.push(Arc::new(Node::new(27, String::from("Terminal 1"))));
+        map.push(Arc::new(Node::new(28, String::from("Terminal 2"))));
+        map[0].add_neighbour(&mut map[1].clone(), Arc::new(NeighbourRelationship::new(0, Neighbourhood::IndustryPark)));
+        map[0].add_neighbour(&mut map[2].clone(), Arc::new(NeighbourRelationship::new(1, Neighbourhood::IndustryPark)));
+        map[1].add_neighbour(&mut map[2].clone(), Arc::new(NeighbourRelationship::new(2, Neighbourhood::IndustryPark)));
+        map[2].add_neighbour(&mut map[3].clone(), Arc::new(NeighbourRelationship::new(3, Neighbourhood::Suburbs)));
+        map[3].add_neighbour(&mut map[4].clone(), Arc::new(NeighbourRelationship::new(4, Neighbourhood::RingRoad)));
+        map[3].add_neighbour(&mut map[9].clone(), Arc::new(NeighbourRelationship::new(5, Neighbourhood::RingRoad)));
+        map[4].add_neighbour(&mut map[5].clone(), Arc::new(NeighbourRelationship::new(6, Neighbourhood::Port)));
+        map[4].add_neighbour(&mut map[6].clone(), Arc::new(NeighbourRelationship::new(7, Neighbourhood::RingRoad)));
+        map[6].add_neighbour(&mut map[13].clone(), Arc::new(NeighbourRelationship::new(8, Neighbourhood::RingRoad)));
+        map[6].add_neighbour(&mut map[7].clone(), Arc::new(NeighbourRelationship::new(9, Neighbourhood::Suburbs)));
+        map[7].add_neighbour(&mut map[8].clone(), Arc::new(NeighbourRelationship::new(10, Neighbourhood::Suburbs)));
         /*
         TODO: Add neighbour relations to nodes
               Remember to refer to issue 47 for anything involving path costs
