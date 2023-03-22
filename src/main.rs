@@ -113,6 +113,8 @@ async fn handle_player_input(
     }
 }
 
+// TODO: 3. make a post request for changing the role of a player
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let logger = Arc::new(RwLock::new(ThresholdLogger::new(

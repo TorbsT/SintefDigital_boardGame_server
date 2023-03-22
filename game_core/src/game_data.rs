@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 //// =============== Enums ===============
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub enum InGameID {
     Undecided = 0,
     PlayerOne = 1,
@@ -46,6 +46,12 @@ pub struct Node {
 pub struct NewGameInfo {
     pub host: Player,
     pub name: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ChangePlayerRoleInfo {
+    pub player_id: i32,
+    pub change_to: InGameID,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -101,6 +107,25 @@ impl GameState {
 
     pub fn update_game(&mut self, update: Self) {
         self.players = update.players;
+    }
+
+    pub fn assign_player_role(&mut self, change_info: ChangePlayerRoleInfo) -> Result<(), &str> {
+        if self.players.iter().any(|p| p.in_game_id == change_info.change_to && change_info.change_to != InGameID::Undecided) {
+            return Err("There is already a player with this role");
+        }
+
+        for player in self.players.iter_mut() {
+            if player.unique_id != change_info.player_id {
+                continue;
+            }
+            player.in_game_id = change_info.change_to;
+            return Ok(());
+        }
+        Err("There were no players in this game that match the player to update")
+    }
+
+    pub fn clone_game(self) -> Self {
+        self.clone()
     }
 }
 

@@ -6,7 +6,7 @@ use std::{
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID};
+use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID, ChangePlayerRoleInfo};
 
 // TODO: Jobbet fra 04:00 til 09:00
 // TODO: Jobbet fra 13:00 til
@@ -87,6 +87,18 @@ impl GameController {
 
     pub fn get_amount_of_created_player_ids(&self) -> i32 {
         self.unique_ids.len() as i32
+    }
+
+    //TODO: 2. Assign role to player
+    pub fn change_role_player(&mut self, change_info: ChangePlayerRoleInfo) -> Result<GameState, &str> {
+        let Some(game) = self.games.iter_mut().find(|game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) else {
+            return Err("Player is not connected to a game");
+        };
+        let res = game.assign_player_role(change_info);
+        match res {
+            Ok(_) => Ok(game.clone()),
+            Err(e) => return Err(e),
+        }
     }
 
     fn generate_unused_unique_id(&mut self) -> Option<i32> {
