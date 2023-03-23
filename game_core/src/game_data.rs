@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -55,7 +55,7 @@ pub struct NeighbourRelationship {
 
 #[derive(Clone)]
 pub struct NodeMap {
-    pub map: Vec<Arc<Mutex<Node>>>,
+    pub map: Vec<Node>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -183,8 +183,8 @@ impl NeighbourRelationship {
 }
 
 impl NodeMap {
-    pub fn add_to_map(map: &mut Vec<Arc<Mutex<Node>>>, node: Node) {
-        map.push(Arc::new(Mutex::new(node)));
+    pub fn add_to_map(map: &mut Vec<Node>, node: Node) {
+        map.push(node);
     }
 
     pub fn add_relationship(node1: &mut Node, node2: &mut Node, relationship: NeighbourRelationship) {
@@ -192,7 +192,7 @@ impl NodeMap {
     }
     #[must_use]
     pub fn new() -> Self {
-        let mut map: Vec<Arc<Mutex<Node>>> = Vec::new();
+        let mut map: Vec<Node> = Vec::new();
         let mut node0: Node = Node::new(0, String::from("Factory"));
         let mut node1: Node = Node::new(1, String::from("Refinery"));
         let mut node2: Node = Node::new(2, String::from("Industry Park"));
