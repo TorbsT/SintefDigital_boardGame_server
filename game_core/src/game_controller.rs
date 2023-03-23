@@ -331,7 +331,7 @@ fn get_unique_player_id(controller: &mut GameController) -> Result<i32, ()> {
 #[cfg(test)]
 mod tests {
 
-    use crate::game_data::{Node, PlayerInputType};
+    use crate::game_data::{Node, PlayerInputType, NeighbourRelationship};
 
     use super::*;
 
@@ -364,15 +364,14 @@ mod tests {
         let mut start_node = Node {
             id: 1,
             name: "Start".to_string(),
-            neighbours_id: Vec::new(),
+            neighbours: Vec::new(),
         };
         let mut end_node = Node {
             id: 2,
             name: "End".to_string(),
-            neighbours_id: Vec::new(),
+            neighbours: Vec::new(),
         };
-        start_node.add_neighbour_id(end_node.id);
-        end_node.add_neighbour_id(start_node.id);
+        start_node.add_neighbour(&mut end_node, Arc::new(NeighbourRelationship::new(0, game_data::Neighbourhood::IndustryPark)));
 
         let mut player = make_random_player_info(&mut controller);
         player.position = Some(start_node);
