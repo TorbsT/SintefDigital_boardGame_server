@@ -318,9 +318,10 @@ mod tests {
     fn test_node_add_neighbour() {
         let mut node0: Node = Node::new(0, String::from("First testing node"));
         let mut node1: Node = Node::new(1, String::from("Second testing node"));
-        node0.add_neighbour(&mut node1, Arc::new(NeighbourRelationship::new(0, Neighbourhood::Port)));
+        node0.add_neighbour(&mut node1, Arc::new(NeighbourRelationship::new(0, Neighbourhood::Suburbs)));
         assert!(node0.neighbours[0].0 == 1);
-        assert!(node0.neighbours[0].1.group_cost == Neighbourhood::Port as u8);
+        let group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
+        assert!(node0.neighbours[0].1.group_cost == *group_cost_map_reference.get(&Neighbourhood::Suburbs).unwrap());
     }
 
     #[test]
@@ -332,6 +333,7 @@ mod tests {
         let mut group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
         group_cost_map_reference.insert(Neighbourhood::Port, 2);
         assert!(node0.neighbours[0].1.total_cost == 2);
+        //TODO: Fix this test
     }
 
     #[test]
