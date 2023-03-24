@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 //// =============== Enums ===============
+const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
 #[derive(Clone, Serialize, Deserialize)]
 pub enum InGameID {
     Undecided = 0,
@@ -78,11 +79,17 @@ impl GameState {
     }
 
     pub fn assign_player_to_game(&mut self, mut player: Player) -> Result<(), String> {
+        if self.players.len() >= MAX_PLAYER_COUNT {
+            return Err("The game is full".to_string());
+        }
+
         if self.contains_player_with_unique_id(player.unique_id) {
             return Err(
                 "A player that is already assigned to a game cannot be assigned again".to_string(),
             );
         }
+
+        player.in_game_id = InGameID::Undecided;
         player.connected_game_id = Some(self.id);
         self.players.push(player);
         Ok(())

@@ -90,6 +90,27 @@ impl GameController {
         self.unique_ids.len() as i32
     }
 
+    //TODO 1: Lag funksjonen for å bli med i spillet
+    pub fn join_game(&mut self, game_id: i32, player: Player) -> Result<GameState, String> {
+        for game in self.games.iter() {
+            if game.contains_player_with_unique_id(player.unique_id) {
+                return Err("The player is already connected to another game.".to_string());
+            }
+        }
+        // Legge til en spiller i et spill
+        let mut games_iter = self.games.iter_mut();
+        let related_game = match games_iter.find(|game| game.id == game_id) {
+            Some(game) => game,
+            None => return Err("Could not find the game the player has done an input for!".to_string()),
+        };
+        match related_game.assign_player_to_game(player) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        };
+
+        Ok(related_game.clone())
+    }
+
     fn generate_unused_unique_id(&mut self) -> Option<i32> {
         if let Ok(mut logger) = self.logger.write() {
             logger.log(LogData::new(

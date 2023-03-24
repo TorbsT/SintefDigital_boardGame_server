@@ -90,6 +90,21 @@ async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> i
         |game| HttpResponse::Ok().json(json!(game.clone())))
 }
 
+#[post("/games/join/{game_id}")]
+async fn join_game(game_id: web::Path<i32>, player: web::Json<Player>, shared_data: web::Data<AppData>) -> impl Responder {
+    let mut game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
+    };
+
+    match game_controller.join_game(*game_id, player.into_inner()) {
+        Ok(g) => HttpResponse::Ok().json(json!(g)),
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to join game because {e}"))
+        }
+    }
+}
+
 #[post("/games/input")]
 async fn handle_player_input(
     json_data: web::Json<PlayerInput>,
