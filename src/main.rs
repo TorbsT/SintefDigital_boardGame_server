@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
     game_data::{NewGameInfo, Player, PlayerInput},
@@ -63,8 +64,9 @@ async fn create_new_game(
 
 #[get("/debug/playerIDs/amount")]
 async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> impl Responder {
-    let Ok(game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let game_controller = match shared_data.game_controller.lock() {
+        Ok(controller) => controller, 
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
         };
     HttpResponse::Ok().body(
         game_controller
@@ -76,8 +78,9 @@ async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> im
 #[get("/games/game/{id}")]
 async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     
-    let Ok(game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
     
     let games = game_controller.get_created_games();
@@ -87,6 +90,21 @@ async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> i
         |game| HttpResponse::Ok().json(json!(game.clone())))
 }
 
+#[post("/games/join/{game_id}")]
+async fn join_game(game_id: web::Path<i32>, player: web::Json<Player>, shared_data: web::Data<AppData>) -> impl Responder {
+    let mut game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
+    };
+
+    match game_controller.join_game(*game_id, player.into_inner()) {
+        Ok(g) => HttpResponse::Ok().json(json!(g)),
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to join game because {e}"))
+        }
+    }
+}
+
 #[post("/games/input")]
 async fn handle_player_input(
     json_data: web::Json<PlayerInput>,
@@ -94,8 +112,9 @@ async fn handle_player_input(
 ) -> impl Responder {
     let input = json_data.into_inner();
     
-    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let mut game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
 
     let gamestate_result = game_controller.handle_player_input(input); 
@@ -128,15 +147,24 @@ async fn leave_game(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl
 
 macro_rules! server_app_with_data {
     ($x:expr) => {
-        App::new()
-            .app_data($x.clone())
-            .service(get_unique_id)
-            .service(create_new_game)
-            .service(get_amount_of_created_player_ids)
-            .service(get_gamestate)
-            .service(handle_player_input)
-            .service(get_lobbies)
-            .service(test)
+        {
+            let cors = Cors::default()
+                .allow_any_origin()
+                .allow_any_method()
+                .allow_any_header()
+                .supports_credentials();
+    
+            App::new()
+                .wrap(cors)
+                .app_data($x.clone())
+                .service(get_unique_id)
+                .service(create_new_game)
+                .service(get_amount_of_created_player_ids)
+                .service(get_gamestate)
+                .service(handle_player_input)
+                .service(get_lobbies)
+                .service(test)
+        }
     }
 }
 
@@ -152,15 +180,6 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         server_app_with_data!(app_data)
-        // App::new()
-        //     .app_data(app_data.clone())
-        //     .service(get_unique_id)
-        //     .service(create_new_game)
-        //     .service(get_amount_of_created_player_ids)
-        //     .service(get_gamestate)
-        //     .service(handle_player_input)
-        //     .service(get_lobbies)
-        //     .service(test)
     })
     .bind(("127.0.0.1", 5000))?
     .run()
