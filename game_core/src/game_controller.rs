@@ -8,9 +8,6 @@ use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID, ChangePlayerRoleInfo};
 
-// TODO: Jobbet fra 04:00 til 09:00
-// TODO: Jobbet fra 13:00 til
-
 pub struct GameController {
     pub games: Vec<GameState>,
     pub unique_ids: Vec<i32>,
@@ -90,40 +87,39 @@ impl GameController {
     }
 
     //TODO: 2. Assign role to player
-    pub fn change_role_player(&mut self, change_info: ChangePlayerRoleInfo) -> Result<GameState, &str> {
+    pub fn change_role_player(&mut self, change_info: ChangePlayerRoleInfo) -> Result<GameState, String> {
         //let player_not_found = Err("Player is not connected to a game");
-        let mut error: Option<&str> = None;
+        let mut error: Option<String> = None;
         let mut found_player = false;
-        self.games.iter_mut().for_each(|game| {
+        self.games = self.games.clone().into_iter().map(|mut game| {
             if !game.players.iter().any(|p| p.unique_id == change_info.player_id) {
-                return;
+                return game;
             }
 
-            let _ = match game.assign_player_role(change_info.clone()) {
+            match game.assign_player_role(change_info.clone()) {
                 Ok(_) => (),
                 Err(e) => {
-                    error = Some(e);
-                    ()
+                    error = Some(String::from(e));
                 },
             };
+
             found_player = true;
-        });
+            game
+        }).collect();
         
         if !found_player {
-            return Err("Player is not connected to a game");
+            return Err("Player is not connected to a game".to_string());
         }
 
         //TODO: Check for assign player errors
-
-        match self.games.clone().into_iter().find(|game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) {
-            Some(game) => Ok(game),
-            None => Err("Player is not connected to a game"),
+        if let Some(e) = error {
+            return Err(e);
         }
 
-        // match self.games.clone().iter().find(|&game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) {
-        //     Some(g) => Ok(g.clone().clone()),
-        //     None => player_not_found
-        // }
+        match self.games.clone().iter().find(|&game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) {
+            Some(game) => Ok(game.clone()),
+            None => Err("Player is not connected to a game".to_string()),
+        }
     }
 
     fn generate_unused_unique_id(&mut self) -> Option<i32> {
