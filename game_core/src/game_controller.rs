@@ -177,7 +177,7 @@ impl GameController {
         player.position = Some(input.related_node);
         match game.update_player(player) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(format!("Failed to move player because: {e}")),
+            Err(e) => Err(format!("Failed to move player because: {e}")),
         }
     }
 }

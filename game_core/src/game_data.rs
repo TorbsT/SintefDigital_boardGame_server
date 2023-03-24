@@ -143,7 +143,7 @@ impl Node {
         }
     }
 
-    pub fn add_neighbour(&mut self, neighbour: &mut Node, relationship: Arc<NeighbourRelationship>) {
+    pub fn add_neighbour(&mut self, neighbour: &mut Self, relationship: Arc<NeighbourRelationship>) {
         self.neighbours.push((neighbour.id, relationship.clone()));
         neighbour.neighbours.push((self.id, relationship));
     }
