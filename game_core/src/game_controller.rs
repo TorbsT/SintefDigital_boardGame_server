@@ -91,14 +91,39 @@ impl GameController {
 
     //TODO: 2. Assign role to player
     pub fn change_role_player(&mut self, change_info: ChangePlayerRoleInfo) -> Result<GameState, &str> {
-        let Some(game) = self.games.iter_mut().find(|game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) else {
+        //let player_not_found = Err("Player is not connected to a game");
+        let mut error: Option<&str> = None;
+        let mut found_player = false;
+        self.games.iter_mut().for_each(|game| {
+            if !game.players.iter().any(|p| p.unique_id == change_info.player_id) {
+                return;
+            }
+
+            let _ = match game.assign_player_role(change_info.clone()) {
+                Ok(_) => (),
+                Err(e) => {
+                    error = Some(e);
+                    ()
+                },
+            };
+            found_player = true;
+        });
+        
+        if !found_player {
             return Err("Player is not connected to a game");
-        };
-        let res = game.assign_player_role(change_info);
-        match res {
-            Ok(_) => Ok(game.clone()),
-            Err(e) => return Err(e),
         }
+
+        //TODO: Check for assign player errors
+
+        match self.games.clone().into_iter().find(|game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) {
+            Some(game) => Ok(game),
+            None => Err("Player is not connected to a game"),
+        }
+
+        // match self.games.clone().iter().find(|&game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) {
+        //     Some(g) => Ok(g.clone().clone()),
+        //     None => player_not_found
+        // }
     }
 
     fn generate_unused_unique_id(&mut self) -> Option<i32> {

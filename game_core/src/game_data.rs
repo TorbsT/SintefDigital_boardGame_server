@@ -123,10 +123,6 @@ impl GameState {
         }
         Err("There were no players in this game that match the player to update")
     }
-
-    pub fn clone_game(self) -> Self {
-        self.clone()
-    }
 }
 
 impl Player {
