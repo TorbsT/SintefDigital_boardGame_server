@@ -1,4 +1,4 @@
-use std::sync::{Arc};
+use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -48,7 +48,7 @@ pub struct Node {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NeighbourRelationship {
     pub id: u8,
-    pub group: u8,
+    pub group_cost: u8,
     pub individual_cost: u8,
     pub total_cost: u8,
 }
@@ -149,6 +149,7 @@ impl Node {
     }
 }
 
+#[derive(Debug, Eq, Hash, PartialEq)]
 pub enum Neighbourhood {
     IndustryPark,
     Port,
@@ -158,15 +159,28 @@ pub enum Neighbourhood {
     Airport,
 }
 
-const GROUP_COST_ARRAY: [u8; 6] = [1, 1, 1, 1, 1, 1];
+lazy_static! {
+    static ref GROUP_COST_MAP: Mutex<HashMap<Neighbourhood, u8>> =
+        Mutex::new({
+            let mut map = HashMap::new();
+            map.insert(Neighbourhood::IndustryPark, 1);
+            map.insert(Neighbourhood::Port, 1);
+            map.insert(Neighbourhood::Suburbs, 1);
+            map.insert(Neighbourhood::RingRoad, 1);
+            map.insert(Neighbourhood::CityCentre, 1);
+            map.insert(Neighbourhood::Airport, 1);
+            map
+        });
+}
 
 impl NeighbourRelationship {
     #[must_use]
-    pub const fn new(id: u8, neighbourhood: Neighbourhood) -> Self {
-        let group: u8 = GROUP_COST_ARRAY[neighbourhood as usize];
+    pub fn new(id: u8, neighbourhood: Neighbourhood) -> Self {
+        let group = GROUP_COST_MAP.lock().unwrap();
+        let group_cost: u8 = *group.get(&neighbourhood).unwrap();
         Self {
             id,
-            group,
+            group_cost,
             individual_cost: 0,
             total_cost: 1,
         }
@@ -178,7 +192,7 @@ impl NeighbourRelationship {
     }
 
     pub fn update_total_cost(&mut self) {
-        self.total_cost = self.group + self.individual_cost;
+        self.total_cost = self.group_cost + self.individual_cost;
     }
 }
 
@@ -289,6 +303,44 @@ impl NodeMap {
         Self::add_to_map(&mut map, node28);
         Self {
             map,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::game_data::{Node, NeighbourRelationship};
+
+    use super::*;
+
+    #[test]
+    fn test_node_add_neighbour() {
+        let mut node0: Node = Node::new(0, String::from("First testing node"));
+        let mut node1: Node = Node::new(1, String::from("Second testing node"));
+        node0.add_neighbour(&mut node1, Arc::new(NeighbourRelationship::new(0, Neighbourhood::Port)));
+        assert!(node0.neighbours[0].0 == 1);
+        assert!(node0.neighbours[0].1.group_cost == Neighbourhood::Port as u8);
+    }
+
+    #[test]
+    fn test_cost() {
+        let mut node0: Node = Node::new(0, String::from("First testing node"));
+        let mut node1: Node = Node::new(1, String::from("Second testing node"));
+        node0.add_neighbour(&mut node1, Arc::new(NeighbourRelationship::new(0, Neighbourhood::Port)));
+        assert!(node0.neighbours[0].1.total_cost == 1);
+        let mut group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
+        group_cost_map_reference.insert(Neighbourhood::Port, 2);
+        assert!(node0.neighbours[0].1.total_cost == 2);
+    }
+
+    #[test]
+    fn test_nodemap_access() {
+        let node_map: NodeMap = NodeMap::new();
+        assert!(node_map.map.len() == 29);
+        assert!(node_map.map[16].neighbours[0].0 == 11);
+        for n in 0..node_map.map.len() {
+            assert!(node_map.map[n].id == n as u8);
         }
     }
 }
