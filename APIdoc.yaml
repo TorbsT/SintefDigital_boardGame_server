@@ -53,7 +53,7 @@ paths:
         - in: path
           name: id
           schema:
-            type: string
+            type: integer
           required: true
           description: The game ID
       responses:
@@ -78,6 +78,35 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/PlayerInput"
+      responses:
+        200:
+          description: The new game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /games/join/{game_id}:
+    post:
+      summary: Join a game
+      description: Join a game
+      parameters:
+        - in: path
+          name: game_id
+          schema:
+            type: integer
+          required: true
+          description: The game ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Player"
       responses:
         200:
           description: The new game state
