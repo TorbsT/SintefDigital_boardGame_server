@@ -113,8 +113,6 @@ async fn handle_player_input(
     }
 }
 
-// TODO: 3. make a post request for changing the role of a player
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let logger = Arc::new(RwLock::new(ThresholdLogger::new(
@@ -242,7 +240,9 @@ mod tests {
         player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.clone().position.unwrap().id == start_node.id);
 
-        let input = PlayerInput {player: player.clone(), input_type: PlayerInputType::Movement, related_node: end_node.clone()};
+        let mut input = PlayerInput::new(player.clone(), PlayerInputType::Movement);
+        input.related_node = Some(end_node.clone());
+
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::OK);

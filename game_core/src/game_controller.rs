@@ -6,7 +6,7 @@ use std::{
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID, ChangePlayerRoleInfo};
+use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID, Node};
 
 pub struct GameController {
     pub games: Vec<GameState>,
@@ -86,40 +86,8 @@ impl GameController {
         self.unique_ids.len() as i32
     }
 
-    //TODO: 2. Assign role to player
-    pub fn change_role_player(&mut self, change_info: ChangePlayerRoleInfo) -> Result<GameState, String> {
-        //let player_not_found = Err("Player is not connected to a game");
-        let mut error: Option<String> = None;
-        let mut found_player = false;
-        self.games = self.games.clone().into_iter().map(|mut game| {
-            if !game.players.iter().any(|p| p.unique_id == change_info.player_id) {
-                return game;
-            }
-
-            match game.assign_player_role(change_info.clone()) {
-                Ok(_) => (),
-                Err(e) => {
-                    error = Some(String::from(e));
-                },
-            };
-
-            found_player = true;
-            game
-        }).collect();
-        
-        if !found_player {
-            return Err("Player is not connected to a game".to_string());
-        }
-
-        //TODO: Check for assign player errors
-        if let Some(e) = error {
-            return Err(e);
-        }
-
-        match self.games.clone().iter().find(|&game| game.players.iter().any(|p| p.unique_id == change_info.player_id)) {
-            Some(game) => Ok(game.clone()),
-            None => Err("Player is not connected to a game".to_string()),
-        }
+    fn change_role_player(game: &mut GameState, input: (Player, InGameID)) -> Result<(), &str> {
+        game.assign_player_role(input)
     }
 
     fn generate_unused_unique_id(&mut self) -> Option<i32> {
@@ -197,17 +165,34 @@ impl GameController {
 
     fn handle_input(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
         match input.input_type {
-            game_data::PlayerInputType::Movement => match Self::handle_movement(input, game) {
-                Ok(_) => Ok(()),
-                Err(e) => Err(e),
+            game_data::PlayerInputType::Movement => {
+                let Some(node) = input.related_node else {
+                    return Err("The input did not have a node".to_string());
+                };
+
+                match Self::handle_movement(game, (input.player, node)) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e),
+                }
+            },
+            game_data::PlayerInputType::ChangeRole => {
+                let Some(related_role) = input.related_role else {
+                    return Err("The input did not have a role".to_string());
+                };
+
+                match Self::change_role_player(game, (input.player, related_role)) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e.to_string()),
+                }
             },
         }
     }
 
-    fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
+    fn handle_movement(game: &mut GameState, input: (Player, Node)) -> Result<(), String> {
         // TODO: Check here if the movement is valid once applicable
-        let mut player = input.player;
-        player.position = Some(input.related_node);
+        let (input_player, related_node) = input;
+        let mut player = input_player;
+        player.position = Some(related_node);
         match game.update_player(player) {
             Ok(_) => Ok(()),
             Err(e) => return Err(format!("Failed to move player because: {e}")),
@@ -426,11 +411,8 @@ mod tests {
             .unwrap()
             .clone();
 
-        let input = PlayerInput {
-            player: player.clone(),
-            input_type: PlayerInputType::Movement,
-            related_node: end_node.clone(),
-        };
+        let mut input = PlayerInput::new(player.clone(), PlayerInputType::Movement);
+        input.related_node = Some(end_node.clone());
 
         game = controller.handle_player_input(input).expect("Expected to get GameState after doing an input. Seems like something went wrong when handling the input");
 
@@ -439,5 +421,7 @@ mod tests {
             .players
             .iter()
             .any(|p| p.clone().position.unwrap().id == end_node.id));
+
+        //TODO: Test if the movement actually is done when we pull the gamestate later on and dont get it as a returned value
     }
 }

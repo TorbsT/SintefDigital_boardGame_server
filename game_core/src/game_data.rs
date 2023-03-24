@@ -15,6 +15,7 @@ pub enum InGameID {
 #[derive(Clone, Serialize, Deserialize)]
 pub enum PlayerInputType {
     Movement,
+    ChangeRole,
 }
 
 //// =============== Structs ===============
@@ -49,16 +50,11 @@ pub struct NewGameInfo {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct ChangePlayerRoleInfo {
-    pub player_id: i32,
-    pub change_to: InGameID,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
 pub struct PlayerInput {
     pub player: Player,
     pub input_type: PlayerInputType,
-    pub related_node: Node,
+    pub related_role: Option<InGameID>,
+    pub related_node: Option<Node>,
 }
 
 //// =============== Structs impls ===============
@@ -99,7 +95,6 @@ impl GameState {
                 continue;
             }
             player.position = player_to_update.position;
-            // TODO: Add the ability to change role in the game aswell when applicable
             return Ok(());
         }
         Err("There were no players in this game that match the player to update".to_string())
@@ -109,16 +104,17 @@ impl GameState {
         self.players = update.players;
     }
 
-    pub fn assign_player_role(&mut self, change_info: ChangePlayerRoleInfo) -> Result<(), &str> {
-        if self.players.iter().any(|p| p.in_game_id == change_info.change_to && change_info.change_to != InGameID::Undecided) {
+    pub fn assign_player_role(&mut self, change_info: (Player, InGameID)) -> Result<(), &str> {
+        let (related_player, change_to_role) = change_info;
+        if self.players.iter().any(|p| p.in_game_id == change_to_role && change_to_role != InGameID::Undecided) {
             return Err("There is already a player with this role");
         }
 
         for player in self.players.iter_mut() {
-            if player.unique_id != change_info.player_id {
+            if player.unique_id != related_player.unique_id {
                 continue;
             }
-            player.in_game_id = change_info.change_to;
+            player.in_game_id = change_to_role;
             return Ok(());
         }
         Err("There were no players in this game that match the player to update")
@@ -150,5 +146,17 @@ impl Node {
 
     pub fn add_neighbour_id(&mut self, neighbour_id: i32) {
         self.neighbours_id.push(neighbour_id);
+    }
+}
+
+impl PlayerInput {
+    #[must_use]
+    pub const fn new(player: Player, input_type: PlayerInputType) -> Self {
+        Self {
+            player,
+            input_type,
+            related_role: None,
+            related_node: None,
+        }
     }
 }
