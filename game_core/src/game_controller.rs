@@ -5,10 +5,7 @@ use std::{
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, PlayerInput};
-
-// TODO: Jobbet fra 04:00 til 09:00
-// TODO: Jobbet fra 13:00 til
+use crate::game_data::{self, GameState, NewGameInfo, PlayerInput, Player};
 
 pub struct GameController {
     pub games: Vec<GameState>,
@@ -105,6 +102,7 @@ impl GameController {
                 game.remove_player_with_id(player_id);
             }
         })
+    }
 
     pub fn join_game(&mut self, game_id: i32, player: Player) -> Result<GameState, String> {
         for game in self.games.iter() {
