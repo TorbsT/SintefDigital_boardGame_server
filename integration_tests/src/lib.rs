@@ -1,4 +1,4 @@
-pub mod game_rule_checker;
+pub mod game_controller_test;
 
 // pub fn add(left: usize, right: usize) -> usize {
 //     left + right

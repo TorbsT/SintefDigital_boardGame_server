@@ -1,12 +1,14 @@
 use std::{
     any::type_name,
-    cmp::min,
     sync::{Arc, RwLock},
 };
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID};
+use crate::{
+    game_data::{self, GameState, NewGameInfo, PlayerInput},
+    rule_checker::RuleChecker,
+};
 
 // TODO: Jobbet fra 04:00 til 09:00
 // TODO: Jobbet fra 13:00 til
@@ -15,14 +17,19 @@ pub struct GameController {
     pub games: Vec<GameState>,
     pub unique_ids: Vec<i32>,
     pub logger: Arc<RwLock<dyn Logger + Send + Sync>>,
+    pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
 
 impl GameController {
-    pub fn new(logger: Arc<RwLock<dyn Logger + Send + Sync>>) -> Self {
+    pub fn new(
+        logger: Arc<RwLock<dyn Logger + Send + Sync>>,
+        rule_checker: Box<dyn RuleChecker + Send + Sync>,
+    ) -> Self {
         Self {
             games: Vec::new(),
             unique_ids: Vec::new(),
             logger,
+            rule_checker,
         }
     }
 
@@ -60,14 +67,34 @@ impl GameController {
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, &str> {
         let mut games_iter = self.games.iter_mut();
-        let Some(connected_game_id) = player_input.player.connected_game_id else {
-            return Err("Player is not connected to a game");
-        };
-
+        let connected_game_id = player_input.game_id;
         let related_game = match games_iter.find(|game| game.id == connected_game_id) {
             Some(game) => game,
             None => return Err("Could not find the game the player has done an input for!"),
         };
+
+        match self
+            .rule_checker
+            .is_input_valid(related_game, &player_input)
+        {
+            Ok(is_valid) => {
+                if !is_valid {
+                    return Err(
+                        "The given player input was not valid according to the server's rules.",
+                    );
+                }
+            }
+            Err(e) => {
+                if let Ok(mut logger) = self.logger.write() {
+                    logger.log(LogData::new(
+                        LogLevel::Error,
+                        e.as_str(),
+                        type_name::<Self>(),
+                    ));
+                }
+                return Err("Something went wrong when trying to check the rules.");
+            }
+        }
 
         match Self::handle_input(player_input, related_game) {
             Ok(_) => (),
@@ -172,10 +199,7 @@ impl GameController {
     }
 
     fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
-        // TODO: Check here if the movement is valid once applicable
-        let mut player = input.player;
-        player.position = Some(input.related_node);
-        match game.update_player(player) {
+        match game.move_player_with_id(input.player_id, input.related_node) {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Failed to move player because: {e}")),
         }

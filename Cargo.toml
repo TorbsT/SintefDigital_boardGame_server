@@ -11,11 +11,14 @@ members = [
     "helpers",
     "logging",
     "rules",
+    "integration_tests",
 ]
 
 [dependencies]
 game_core = {path = "game_core"}
 logging = {path = "logging"}
+rules = {path = "rules"}
+integration_tests = {path = "integration_tests"}
 actix-web = "4.3.1"
 serde = "1.0.152"
 serde_json = "1.0.93"
