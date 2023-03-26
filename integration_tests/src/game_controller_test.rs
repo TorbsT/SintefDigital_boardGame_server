@@ -2,8 +2,8 @@
 mod tests {
     use std::{sync::{Arc, RwLock}, cmp::min};
 
-    use game_core::{game_data::{PlayerInput, self, Player, NewGameInfo, InGameID, GameState}, rule_checker, game_controller::GameController};
-    use game_data::{Node, PlayerInputType, NeighbourRelationship}; 
+    use game_core::{game_data::{PlayerInput, self, Player, NewGameInfo, InGameID, GameState, NodeMap}, game_controller::GameController};
+    use game_data::{PlayerInputType}; 
     use logging::{threshold_logger::ThresholdLogger, logger::LogLevel};
     use rules::game_rule_checker::GameRuleChecker;
 
@@ -57,8 +57,8 @@ mod tests {
             in_game_id: InGameID::Undecided,
             unique_id: get_unique_player_id(controller).unwrap(),
             name: rand::random::<i32>().to_string(),
-            position: None,
-            remaining_moves: 0,
+            position_node_id: None,
+            remaining_moves: 8,
         };
         player
     }
@@ -178,20 +178,15 @@ mod tests {
     fn test_player_movement() {
         let mut controller = make_game_controller();
 
-        let mut start_node = Node {
-            id: 1,
-            name: "Start".to_string(),
-            neighbours: Vec::new(),
-        };
-        let mut end_node = Node {
-            id: 2,
-            name: "End".to_string(),
-            neighbours: Vec::new(),
-        };
-        start_node.add_neighbour(&mut end_node, Arc::new(NeighbourRelationship::new(0, game_data::Neighbourhood::IndustryPark)));
+        // TODO: Start the game and then try to move the player
+
+        let node_map = NodeMap::new();
+
+        let start_node = node_map.map.get(0).unwrap();
+        let neighbour_info = start_node.neighbours.get(0).unwrap();
 
         let mut player = make_random_player_info(&mut controller);
-        player.position = Some(start_node);
+        player.position_node_id = Some(start_node.id);
         let lobby = NewGameInfo {
             host: player.clone(),
             name: "Test".to_string(),
@@ -200,7 +195,7 @@ mod tests {
         let mut game = controller.create_new_game(lobby).expect("Expected to get GameState but did not get it. Seems like the game failed to be created.");
 
         assert!(game.players.iter().any(|p| p.unique_id == player.unique_id
-            && p.clone().position.unwrap().id == player.clone().position.unwrap().id));
+            && p.clone().position_node_id.unwrap() == player.clone().position_node_id.unwrap()));
 
         player = game
             .players
@@ -211,7 +206,7 @@ mod tests {
 
         let input = PlayerInput {
             input_type: PlayerInputType::Movement,
-            related_node: end_node.clone(),
+            related_node_id: neighbour_info.0,
             player_id: player.unique_id,
             game_id: game.id,
         };
@@ -222,6 +217,6 @@ mod tests {
         assert!(game
             .players
             .iter()
-            .any(|p| p.clone().position.unwrap().id == end_node.id));
+            .any(|p| p.clone().position_node_id.unwrap() == neighbour_info.0));
     }
 }

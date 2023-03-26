@@ -1108,8 +1108,8 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "game_core",
- "lazy_static",
  "integration_tests",
+ "lazy_static",
  "logging",
  "parameterized",
  "rules",

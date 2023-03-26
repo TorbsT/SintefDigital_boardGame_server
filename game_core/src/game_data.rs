@@ -2,6 +2,14 @@ use std::{sync::{Arc, Mutex}, collections::HashMap};
 
 use serde::{Deserialize, Serialize};
 
+//// =============== Types ===============
+pub type NodeID = u8;
+pub type PlayerID = i32;
+pub type GameID = i32;
+pub type NeighbourRelationshipID = u8;
+pub type MovementCost = u8;
+pub type MovesRemaining = MovementCost;
+
 //// =============== Enums ===============
 #[derive(Clone, Serialize, Deserialize)]
 pub enum InGameID {
@@ -22,7 +30,7 @@ pub enum PlayerInputType {
 //// =============== Structs ===============
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GameState {
-    pub id: i32,
+    pub id: GameID,
     pub name: String,
     pub players: Vec<Player>,
     pub is_lobby: bool,
@@ -30,31 +38,31 @@ pub struct GameState {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Player {
-    pub connected_game_id: Option<i32>,
+    pub connected_game_id: Option<GameID>,
     pub in_game_id: InGameID,
-    pub unique_id: i32,
+    pub unique_id: PlayerID,
     pub name: String,
-    pub position: Option<Node>,
-    pub remaining_moves: i32,
+    pub position_node_id: Option<NodeID>,
+    pub remaining_moves: MovesRemaining,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Node {
-    pub id: u8,
+    pub id: NodeID,
     pub name: String,
     #[serde(skip)]
-    pub neighbours: Vec<(u8, Arc<NeighbourRelationship>)>,
+    pub neighbours: Vec<(NodeID, Arc<NeighbourRelationship>)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NeighbourRelationship {
-    pub id: u8,
-    pub group_cost: u8,
-    pub individual_cost: u8,
-    pub total_cost: u8,
+    pub id: NeighbourRelationshipID,
+    pub group_cost: MovementCost,
+    pub individual_cost: MovementCost,
+    pub total_cost: MovementCost,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct NodeMap {
     pub map: Vec<Node>,
 }
@@ -67,16 +75,16 @@ pub struct NewGameInfo {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PlayerInput {
-    pub player_id: i32,
-    pub game_id: i32,
+    pub player_id: PlayerID,
+    pub game_id: GameID,
     pub input_type: PlayerInputType,
-    pub related_node: Node,
+    pub related_node_id: NodeID,
 }
 
 //// =============== Structs impls ===============
 impl GameState {
     #[must_use]
-    pub const fn new(name: String, game_id: i32) -> Self {
+    pub const fn new(name: String, game_id: GameID) -> Self {
         Self {
             id: game_id,
             name,
@@ -85,7 +93,7 @@ impl GameState {
         }
     }
 
-    pub fn contains_player_with_unique_id(&self, unique_id: i32) -> bool {
+    pub fn contains_player_with_unique_id(&self, unique_id: PlayerID) -> bool {
         for player in &self.players {
             if player.unique_id == unique_id {
                 return true;
@@ -105,12 +113,12 @@ impl GameState {
         Ok(())
     }
 
-    pub fn move_player_with_id(&mut self, player_id: i32, to_node: Node) -> Result<(), String> {
+    pub fn move_player_with_id(&mut self, player_id: PlayerID, to_node_id: NodeID) -> Result<(), String> {
         for player in self.players.iter_mut() {
             if player.unique_id != player_id {
                 continue;
             }
-            player.position = Some(to_node);
+            player.position_node_id = Some(to_node_id);
             // TODO: Add the ability to change role in the game aswell when applicable
             return Ok(());
         }
@@ -121,7 +129,7 @@ impl GameState {
         self.players = update.players;
     }
 
-    pub fn get_player_with_unique_id(&self, player_id: i32) -> Result<Player, &str> {
+    pub fn get_player_with_unique_id(&self, player_id: PlayerID) -> Result<Player, &str> {
         self.players
             .iter()
             .find(|p| p.unique_id == player_id)
@@ -134,13 +142,13 @@ impl GameState {
 
 impl Player {
     #[must_use]
-    pub const fn new(unique_id: i32, name: String) -> Self {
+    pub const fn new(unique_id: PlayerID, name: String) -> Self {
         Self {
             connected_game_id: None,
             in_game_id: InGameID::Undecided,
             unique_id,
             name,
-            position: None,
+            position_node_id: None,
             remaining_moves: 0,
         }
     }
@@ -148,7 +156,7 @@ impl Player {
 
 impl Node {
     #[must_use]
-    pub const fn new(id: u8, name: String) -> Self {
+    pub const fn new(id: NodeID, name: String) -> Self {
         Self {
             id,
             name,
@@ -159,6 +167,25 @@ impl Node {
     pub fn add_neighbour(&mut self, neighbour: &mut Self, relationship: Arc<NeighbourRelationship>) {
         self.neighbours.push((neighbour.id, relationship.clone()));
         neighbour.neighbours.push((self.id, relationship));
+    }
+
+    pub fn has_neighbour_with_id(&self, neighbour_id: NodeID) -> bool {
+        self.neighbours.iter().any(|(id, _)| *id == neighbour_id)
+    }
+
+    pub fn get_movement_cost_to_neighbour_with_id(&self, neighbour_id: NodeID) -> Result<MovementCost, String> {
+        if !self.has_neighbour_with_id(neighbour_id) {
+            return Err(format!("Node {} does not have a neighbour with id {}", self.id, neighbour_id));
+        }
+
+        match self.neighbours
+            .iter()
+            .find(|(id, _)| *id == neighbour_id)
+            .map(|(_, relationship)| relationship.total_cost) 
+        {
+            Some(cost) => Ok(cost),
+            None => Err(format!("Node {} could not find a cost to the neighbour with id {}", self.id, neighbour_id)),
+        }
     }
 }
 
@@ -188,9 +215,9 @@ lazy_static! {
 
 impl NeighbourRelationship {
     #[must_use]
-    pub fn new(id: u8, neighbourhood: Neighbourhood) -> Self {
+    pub fn new(id: NeighbourRelationshipID, neighbourhood: Neighbourhood) -> Self {
         let group = GROUP_COST_MAP.lock().unwrap();
-        let group_cost: u8 = *group.get(&neighbourhood).unwrap();
+        let group_cost: MovementCost = *group.get(&neighbourhood).unwrap();
         Self {
             id,
             group_cost,
@@ -316,6 +343,13 @@ impl NodeMap {
         Self::add_to_map(&mut map, node28);
         Self {
             map,
+        }
+    }
+
+    pub fn get_node_by_id(&self, position_node_id: u8) -> Result<Node, String> {
+        match self.map.iter().find(|&node| node.id == position_node_id) {
+            Some(node) => Ok(node.clone()),
+            None => Err(format!("There is no node with the given ID: {}", position_node_id)),
         }
     }
 }
