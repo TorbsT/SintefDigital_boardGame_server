@@ -217,8 +217,28 @@ impl NodeMap {
         }
     }
 
-    pub fn update_individual_cost(&mut self, relationship: &mut NeighbourRelationship) {
-        //TODO: this function should update the individual cost in a relationship between 2 nodes
+    #[allow(non_snake_case)]
+    pub fn update_individual_cost(&mut self, node1_ID: u8, node2_ID: u8, value: u8) {
+        self.update_individual_cost_recursion(node1_ID, node2_ID, value, false);
+    }
+
+    #[allow(non_snake_case)]
+    fn update_individual_cost_recursion(&mut self, node1_ID: u8, node2_ID: u8, value: u8, updated_other_neighbour: bool) {
+        let mut found_neighbour: bool = false;
+        let node1 = &mut self.map[node1_ID as usize];
+        for mut neighbour in &mut node1.neighbours {
+            if neighbour.0 == node2_ID {
+                found_neighbour = true;
+                neighbour.1.individual_cost = value;
+                break;
+            }
+        }
+        if !found_neighbour {
+            //TODO: Throw error
+        }
+        if !updated_other_neighbour {
+            self.update_individual_cost_recursion(node2_ID, node1_ID, value, true);
+        }
     }
 
     #[must_use]
@@ -347,6 +367,10 @@ mod tests {
         assert!(node_map.map[0].neighbours[0].1.total_cost() == 1);
         node_map.update_neighbour_costs(Neighbourhood::IndustryPark, 2);
         assert!(node_map.map[0].neighbours[0].1.total_cost() == 2);
+        assert!(node_map.map[27].neighbours[0].1.total_cost() == 1);
+        node_map.update_individual_cost(0, 1, 2);
+        assert!(node_map.map[0].neighbours[0].1.total_cost() == 4);
+        assert!(node_map.map[1].neighbours[0].1.total_cost() == 4);
     }
 
     #[test]
