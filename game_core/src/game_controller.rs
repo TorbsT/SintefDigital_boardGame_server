@@ -371,7 +371,7 @@ mod tests {
             name: "End".to_string(),
             neighbours: Vec::new(),
         };
-        start_node.add_neighbour(&mut end_node, Arc::new(NeighbourRelationship::new(0, game_data::Neighbourhood::IndustryPark)));
+        start_node.add_neighbour(&mut end_node, NeighbourRelationship::new(0, game_data::Neighbourhood::IndustryPark));
 
         let mut player = make_random_player_info(&mut controller);
         player.position = Some(start_node);
