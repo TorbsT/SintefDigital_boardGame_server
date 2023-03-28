@@ -91,7 +91,17 @@ paths:
             text/plain:
               schema:
                 type: string
-
+  /games/lobbies:
+    get:
+      summary: Gets the lobbies
+      description: Gets the lobbies
+      responses:
+        200:
+          description: All the open lobbies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyList"
 components:
   schemas:
     InGameID:
@@ -166,3 +176,10 @@ components:
           $ref: "#/components/schemas/PlayerInputType"
         related_node:
           $ref: "#/components/schemas/Node"
+    LobbyList:
+      type: object
+      properties:
+        lobbies:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameState"
