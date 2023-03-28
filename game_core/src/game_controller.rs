@@ -69,7 +69,9 @@ impl GameController {
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         let mut games_iter = self.games.iter_mut();
+
         let connected_game_id = player_input.game_id;
+
         let related_game = match games_iter.find(|game| game.id == connected_game_id) {
             Some(game) => game,
             None => return Err("Could not find the game the player has done an input for!".to_string()),
