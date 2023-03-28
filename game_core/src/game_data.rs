@@ -191,8 +191,8 @@ impl NeighbourRelationship {
         self.individual_cost = update;
     }
 
-    pub fn total_cost(&self) -> u8 {
-        return self.group_cost + self.individual_cost;
+    pub const fn total_cost(&self) -> u8 {
+        self.group_cost + self.individual_cost
     }
 }
 
@@ -371,6 +371,12 @@ mod tests {
         node_map.update_individual_cost(0, 1, 2);
         assert!(node_map.map[0].neighbours[0].1.total_cost() == 4);
         assert!(node_map.map[1].neighbours[0].1.total_cost() == 4);
+        assert!(node_map.map[1].neighbours[0].1.individual_cost == 2);
+        assert!(node_map.map[1].neighbours[0].1.group_cost == 2);
+        assert!(node_map.map[0].neighbours[1].1.total_cost() == 2);
+        node_map.update_individual_cost(27, 28, 1);
+        assert!(node_map.map[27].neighbours[3].1.total_cost() == 2);
+        assert!(node_map.map[28].neighbours[0].1.total_cost() == 2);
     }
 
     #[test]
