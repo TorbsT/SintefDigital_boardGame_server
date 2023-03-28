@@ -14,7 +14,7 @@ pub enum InGameID {
     Orchestrator = 6,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
 pub enum PlayerInputType {
     Movement,
 }
@@ -35,6 +35,7 @@ pub struct Player {
     pub unique_id: i32,
     pub name: String,
     pub position: Option<Node>,
+    pub remaining_moves: i32,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -66,7 +67,8 @@ pub struct NewGameInfo {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct PlayerInput {
-    pub player: Player,
+    pub player_id: i32,
+    pub game_id: i32,
     pub input_type: PlayerInputType,
     pub related_node: Node,
 }
@@ -103,12 +105,12 @@ impl GameState {
         Ok(())
     }
 
-    pub fn update_player(&mut self, player_to_update: Player) -> Result<(), String> {
+    pub fn move_player_with_id(&mut self, player_id: i32, to_node: Node) -> Result<(), String> {
         for player in self.players.iter_mut() {
-            if player.unique_id != player_to_update.unique_id {
+            if player.unique_id != player_id {
                 continue;
             }
-            player.position = player_to_update.position;
+            player.position = Some(to_node);
             // TODO: Add the ability to change role in the game aswell when applicable
             return Ok(());
         }
@@ -117,6 +119,16 @@ impl GameState {
 
     pub fn update_game(&mut self, update: Self) {
         self.players = update.players;
+    }
+
+    pub fn get_player_with_unique_id(&self, player_id: i32) -> Result<Player, &str> {
+        self.players
+            .iter()
+            .find(|p| p.unique_id == player_id)
+            .map_or(
+                Err("There is no player in the game with the given id"),
+                |player| Ok(player.clone()),
+            )
     }
 }
 
@@ -129,6 +141,7 @@ impl Player {
             unique_id,
             name,
             position: None,
+            remaining_moves: 0,
         }
     }
 }
