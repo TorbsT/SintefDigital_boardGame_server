@@ -1,13 +1,19 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput},
+    game_data::{NewGameInfo, Player, PlayerInput, GameState},
 };
+use serde::{Serialize, Deserialize};
 use std::sync::{Arc, Mutex, RwLock};
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
+
+#[derive(Serialize, Deserialize)]
+struct LobbyList {
+    lobbies: Vec<GameState>,
+}
 
 struct AppData {
     game_controller: Mutex<GameController>,
@@ -132,7 +138,7 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
         return HttpResponse::InternalServerError().body("Failed to get lobbies because the server could not lock the game controller for safe use".to_string());
     };
 
-    let lobbies = game_controller.get_all_lobbies();
+    let lobbies = LobbyList{ lobbies: game_controller.get_all_lobbies() };
     HttpResponse::Ok().json(json!(lobbies))
 }
 
