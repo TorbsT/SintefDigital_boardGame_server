@@ -103,7 +103,9 @@ async fn join_game(game_id: web::Path<i32>, player: web::Json<Player>, shared_da
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
 
-    match game_controller.join_game(*game_id, player.into_inner()) {
+    let join_game_result = game_controller.join_game(*game_id, player.into_inner());
+
+    match join_game_result {
         Ok(g) => HttpResponse::Ok().json(json!(g)),
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to join game because {e}"))
