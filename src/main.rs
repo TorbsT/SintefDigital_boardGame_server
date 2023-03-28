@@ -225,7 +225,7 @@ mod tests {
         
         let mut player = Player::new(id, "P1".to_string());
         player.position_node_id = Some(start_node.id);
-        player.remaining_moves = 8;
+        player.remaining_moves = 1;
 
         let new_game_info = NewGameInfo {host: player.clone(), name: "Lobby one".to_string()};
         

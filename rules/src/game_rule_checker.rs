@@ -61,7 +61,7 @@ impl Default for GameRuleChecker {
 
 impl ValidationResponse {
     #[must_use]
-    pub fn new(is_valid: bool, reason: Option<String>) -> Self {
+    pub const fn new(is_valid: bool, reason: Option<String>) -> Self {
         Self {
             is_valid,
             reason,

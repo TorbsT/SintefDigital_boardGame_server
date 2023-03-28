@@ -188,14 +188,7 @@ impl Node {
             return Err(format!("Node {} does not have a neighbour with id {}", self.id, neighbour_id));
         }
 
-        match self.neighbours
-            .iter()
-            .find(|(id, _)| *id == neighbour_id)
-            .map(|(_, relationship)| relationship.total_cost()) 
-        {
-            Some(cost) => Ok(cost),
-            None => Err(format!("Node {} could not find a cost to the neighbour with id {}", self.id, neighbour_id)),
-        }
+        self.neighbours.iter().find(|(id, _)| *id == neighbour_id).map_or_else(|| Err(format!("Node {} could not find a cost to the neighbour with id {}", self.id, neighbour_id)), |(_, relationship)| Ok(relationship.total_cost()))
     }
 }
 
@@ -385,11 +378,8 @@ impl NodeMap {
         }
     }
 
-    pub fn get_node_by_id(&self, position_node_id: u8) -> Result<Node, String> {
-        match self.map.iter().find(|&node| node.id == position_node_id) {
-            Some(node) => Ok(node.clone()),
-            None => Err(format!("There is no node with the given ID: {}", position_node_id)),
-        }
+    pub fn get_node_by_id(&self, position_node_id: NodeID) -> Result<Node, String> {
+        self.map.iter().find(|&node| node.id == position_node_id).map_or_else(|| Err(format!("There is no node with the given ID: {}", position_node_id)), |node| Ok(node.clone()))
     }
 }
 
