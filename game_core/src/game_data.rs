@@ -173,6 +173,7 @@ lazy_static! {
         });
 }
 
+#[allow(clippy::unwrap_used)]
 impl NeighbourRelationship {
     #[must_use]
     pub fn new(id: u8, neighbourhood_enum: Neighbourhood) -> Self {
@@ -205,6 +206,7 @@ impl NodeMap {
         node1.add_neighbour(node2, relationship.clone());
     }
 
+    #[allow(clippy::unwrap_used)]
     pub fn update_neighbour_costs(&mut self, neighbourhood_enum: Neighbourhood, value: u8) {
         let mut group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
         group_cost_map_reference.insert(neighbourhood_enum, value);
