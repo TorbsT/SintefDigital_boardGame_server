@@ -6,7 +6,7 @@ use std::{
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID, Node};
+use crate::game_data::{self, GameState, InGameID, NewGameInfo, Node, Player, PlayerInput};
 
 pub struct GameController {
     pub games: Vec<GameState>,
@@ -174,7 +174,7 @@ impl GameController {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
-            },
+            }
             game_data::PlayerInputType::ChangeRole => {
                 let Some(related_role) = input.related_role else {
                     return Err("The input did not have a role".to_string());
@@ -184,7 +184,7 @@ impl GameController {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e.to_string()),
                 }
-            },
+            }
         }
     }
 
@@ -195,7 +195,7 @@ impl GameController {
         player.position = Some(related_node);
         match game.update_player(player) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(format!("Failed to move player because: {e}")),
+            Err(e) => Err(format!("Failed to move player because: {e}")),
         }
     }
 }

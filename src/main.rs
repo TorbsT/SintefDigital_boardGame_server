@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
+use actix_cors::Cors;
 
 struct AppData {
     game_controller: Mutex<GameController>,
@@ -113,6 +114,31 @@ async fn handle_player_input(
     }
 }
 
+
+macro_rules! server_app_with_data {
+    ($x:expr) => {
+        {
+            let cors = Cors::default()
+                .allow_any_origin()
+                .allow_any_method()
+                .allow_any_header()
+                .supports_credentials();
+    
+            App::new()
+                .wrap(cors)
+                .app_data($x.clone())
+                .service(get_unique_id)
+                .service(create_new_game)
+                .service(get_amount_of_created_player_ids)
+                .service(get_gamestate)
+                .service(handle_player_input)
+                .service(test)
+        }
+    }
+}
+
+
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let logger = Arc::new(RwLock::new(ThresholdLogger::new(
@@ -124,14 +150,7 @@ async fn main() -> std::io::Result<()> {
     });
 
     HttpServer::new(move || {
-        App::new()
-            .app_data(app_data.clone())
-            .service(get_unique_id)
-            .service(create_new_game)
-            .service(get_amount_of_created_player_ids)
-            .service(get_gamestate)
-            .service(handle_player_input)
-            .service(test)
+        server_app_with_data!(app_data)
     })
     .bind(("127.0.0.1", 5000))?
     .run()
@@ -160,6 +179,48 @@ mod tests {
     fn body_to_player_id(data: Bytes) -> i32 {
         String::from_utf8_lossy(&data).trim().parse::<i32>().unwrap()
     }    
+
+    macro_rules! get_id {
+        ($x:expr) => {
+            {
+                let id_req = test::TestRequest::get().uri("/create/playerID").to_request();
+                let id_resp = $x.call(id_req).await.unwrap();
+                body_to_player_id(test::read_body(id_resp).await)
+            }
+        }
+    }
+
+    macro_rules! make_player {
+        ($app:expr, $player_name:expr) => {
+            {
+                let id = get_id!($app);
+                Player::new(id, $player_name.to_string())
+            }
+        }
+    }
+
+    macro_rules! make_new_lobby_with_player {
+        ($app:expr, $player:expr, $lobby_name:expr) => {
+            {
+                let new_game_info = NewGameInfo {host: $player.clone(), name: $lobby_name.to_string()};
+                let create_new_game_req = test::TestRequest::post().uri("/create/game").set_json(&new_game_info).to_request();
+                let new_game_resp = $app.call(create_new_game_req).await.unwrap();
+                let game: GameState = test::read_body_json(new_game_resp).await;
+                game
+            }
+        }
+    }
+    
+    macro_rules! get_lobbies {
+        ($app:expr) => {
+            {
+                let lobby_list_req = test::TestRequest::get().uri("/games/lobbies").to_request();
+                let lobby_list_resp = $app.call(lobby_list_req).await.unwrap();
+                let lobby_list: Vec<GameState> = test::read_body_json(lobby_list_resp).await;
+                lobby_list
+            }
+        };
+    }
     
     #[actix_web::test]
     async fn test_getting_player_ids() {
@@ -250,5 +311,28 @@ mod tests {
         
         player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.position.unwrap().id == end_node.id);
+    }
+
+    #[actix_web::test]
+    async fn test_changing_role() {
+        let app_data = create_game_controller();
+        let app = test::init_service(server_app_with_data!(app_data)).await;
+
+        let mut player = make_player!(app, "Player One");    
+        let mut lobby = make_new_lobby_with_player!(app, player, "Lobby One");
+
+        assert!(lobby.players.iter().any(|p| p.unique_id == player.unique_id && p.in_game_id == InGameID::Undecided));
+        
+        player = lobby.players.iter().find(|p| p.unique_id == player.unique_id).unwrap().clone();
+        
+        let player_input = PlayerInput{player: player.clone(), input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node: None };
+
+        let input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
+        let input_resp = app.call(input_req).await.unwrap();
+        assert_eq!(input_resp.status(), StatusCode::OK);
+        lobby = test::read_body_json(input_resp).await;
+
+        assert!(lobby.players.iter().any(|p| p.unique_id == player.unique_id && p.in_game_id == InGameID::Orchestrator));
+        //TODO: Make test for checking that two players can't have the same role
     }
 }

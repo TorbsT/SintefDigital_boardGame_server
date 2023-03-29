@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 //// =============== Enums ===============
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InGameID {
     Undecided = 0,
     PlayerOne = 1,
@@ -106,7 +106,11 @@ impl GameState {
 
     pub fn assign_player_role(&mut self, change_info: (Player, InGameID)) -> Result<(), &str> {
         let (related_player, change_to_role) = change_info;
-        if self.players.iter().any(|p| p.in_game_id == change_to_role && change_to_role != InGameID::Undecided) {
+        if self
+            .players
+            .iter()
+            .any(|p| p.in_game_id == change_to_role && change_to_role != InGameID::Undecided)
+        {
             return Err("There is already a player with this role");
         }
 
