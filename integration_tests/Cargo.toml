@@ -1,5 +1,5 @@
 [package]
-name = "rules"
+name = "integration_tests"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 game_core = {path = "../game_core"}
+logging = {path = "../logging"}
+rules = {path = "../rules"}
+rand = "0.8.5"
