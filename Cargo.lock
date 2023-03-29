@@ -20,6 +20,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-cors"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b340e9cfa5b08690aae90fb61beb44e9b06f44fe3d0f93781aaa58cfba86245e"
+dependencies = [
+ "actix-utils",
+ "actix-web",
+ "derive_more",
+ "futures-util",
+ "log",
+ "once_cell",
+ "smallvec",
+]
+
+[[package]]
 name = "actix-http"
 version = "3.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -540,6 +555,7 @@ dependencies = [
 name = "game_core"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "logging",
  "rand",
  "serde",
@@ -672,6 +688,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration_tests"
+version = "0.1.0"
+dependencies = [
+ "game_core",
+ "logging",
+ "rand",
+ "rules",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -700,6 +726,12 @@ name = "language-tags"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4345964bb142484797b161f473a503a434de77149dd8c7427788c6e13379388"
+
+[[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
@@ -985,6 +1017,9 @@ checksum = "456c603be3e8d448b072f410900c09faf164fbce2d480456f50eea6e25f9c848"
 [[package]]
 name = "rules"
 version = "0.1.0"
+dependencies = [
+ "game_core",
+]
 
 [[package]]
 name = "rustc_version"
@@ -1086,10 +1121,14 @@ dependencies = [
 name = "sintefdigital_boardgame_server_rust"
 version = "0.1.0"
 dependencies = [
+ "actix-cors",
  "actix-web",
  "game_core",
+ "integration_tests",
+ "lazy_static",
  "logging",
  "parameterized",
+ "rules",
  "serde",
  "serde_json",
 ]

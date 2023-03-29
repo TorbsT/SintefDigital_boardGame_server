@@ -1,25 +1,34 @@
 use std::{
     any::type_name,
-    cmp::min,
     sync::{Arc, RwLock},
 };
 
 use logging::logger::{LogData, LogLevel, Logger};
 
-use crate::game_data::{self, GameState, NewGameInfo, Player, PlayerInput, InGameID, Node};
+use crate::{
+    game_data::{self, GameState, NewGameInfo, PlayerInput, PlayerID, InGameID},
+    rule_checker::RuleChecker,
+};
 
 pub struct GameController {
     pub games: Vec<GameState>,
-    pub unique_ids: Vec<i32>,
+    pub unique_ids: Vec<PlayerID>,
     pub logger: Arc<RwLock<dyn Logger + Send + Sync>>,
+    pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
 
 impl GameController {
-    pub fn new(logger: Arc<RwLock<dyn Logger + Send + Sync>>) -> Self {
+    //TODO: Make sure that a player cannot change how many remaining moves they have
+
+    pub fn new(
+        logger: Arc<RwLock<dyn Logger + Send + Sync>>,
+        rule_checker: Box<dyn RuleChecker + Send + Sync>,
+    ) -> Self {
         Self {
             games: Vec::new(),
             unique_ids: Vec::new(),
             logger,
+            rule_checker,
         }
     }
 
@@ -27,7 +36,7 @@ impl GameController {
         self.games.clone()
     }
 
-    pub fn generate_player_id(&mut self) -> Result<i32, &str> {
+    pub fn generate_player_id(&mut self) -> Result<PlayerID, &str> {
         let new_id = match self.generate_unused_unique_id() {
             Some(i) => i,
             None => return Err("Failed to make new ID!"),
@@ -55,16 +64,29 @@ impl GameController {
         Ok(new_game)
     }
 
-    pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, &str> {
+    pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         let mut games_iter = self.games.iter_mut();
-        let Some(connected_game_id) = player_input.player.connected_game_id else {
-            return Err("Player is not connected to a game");
-        };
+
+        let connected_game_id = player_input.game_id;
 
         let related_game = match games_iter.find(|game| game.id == connected_game_id) {
             Some(game) => game,
-            None => return Err("Could not find the game the player has done an input for!"),
+            None => return Err("Could not find the game the player has done an input for!".to_string()),
         };
+
+        if let Some(error) = self
+            .rule_checker
+            .is_input_valid(related_game, &player_input) 
+        {
+            if let Ok(mut logger) = self.logger.write() {
+                logger.log(LogData::new(
+                    LogLevel::Info,
+                    error.as_str(),
+                    type_name::<Self>(),
+                ));
+            }
+            return Err(format!("The input was not valid! Because: {error}"));
+        }
 
         match Self::handle_input(player_input, related_game) {
             Ok(_) => (),
@@ -86,11 +108,11 @@ impl GameController {
         self.unique_ids.len() as i32
     }
 
-    fn change_role_player(game: &mut GameState, input: (Player, InGameID)) -> Result<(), &str> {
+    fn change_role_player(game: &mut GameState, input: (PlayerID, InGameID)) -> Result<(), &str> {
         game.assign_player_role(input)
     }
 
-    fn generate_unused_unique_id(&mut self) -> Option<i32> {
+    fn generate_unused_unique_id(&mut self) -> Option<PlayerID> {
         if let Ok(mut logger) = self.logger.write() {
             logger.log(LogData::new(
                 LogLevel::Debug,
@@ -99,7 +121,7 @@ impl GameController {
             ));
         }
 
-        let mut id: i32 = rand::random::<i32>();
+        let mut id: PlayerID = rand::random::<PlayerID>();
 
         let mut found_unique_id = false;
         for _ in 0..100_000 {
@@ -109,7 +131,7 @@ impl GameController {
                     break;
                 }
             }
-            id = rand::random::<i32>();
+            id = rand::random::<PlayerID>();
         }
 
         if !found_unique_id {
@@ -149,15 +171,15 @@ impl GameController {
         Ok(new_game)
     }
 
-    fn generate_unused_game_id(&self) -> i32 {
+    fn generate_unused_game_id(&self) -> PlayerID {
         let mut existing_game_ids = Vec::new();
         for game in self.games.iter() {
             existing_game_ids.push(game.id);
         }
 
-        let mut id = rand::random::<i32>();
+        let mut id = rand::random::<PlayerID>();
         while existing_game_ids.contains(&id) {
-            id = rand::random::<i32>();
+            id = rand::random::<PlayerID>();
         }
 
         id
@@ -166,11 +188,8 @@ impl GameController {
     fn handle_input(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
         match input.input_type {
             game_data::PlayerInputType::Movement => {
-                let Some(node) = input.related_node else {
-                    return Err("The input did not have a node".to_string());
-                };
 
-                match Self::handle_movement(game, (input.player, node)) {
+                match Self::handle_movement(input, game) {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
@@ -180,7 +199,7 @@ impl GameController {
                     return Err("The input did not have a role".to_string());
                 };
 
-                match Self::change_role_player(game, (input.player, related_role)) {
+                match Self::change_role_player(game, (input.player_id, related_role)) {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e.to_string()),
                 }
@@ -188,240 +207,13 @@ impl GameController {
         }
     }
 
-    fn handle_movement(game: &mut GameState, input: (Player, Node)) -> Result<(), String> {
-        // TODO: Check here if the movement is valid once applicable
-        let (input_player, related_node) = input;
-        let mut player = input_player;
-        player.position = Some(related_node);
-        match game.update_player(player) {
+    fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
+        let Some(node_id) = input.related_node_id else {
+            return Err("The input had no node to go to".to_string());
+        };
+        match game.move_player_with_id(input.player_id, node_id) {
             Ok(_) => Ok(()),
-            Err(e) => return Err(format!("Failed to move player because: {e}")),
+            Err(e) => Err(format!("Failed to move player because: {e}")),
         }
-    }
-}
-
-// =========== For testing ===========
-use logging::threshold_logger::ThresholdLogger;
-
-fn make_game_controller() -> GameController {
-    let logger = Arc::new(RwLock::new(ThresholdLogger::new(
-        LogLevel::Ignore,
-        LogLevel::Ignore,
-    )));
-    GameController::new(logger)
-}
-
-pub fn get_all_wanted_unique_player_ids(amount_of_new_ids_to_create: usize) -> bool {
-    let mut controller = make_game_controller();
-
-    let mut ids = Vec::with_capacity(amount_of_new_ids_to_create);
-    for _ in 0..amount_of_new_ids_to_create {
-        match controller.generate_player_id() {
-            Ok(id) => {
-                if ids.contains(&id) {
-                    return false;
-                }
-
-                ids.push(id);
-            }
-            Err(_) => return false,
-        }
-    }
-
-    true
-}
-
-#[allow(clippy::unwrap_used)]
-pub fn test_creating_new_games(
-    amount_of_new_players_to_create: i32,
-    amount_of_new_games: i32,
-) -> bool {
-    let mut controller = make_game_controller();
-
-    let random_players: Vec<Player> =
-        make_random_player_list_with_size(amount_of_new_players_to_create, &mut controller);
-
-    let new_lobbies: Vec<NewGameInfo> =
-        make_random_new_lobbies(amount_of_new_games, random_players);
-
-    let mut games_created: Vec<GameState> = Vec::new();
-
-    for new_lobby in &new_lobbies {
-        if let Ok(game) = controller.create_new_game(new_lobby.clone()) {
-            games_created.push(game)
-        }
-    }
-
-    if games_created.len()
-        != min(
-            amount_of_new_players_to_create as usize,
-            amount_of_new_games as usize,
-        )
-    {
-        return false;
-    }
-
-    let mut actual_games_to_create_from_full_list: Vec<NewGameInfo> = Vec::new();
-    for i in 0..new_lobbies.len() {
-        if actual_games_to_create_from_full_list
-            .iter()
-            .any(|lobby| lobby.host.unique_id == new_lobbies.get(i).unwrap().host.unique_id)
-        {
-            continue;
-        }
-        actual_games_to_create_from_full_list.push(new_lobbies.get(i).unwrap().clone());
-    }
-
-    for lobby in actual_games_to_create_from_full_list {
-        if !games_created.iter().any(|game| {
-            game.players
-                .iter()
-                .any(|player| player.unique_id == lobby.host.unique_id)
-                && game.name == lobby.name
-        }) {
-            return false;
-        }
-    }
-    true
-}
-
-// ========= Helpers ===========
-#[allow(clippy::unwrap_used)]
-fn make_random_new_lobbies(
-    amount_of_new_games: i32,
-    random_players: Vec<Player>,
-) -> Vec<NewGameInfo> {
-    let mut new_lobbies: Vec<NewGameInfo> = Vec::with_capacity(amount_of_new_games as usize);
-    let mut player_index = 0;
-    for _ in 0..amount_of_new_games {
-        if random_players.is_empty() {
-            break;
-        }
-        let player = random_players.get(player_index).unwrap();
-        player_index += 1;
-        if player_index == random_players.len() {
-            player_index = 0;
-        }
-        new_lobbies.push(NewGameInfo {
-            host: player.clone(),
-            name: rand::random::<i32>().to_string(),
-        });
-    }
-
-    new_lobbies
-}
-
-#[allow(clippy::unwrap_used)]
-fn make_random_player_list_with_size(
-    amount_of_new_players_to_create: i32,
-    controller: &mut GameController,
-) -> Vec<Player> {
-    let mut players: Vec<Player> = Vec::with_capacity(amount_of_new_players_to_create as usize);
-    for _ in 0..amount_of_new_players_to_create {
-        let mut p: Player = make_random_player_info(controller);
-        while players.iter().any(|p1| p1.unique_id == p.unique_id) {
-            p = make_random_player_info(controller);
-        }
-        players.push(p);
-    }
-
-    players
-}
-
-#[allow(clippy::unwrap_used)]
-fn make_random_player_info(controller: &mut GameController) -> Player {
-    let player: Player = Player {
-        connected_game_id: None,
-        in_game_id: InGameID::Undecided,
-        unique_id: get_unique_player_id(controller).unwrap(),
-        name: rand::random::<i32>().to_string(),
-        position: None,
-    };
-    player
-}
-
-#[allow(clippy::unwrap_used)]
-fn get_unique_player_id(controller: &mut GameController) -> Result<i32, ()> {
-    controller.generate_player_id().map_or(Err(()), Ok)
-}
-
-//#[cfg(not(test))]
-#[cfg(test)]
-mod tests {
-
-    use crate::game_data::{Node, PlayerInputType};
-
-    use super::*;
-
-    #[test]
-    fn test_generation_of_unique_player_ids() {
-        assert!(get_all_wanted_unique_player_ids(0));
-        assert!(get_all_wanted_unique_player_ids(1));
-        assert!(get_all_wanted_unique_player_ids(5));
-        assert!(get_all_wanted_unique_player_ids(50));
-        assert!(get_all_wanted_unique_player_ids(500));
-        assert!(get_all_wanted_unique_player_ids(5000));
-        assert!(get_all_wanted_unique_player_ids(50000));
-    }
-
-    // Here instead of using multiple function calls use #[parameterized(...)]
-    #[test]
-    fn test_making_lobbies() {
-        assert!(test_creating_new_games(0, 0));
-        assert!(test_creating_new_games(0, 1));
-        assert!(test_creating_new_games(1, 1));
-        assert!(test_creating_new_games(5, 10));
-        assert!(test_creating_new_games(100, 110));
-        assert!(test_creating_new_games(1000, 1000));
-    }
-
-    #[test]
-    fn test_player_movement() {
-        let mut controller = make_game_controller();
-
-        let mut start_node = Node {
-            id: 1,
-            name: "Start".to_string(),
-            neighbours_id: Vec::new(),
-        };
-        let mut end_node = Node {
-            id: 2,
-            name: "End".to_string(),
-            neighbours_id: Vec::new(),
-        };
-        start_node.add_neighbour_id(end_node.id);
-        end_node.add_neighbour_id(start_node.id);
-
-        let mut player = make_random_player_info(&mut controller);
-        player.position = Some(start_node);
-        let lobby = NewGameInfo {
-            host: player.clone(),
-            name: "Test".to_string(),
-        };
-
-        let mut game = controller.create_new_game(lobby).expect("Expected to get GameState but did not get it. Seems like the game failed to be created.");
-
-        assert!(game.players.iter().any(|p| p.unique_id == player.unique_id
-            && p.clone().position.unwrap().id == player.clone().position.unwrap().id));
-
-        player = game
-            .players
-            .iter()
-            .find(|&p| p.unique_id == player.unique_id)
-            .unwrap()
-            .clone();
-
-        let mut input = PlayerInput::new(player.clone(), PlayerInputType::Movement);
-        input.related_node = Some(end_node.clone());
-
-        game = controller.handle_player_input(input).expect("Expected to get GameState after doing an input. Seems like something went wrong when handling the input");
-
-        assert!(game.players.iter().any(|p| p.unique_id == player.unique_id));
-        assert!(game
-            .players
-            .iter()
-            .any(|p| p.clone().position.unwrap().id == end_node.id));
-
-        //TODO: Test if the movement actually is done when we pull the gamestate later on and dont get it as a returned value
     }
 }

@@ -137,6 +137,8 @@ components:
           oneOf:
             - $ref: "#/components/schemas/Node"
             - nullable: true
+        remaining_moves:
+          type: integer
     Node:
       type: object
       properties:

@@ -1,7 +1,9 @@
+use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, InGameID},
+    game_data::{NewGameInfo, Player, PlayerInput, GameID},
 };
+use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
@@ -14,13 +16,7 @@ struct AppData {
 
 #[get("/test/newLobby")]
 async fn test() -> impl Responder {
-    let p = Player {
-        connected_game_id: None,
-        in_game_id: InGameID::Undecided,
-        unique_id: 0,
-        name: "Player one".to_string(),
-        position: None,
-    };
+    let p = Player::new(0, "Player one".to_string()); 
     let lobby = NewGameInfo {
         host: p,
         name: "Lobby one".to_string(),
@@ -69,8 +65,9 @@ async fn create_new_game(
 
 #[get("/debug/playerIDs/amount")]
 async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> impl Responder {
-    let Ok(game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let game_controller = match shared_data.game_controller.lock() {
+        Ok(controller) => controller, 
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
         };
     HttpResponse::Ok().body(
         game_controller
@@ -80,10 +77,11 @@ async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> im
 }
 
 #[get("/games/{id}")]
-async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
+async fn get_gamestate(id: web::Path<GameID>, shared_data: web::Data<AppData>) -> impl Responder {
     
-    let Ok(game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
     
     let games = game_controller.get_created_games();
@@ -100,8 +98,9 @@ async fn handle_player_input(
 ) -> impl Responder {
     let input = json_data.into_inner();
     
-    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    let mut game_controller = match shared_data.game_controller.lock() { 
+        Ok(controller) => controller,
+        Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
 
     let gamestate_result = game_controller.handle_player_input(input); 
@@ -120,11 +119,18 @@ async fn main() -> std::io::Result<()> {
         LogLevel::Ignore,
     )));
     let app_data = web::Data::new(AppData {
-        game_controller: Mutex::new(GameController::new(logger.clone())),
+        game_controller: Mutex::new(GameController::new(logger.clone(), Box::new(GameRuleChecker::new()))),
     });
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .supports_credentials();
+
         App::new()
+            .wrap(cors)
             .app_data(app_data.clone())
             .service(get_unique_id)
             .service(create_new_game)
@@ -144,21 +150,21 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{Node, GameState, PlayerInputType};
+    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
-            LogLevel::Ignore,
+            LogLevel::Debug,
             LogLevel::Ignore,
         )));
                 
         web::Data::new(AppData {
-            game_controller: Mutex::new(GameController::new(logger)),
+            game_controller: Mutex::new(GameController::new(logger, Box::new(GameRuleChecker::new()))),
         })
     }
 
-    fn body_to_player_id(data: Bytes) -> i32 {
-        String::from_utf8_lossy(&data).trim().parse::<i32>().unwrap()
+    fn body_to_player_id(data: Bytes) -> PlayerID {
+        String::from_utf8_lossy(&data).trim().parse::<PlayerID>().unwrap()
     }    
     
     #[actix_web::test]
@@ -168,7 +174,7 @@ mod tests {
         let app =
             test::init_service(App::new().app_data(app_data.clone()).service(get_unique_id)).await;
 
-        let mut ids: Vec<i32> = Vec::new();
+        let mut ids: Vec<PlayerID> = Vec::new();
 
         for _ in 0..5_000 {
             let req = test::TestRequest::get()
@@ -182,7 +188,7 @@ mod tests {
             assert!(!body.is_empty());
 
             let body_str = String::from_utf8_lossy(&body);
-            let id = body_str.trim().parse::<i32>().unwrap();
+            let id = body_str.trim().parse::<PlayerID>().unwrap();
 
             assert!(ids.iter().all(|i| i != &id));
             ids.push(id);
@@ -220,15 +226,17 @@ mod tests {
         let app =
             test::init_service(App::new().app_data(app_data.clone()).service(get_unique_id).service(create_new_game).service(handle_player_input)).await;
 
-        let start_node = Node::new(1, "Start".to_string());
-        let end_node = Node::new(2, "End".to_string());
+        let node_map = NodeMap::new();
+        let start_node = node_map.map.get(0).unwrap();
+        let neighbour_info = start_node.neighbours.get(0).unwrap();
 
         let id_req = test::TestRequest::get().uri("/create/playerID").to_request();
         let id_resp = app.call(id_req).await.unwrap();
         let id = body_to_player_id(test::read_body(id_resp).await);
         
         let mut player = Player::new(id, "P1".to_string());
-        player.position = Some(start_node.clone());
+        player.position_node_id = Some(start_node.id);
+        player.remaining_moves = 1;
 
         let new_game_info = NewGameInfo {host: player.clone(), name: "Lobby one".to_string()};
         
@@ -238,17 +246,15 @@ mod tests {
         let game_state: GameState = test::read_body_json(new_game_resp).await;
 
         player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
-        assert!(player.clone().position.unwrap().id == start_node.id);
+        assert!(player.clone().position_node_id.unwrap() == start_node.id);
 
-        let mut input = PlayerInput::new(player.clone(), PlayerInputType::Movement);
-        input.related_node = Some(end_node.clone());
-
+        let input = PlayerInput {player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_node_id: Some(neighbour_info.0), related_role: None};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::OK);
         let changed_game_state: GameState = test::read_body_json(input_resp).await;
         
         player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
-        assert!(player.position.unwrap().id == end_node.id);
+        assert!(player.position_node_id.unwrap() == neighbour_info.0);
     }
 }
