@@ -1,11 +1,12 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{GameState, PlayerInput, PlayerInputType, NodeMap},
-    rule_checker::{RuleChecker, ErrorData},
+    game_data::{GameState, NodeMap, PlayerInput, PlayerInputType},
+    rule_checker::{ErrorData, RuleChecker},
 };
 
-type RuleFn = Box<dyn Fn(&GameState, &PlayerInput) -> Result<ValidationResponse, String> + Send + Sync>;
+type RuleFn =
+    Box<dyn Fn(&GameState, &PlayerInput) -> Result<ValidationResponse, String> + Send + Sync>;
 
 struct Rule {
     pub related_input: PlayerInputType,
@@ -34,7 +35,9 @@ impl RuleChecker for GameRuleChecker {
                     if !response.is_valid {
                         match response.reason {
                             Some(message) => error_str = message,
-                            None => error_str = String::from("Failed to get reason for invalid input, but the move was invalid!"),
+                            None => error_str = String::from(
+                                "Failed to get reason for invalid input, but the move was invalid!",
+                            ),
                         }
                         return ControlFlow::Break(false);
                     }
@@ -62,10 +65,7 @@ impl Default for GameRuleChecker {
 impl ValidationResponse {
     #[must_use]
     pub const fn new(is_valid: bool, reason: Option<String>) -> Self {
-        Self {
-            is_valid,
-            reason,
-        }
+        Self { is_valid, reason }
     }
 }
 
@@ -91,9 +91,7 @@ impl GameRuleChecker {
             rule_fn: Box::new(has_enough_moves),
         };
 
-        let rules = vec![player_has_position,
-            next_to_node, 
-            enough_moves];
+        let rules = vec![player_has_position, next_to_node, enough_moves];
         rules
     }
 }
@@ -112,7 +110,10 @@ macro_rules! valid_move {
     };
 }
 
-fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> Result<ValidationResponse, String> {
+fn has_enough_moves(
+    game: &GameState,
+    player_input: &PlayerInput,
+) -> Result<ValidationResponse, String> {
     let player_result = game.get_player_with_unique_id(player_input.player_id);
     let player = match player_result {
         Ok(p) => p,
@@ -122,7 +123,7 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> Result<Vali
     if player.remaining_moves == 0 {
         return invalid_move!("The player has no remaining moves!");
     }
-    
+
     let Some(position_node_id) = player.position_node_id else {
         return Err(format!("Player {} has no position!", player.unique_id));
     };
@@ -133,7 +134,11 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> Result<Vali
         Err(e) => return Err(e),
     };
 
-    let cost = match current_node.get_movement_cost_to_neighbour_with_id(player_input.related_node_id) {
+    let Some(related_node_id) = player_input.related_node_id else {
+        return Err("There was no node to get cost to!".to_string());
+    };
+
+    let cost = match current_node.get_movement_cost_to_neighbour_with_id(related_node_id) {
         Ok(cost) => cost,
         Err(e) => return Err(e),
     };
@@ -145,21 +150,25 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> Result<Vali
     valid_move!()
 }
 
-fn has_position(game: &GameState, player_input: &PlayerInput) -> Result<ValidationResponse, String> {
+fn has_position(
+    game: &GameState,
+    player_input: &PlayerInput,
+) -> Result<ValidationResponse, String> {
     match game.get_player_with_unique_id(player_input.player_id) {
         Ok(p) => {
             if p.position_node_id.is_none() {
                 return invalid_move!("The player does not have a position!");
             }
             valid_move!()
-        },
+        }
         Err(e) => Err(e.to_string()),
     }
-
-    
 }
 
-fn next_node_is_neighbour(game: &GameState, player_input: &PlayerInput) -> Result<ValidationResponse, String> {
+fn next_node_is_neighbour(
+    game: &GameState,
+    player_input: &PlayerInput,
+) -> Result<ValidationResponse, String> {
     match game.get_player_with_unique_id(player_input.player_id) {
         Ok(p) => {
             match p.position_node_id {
@@ -167,18 +176,22 @@ fn next_node_is_neighbour(game: &GameState, player_input: &PlayerInput) -> Resul
                     let map = NodeMap::new();
                     match map.get_node_by_id(node_id) {
                         Ok(node) => {
-                            if !node.has_neighbour_with_id(player_input.related_node_id) {
-                                return invalid_move!(format!("The node {} is not a neighbour of the player's position!", player_input.related_node_id));
+                            let Some(related_node_id) = player_input.related_node_id else {
+                                return Err("There was node to check if it's a neighbour!".to_string());
+                            };
+                            if !node.has_neighbour_with_id(related_node_id) {
+                                return invalid_move!(format!(
+                                    "The node {related_node_id} is not a neighbour of the player's position!",
+                                ));
                             }
-                        },
+                        }
                         Err(e) => return Err(e),
                     };
-                },
+                }
                 None => return invalid_move!("The player does not have a position!"),
             }
             valid_move!()
-        },
+        }
         Err(e) => Err(e.to_string()),
     }
 }
-
