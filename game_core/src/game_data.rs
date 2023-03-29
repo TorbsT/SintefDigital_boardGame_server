@@ -11,7 +11,7 @@ pub type MovementCost = u8;
 pub type MovesRemaining = MovementCost;
 
 //// =============== Enums ===============
-#[derive(Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InGameID {
     Undecided = 0,
     PlayerOne = 1,
