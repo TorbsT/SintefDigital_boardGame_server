@@ -353,9 +353,9 @@ mod tests {
         let lobby_list_req = test::TestRequest::get().uri("/games/lobbies").to_request();
         let lobby_list_resp = app.call(lobby_list_req).await.unwrap();
         assert_eq!(lobby_list_resp.status(), StatusCode::OK);
-        let lobby_list: Vec<GameState> = test::read_body_json(lobby_list_resp).await;
+        let lobby_list: LobbyList = test::read_body_json(lobby_list_resp).await;
         
-        lobby_list.iter().for_each(|lobby| {
+        lobby_list.lobbies.iter().for_each(|lobby| {
             assert!(lobby.is_lobby);
             assert_eq!(lobby.players.len(), 1);
             assert!(lobby.players.iter().any(|p| p.unique_id == player1.unique_id || p.unique_id == player2.unique_id || p.unique_id == player3.unique_id)); 
