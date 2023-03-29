@@ -172,6 +172,7 @@ macro_rules! server_app_with_data {
                 .service(get_gamestate)
                 .service(handle_player_input)
                 .service(get_lobbies)
+                .service(join_game)
                 .service(test)
         }
     }
@@ -249,6 +250,17 @@ mod tests {
         }
     }
     
+    macro_rules! get_lobbies {
+        ($app:expr) => {
+            {
+                let lobby_list_req = test::TestRequest::get().uri("/games/lobbies").to_request();
+                let lobby_list_resp = $app.call(lobby_list_req).await.unwrap();
+                let lobby_list: Vec<GameState> = test::read_body_json(lobby_list_resp).await;
+                lobby_list
+            }
+        };
+    }
+
     #[actix_web::test]
     async fn test_getting_player_ids() {
         let app_data = create_game_controller();
@@ -362,6 +374,31 @@ mod tests {
         });
 
         // TODO: Once the orchestrator can start a game, we need to check if a started game does not return
+    }
+
+    // Lag test her
+    #[actix_web::test]
+    async fn test_player_joining_game() {
+        let app_data = create_game_controller();
+        let app = test::init_service(server_app_with_data!(app_data)).await;
+
+        let player1 = make_player!(app, "p1");
+        let player2 = make_player!(app, "p2");
+
+        let game = make_new_lobby_with_player!(app, player1, "Lobby1");
+
+        let join_game_req = test::TestRequest::post().uri(format!("/games/join/{}", game.id).as_str()).set_json(player2.clone()).to_request();
+        let join_game_resp = app.call(join_game_req).await.unwrap();
+        assert_eq!(join_game_resp.status(), StatusCode::OK);
+        let mut returned_game: GameState = test::read_body_json(join_game_resp).await;
+
+        assert!(returned_game.players.iter().any(|p| p.unique_id == player1.unique_id));
+        assert!(returned_game.players.iter().any(|p| p.unique_id == player2.unique_id));
+
+        let lobbies = get_lobbies!(app);
+        returned_game = lobbies.into_iter().find(|g| g.id == game.id).unwrap();
+        assert!(returned_game.players.iter().any(|p| p.unique_id == player1.unique_id));
+        assert!(returned_game.players.iter().any(|p| p.unique_id == player2.unique_id));
     }
     
 }
