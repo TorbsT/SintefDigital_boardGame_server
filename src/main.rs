@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
-use actix_cors::Cors;
 
 #[derive(Serialize, Deserialize)]
 struct LobbyList {
@@ -204,7 +203,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{GameState, PlayerInputType, NodeMap, PlayerID};
+    use game_core::game_data::{GameState, PlayerInputType, NodeMap, PlayerID, InGameID};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(

@@ -206,9 +206,10 @@ mod tests {
 
         let input = PlayerInput {
             input_type: PlayerInputType::Movement,
-            related_node_id: neighbour_info.0,
+            related_node_id: Some(neighbour_info.0),
             player_id: player.unique_id,
             game_id: game.id,
+            related_role: None,
         };
 
         game = controller.handle_player_input(input).expect("Expected to get GameState after doing an input. Seems like something went wrong when handling the input");
