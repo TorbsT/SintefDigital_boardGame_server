@@ -100,6 +100,7 @@ impl GameController {
                         caller_identifier: type_name::<Self>(),
                     })
                 }
+                return Err(e);
             }
         };
 

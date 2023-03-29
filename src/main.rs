@@ -465,12 +465,24 @@ mod tests {
         
         let player_input = PlayerInput{player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
 
-        let input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
-        let input_resp = app.call(input_req).await.unwrap();
+        let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
+        let mut input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::OK);
         lobby = test::read_body_json(input_resp).await;
 
         assert!(lobby.players.iter().any(|p| p.unique_id == player.unique_id && p.in_game_id == InGameID::Orchestrator));
-        //TODO: Make test for checking that two players can't have the same role
+
+        let player2 = make_player!(app, "Player Two");
+        lobby = join_lobby!(app, lobby, player2);
+        
+        let player2_input = PlayerInput{player_id: player2.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
+        input_req = test::TestRequest::post().uri("/games/input").set_json(&player2_input).to_request();
+        input_resp = app.call(input_req).await.unwrap();
+        assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        
+        let lobbies = get_lobbies!(app);
+        lobby = lobbies.into_iter().find(|g| g.id == lobby.id).unwrap();
+        assert!(lobby.players.iter().any(|p| p.unique_id == player.unique_id && p.in_game_id == InGameID::Orchestrator));
+        assert!(lobby.players.iter().any(|p| p.unique_id == player2.unique_id && p.in_game_id == InGameID::Undecided));
     }
 }
