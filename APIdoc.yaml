@@ -114,6 +114,15 @@ components:
         - PlayerFour
         - PlayerFive
         - Orchestrator
+    Neighbourhood:
+      type: string
+      enum:
+        - IndustryPark
+        - Port
+        - Suburbs
+        - RingRoad
+        - CityCentre
+        - Airport
     PlayerInputType:
       type: string
       enum:
@@ -143,10 +152,9 @@ components:
           type: integer
         name:
           type: string
-        position:
-          oneOf:
-            - $ref: "#/components/schemas/Node"
-            - nullable: true
+        position_node_id:
+          type: integer
+          nullable: true
         remaining_moves:
           type: integer
     Node:
@@ -156,10 +164,6 @@ components:
           type: integer
         name:
           type: string
-        neighbours_id:
-          type: array
-          items:
-            type: integer
     NewGameInfo:
       type: object
       properties:
@@ -170,12 +174,12 @@ components:
     PlayerInput:
       type: object
       properties:
-        player:
-          $ref: "#/components/schemas/Player"
+        player_id:
+          type: integer
         input_type:
           $ref: "#/components/schemas/PlayerInputType"
-        related_node:
-          $ref: "#/components/schemas/Node"
+        related_node_id:
+          type: integer
     LobbyList:
       type: object
       properties:
