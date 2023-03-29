@@ -45,7 +45,7 @@ paths:
             text/plain:
               schema:
                 type: string
-  /games/{id}:
+  /games/game/{id}:
     get:
       summary: Get the game state
       description: Get the game state
@@ -91,6 +91,22 @@ paths:
             text/plain:
               schema:
                 type: string
+  /games/lobbies:
+    get:
+      summary: Gets the lobbies
+      description: Gets the lobbies
+      responses:
+        200:
+          description: All the open lobbies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LobbyList"
+        500:
+          description: Internal server error, with error message
+          content:
+            schema:
+              type: string
   /games/join/{game_id}:
     post:
       summary: Join a game
@@ -133,6 +149,15 @@ components:
         - PlayerFour
         - PlayerFive
         - Orchestrator
+    Neighbourhood:
+      type: string
+      enum:
+        - IndustryPark
+        - Port
+        - Suburbs
+        - RingRoad
+        - CityCentre
+        - Airport
     PlayerInputType:
       type: string
       enum:
@@ -162,10 +187,9 @@ components:
           type: integer
         name:
           type: string
-        position:
-          oneOf:
-            - $ref: "#/components/schemas/Node"
-            - nullable: true
+        position_node_id:
+          type: integer
+          nullable: true
         remaining_moves:
           type: integer
     Node:
@@ -175,10 +199,6 @@ components:
           type: integer
         name:
           type: string
-        neighbours_id:
-          type: array
-          items:
-            type: integer
     NewGameInfo:
       type: object
       properties:
@@ -189,9 +209,18 @@ components:
     PlayerInput:
       type: object
       properties:
-        player:
-          $ref: "#/components/schemas/Player"
+        player_id:
+          type: integer
+        game_id:
+          type: integer
         input_type:
           $ref: "#/components/schemas/PlayerInputType"
-        related_node:
-          $ref: "#/components/schemas/Node"
+        related_node_id:
+          type: integer
+    LobbyList:
+      type: object
+      properties:
+        lobbies:
+          type: array
+          items:
+            $ref: "#/components/schemas/GameState"
