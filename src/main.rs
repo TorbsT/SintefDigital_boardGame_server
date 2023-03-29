@@ -145,12 +145,12 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
     HttpResponse::Ok().json(json!(lobbies))
 }
 
-#[delete("/games/leave/{id}")]
-async fn leave_game(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
+#[delete("/games/leave/{player_id}")]
+async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
         return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
     };
-    game_controller.remove_player_from_game(*id);
+    game_controller.remove_player_from_game(*player_id);
     HttpResponse::Ok().body("")
 }
 
@@ -250,18 +250,7 @@ mod tests {
             }
         }
     }
-
-    macro_rules! get_lobbies {
-        ($app:expr) => {
-            {
-                let lobby_list_req = test::TestRequest::get().uri("/games/lobbies").to_request();
-                let lobby_list_resp = $app.call(lobby_list_req).await.unwrap();
-                let lobby_list: Vec<GameState> = test::read_body_json(lobby_list_resp).await;
-                lobby_list
-            }
-        };
-    }
-    
+  
     macro_rules! get_lobbies {
         ($app:expr) => {
             {
@@ -271,6 +260,26 @@ mod tests {
                 lobby_list.lobbies.clone()
             }
         };
+    }
+
+    macro_rules! join_lobby {
+        ($app:expr, $game:expr, $player:expr) => {
+            {
+                let join_game_req = test::TestRequest::post().uri(format!("/games/join/{}", $game.id).as_str()).set_json($player.clone()).to_request();
+                let join_game_resp = $app.call(join_game_req).await.unwrap();
+                let returned_game: GameState = test::read_body_json(join_game_resp).await;
+                returned_game
+            }
+        }
+    }
+
+    macro_rules! leave_lobby {
+        ($app:expr, $player:expr) => {
+            {
+                let player_leave_request = test::TestRequest::delete().uri(format!("/games/leave/{}", $player.unique_id).as_str()).to_request();
+                $app.call(player_leave_request).await.unwrap();
+            }
+        }
     }
 
     #[actix_web::test]
@@ -403,7 +412,6 @@ mod tests {
         let join_game_resp = app.call(join_game_req).await.unwrap();
         assert_eq!(join_game_resp.status(), StatusCode::OK);
         let mut returned_game: GameState = test::read_body_json(join_game_resp).await;
-
         assert!(returned_game.players.iter().any(|p| p.unique_id == player1.unique_id));
         assert!(returned_game.players.iter().any(|p| p.unique_id == player2.unique_id));
 
@@ -420,14 +428,26 @@ mod tests {
 
         let player1 = make_player!(app, "p1");
 
-        let lobby = make_new_lobby_with_player!(app, player1, "Lobby1");
+        let mut lobby = make_new_lobby_with_player!(app, player1, "Lobby1");
         assert!(lobby.players.iter().any(|p| p.unique_id == player1.unique_id));
         
         let player_leave_request = test::TestRequest::delete().uri(format!("/games/leave/{}", player1.unique_id).as_str()).to_request();
         let player_leave_response = app.call(player_leave_request).await.unwrap();
         assert_eq!(player_leave_response.status(), StatusCode::OK);
 
-        let lobbies = get_lobbies!(app);
+        let mut lobbies = get_lobbies!(app);
         assert!(lobbies.iter().all(|l| l.players.iter().all(|p| p.unique_id != player1.unique_id)));
+        
+        lobby = make_new_lobby_with_player!(app, player1, "Lobby2");
+        let player2 = make_player!(app, "p2");
+
+        lobby = join_lobby!(app, lobby, player2);
+        assert!(lobby.players.iter().any(|p| p.unique_id == player2.unique_id));
+        
+        leave_lobby!(app, player2);
+        lobbies = get_lobbies!(app);
+       
+        assert!(lobbies.iter().all(|l| l.players.iter().all(|p| p.unique_id != player2.unique_id)));
+        assert!(lobbies.iter().any(|l| l.players.iter().any(|p| p.unique_id == player1.unique_id)));
     }
 }

@@ -105,8 +105,9 @@ paths:
         500:
           description: Internal server error, with error message
           content:
-            schema:
-              type: string
+            text/plain:
+              schema:
+                type: string 
   /games/join/{game_id}:
     post:
       summary: Join a game
@@ -130,6 +131,26 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+  /games/leave/{player_id}:
+    delete:
+      summary: Removes the player from the game
+      description: Removes the player from the game
+      parameters:
+        - in: path
+          name: player_id
+          schema:
+            type: integer
+          required: true
+          description: The ID of the player
+      responses:
+        200:
+          description: The player was removed
         500:
           description: Internal server error, with error message
           content:
