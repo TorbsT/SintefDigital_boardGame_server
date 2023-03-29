@@ -63,6 +63,16 @@ async fn create_new_game(
     }
 }
 
+#[post("/start/game")]
+async fn start_new_game(
+    json_data: web::Json<LobbyInfo>, //TODO: This struct should contain a vector of (player id, in game id)
+    shared_data: web::Data<AppData>,
+) -> impl Responder {
+    /*TODO: Check if orchestrator can start game; start game
+            Game can only be started if the lobby has an orchestrator and at least 1 more player
+    */
+}
+
 #[get("/debug/playerIDs/amount")]
 async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> impl Responder {
     let game_controller = match shared_data.game_controller.lock() {

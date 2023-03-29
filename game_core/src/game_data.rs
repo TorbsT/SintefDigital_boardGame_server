@@ -85,6 +85,11 @@ pub struct NewGameInfo {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct LobbyInfo {
+    //TODO: add (PlayerID, InGameID) vector and implement the struct
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PlayerInput {
     pub player_id: PlayerID,
     pub game_id: GameID,
