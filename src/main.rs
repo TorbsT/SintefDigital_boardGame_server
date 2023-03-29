@@ -173,6 +173,7 @@ macro_rules! server_app_with_data {
                 .service(handle_player_input)
                 .service(get_lobbies)
                 .service(join_game)
+                .service(leave_game)
                 .service(test)
         }
     }
@@ -248,6 +249,17 @@ mod tests {
                 game
             }
         }
+    }
+
+    macro_rules! get_lobbies {
+        ($app:expr) => {
+            {
+                let lobby_list_req = test::TestRequest::get().uri("/games/lobbies").to_request();
+                let lobby_list_resp = $app.call(lobby_list_req).await.unwrap();
+                let lobby_list: Vec<GameState> = test::read_body_json(lobby_list_resp).await;
+                lobby_list
+            }
+        };
     }
     
     macro_rules! get_lobbies {
@@ -401,4 +413,21 @@ mod tests {
         assert!(returned_game.players.iter().any(|p| p.unique_id == player2.unique_id));
     }
     
+    #[actix_web::test]
+    async fn test_leaving_game() {
+        let app_data = create_game_controller();
+        let app = test::init_service(server_app_with_data!(app_data)).await;
+
+        let player1 = make_player!(app, "p1");
+
+        let lobby = make_new_lobby_with_player!(app, player1, "Lobby1");
+        assert!(lobby.players.iter().any(|p| p.unique_id == player1.unique_id));
+        
+        let player_leave_request = test::TestRequest::delete().uri(format!("/games/leave/{}", player1.unique_id).as_str()).to_request();
+        let player_leave_response = app.call(player_leave_request).await.unwrap();
+        assert_eq!(player_leave_response.status(), StatusCode::OK);
+
+        let lobbies = get_lobbies!(app);
+        assert!(lobbies.iter().all(|l| l.players.iter().all(|p| p.unique_id != player1.unique_id)));
+    }
 }
