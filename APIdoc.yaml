@@ -45,7 +45,7 @@ paths:
             text/plain:
               schema:
                 type: string
-  /games/{id}:
+  /games/game/{id}:
     get:
       summary: Get the game state
       description: Get the game state
@@ -102,6 +102,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LobbyList"
+        500:
+          description: Internal server error, with error message
+          content:
+            schema:
+              type: string
 components:
   schemas:
     InGameID:
@@ -175,6 +180,8 @@ components:
       type: object
       properties:
         player_id:
+          type: integer
+        game_id:
           type: integer
         input_type:
           $ref: "#/components/schemas/PlayerInputType"
