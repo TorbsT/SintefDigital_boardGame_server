@@ -9,3 +9,4 @@ edition = "2021"
 logging = {path = "../logging"}
 rand = "0.8.5"
 serde = {version = "1.0.152", features = ["derive"]}
+lazy_static = "1.4.0"
