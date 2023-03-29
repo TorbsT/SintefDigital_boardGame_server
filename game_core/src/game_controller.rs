@@ -6,13 +6,13 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{self, GameState, NewGameInfo, PlayerID, PlayerInput},
+    game_data::{self, GameState, NewGameInfo, Player, PlayerInput},
     rule_checker::RuleChecker,
 };
 
 pub struct GameController {
     pub games: Vec<GameState>,
-    pub unique_ids: Vec<PlayerID>,
+    pub unique_ids: Vec<i32>,
     pub logger: Arc<RwLock<dyn Logger + Send + Sync>>,
     pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
@@ -36,7 +36,7 @@ impl GameController {
         self.games.clone()
     }
 
-    pub fn generate_player_id(&mut self) -> Result<PlayerID, &str> {
+    pub fn generate_player_id(&mut self) -> Result<i32, &str> {
         let new_id = match self.generate_unused_unique_id() {
             Some(i) => i,
             None => return Err("Failed to make new ID!"),
@@ -149,7 +149,7 @@ impl GameController {
         Ok(related_game.clone())
     }
 
-    fn generate_unused_unique_id(&mut self) -> Option<PlayerID> {
+    fn generate_unused_unique_id(&mut self) -> Option<i32> {
         if let Ok(mut logger) = self.logger.write() {
             logger.log(LogData::new(
                 LogLevel::Debug,
@@ -158,7 +158,7 @@ impl GameController {
             ));
         }
 
-        let mut id: PlayerID = rand::random::<PlayerID>();
+        let mut id: i32 = rand::random::<i32>();
 
         let mut found_unique_id = false;
         for _ in 0..100_000 {
@@ -168,7 +168,7 @@ impl GameController {
                     break;
                 }
             }
-            id = rand::random::<PlayerID>();
+            id = rand::random::<i32>();
         }
 
         if !found_unique_id {
@@ -208,15 +208,15 @@ impl GameController {
         Ok(new_game)
     }
 
-    fn generate_unused_game_id(&self) -> PlayerID {
+    fn generate_unused_game_id(&self) -> i32 {
         let mut existing_game_ids = Vec::new();
         for game in self.games.iter() {
             existing_game_ids.push(game.id);
         }
 
-        let mut id = rand::random::<PlayerID>();
+        let mut id = rand::random::<i32>();
         while existing_game_ids.contains(&id) {
-            id = rand::random::<PlayerID>();
+            id = rand::random::<i32>();
         }
 
         id

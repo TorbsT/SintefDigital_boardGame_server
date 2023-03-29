@@ -159,6 +159,10 @@ impl GameState {
                 |player| Ok(player.clone()),
             )
     }
+
+    pub fn remove_player_with_id(&mut self, player_id: i32) {
+        self.players.retain(|player| player.unique_id != player_id);
+    }
 }
 
 impl Player {

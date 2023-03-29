@@ -1,7 +1,7 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, GameState, GameID},
+    game_data::{NewGameInfo, Player, PlayerInput, GameState},
 };
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
@@ -201,7 +201,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{GameState, PlayerInputType, NodeMap};
+    use game_core::game_data::{GameState, PlayerInputType, NodeMap, PlayerID};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
