@@ -255,8 +255,8 @@ mod tests {
             {
                 let lobby_list_req = test::TestRequest::get().uri("/games/lobbies").to_request();
                 let lobby_list_resp = $app.call(lobby_list_req).await.unwrap();
-                let lobby_list: Vec<GameState> = test::read_body_json(lobby_list_resp).await;
-                lobby_list
+                let lobby_list: LobbyList = test::read_body_json(lobby_list_resp).await;
+                lobby_list.lobbies.clone()
             }
         };
     }
