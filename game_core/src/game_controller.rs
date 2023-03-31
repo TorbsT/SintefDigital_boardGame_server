@@ -64,6 +64,9 @@ impl GameController {
         Ok(new_game)
     }
 
+    //TODO: Start game
+    pub fn start_game(&mut self, lobby_info: LobbyInfo) -> Result<> {}
+
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         let mut games_iter = self.games.iter_mut();
 

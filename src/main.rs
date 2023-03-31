@@ -1,7 +1,7 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, GameID},
+    game_data::{NewGameInfo, Player, PlayerInput, GameID, LobbyInfo},
 };
 use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
@@ -63,14 +63,29 @@ async fn create_new_game(
     }
 }
 
+/*TODO: Check if orchestrator can start game; start game
+        Game can only be started if the lobby has an orchestrator and at least 1 more player
+*/
 #[post("/start/game")]
 async fn start_new_game(
-    json_data: web::Json<LobbyInfo>, //TODO: This struct should contain a vector of (player id, in game id)
+    json_data: web::Json<LobbyInfo>,
     shared_data: web::Data<AppData>,
 ) -> impl Responder {
-    /*TODO: Check if orchestrator can start game; start game
-            Game can only be started if the lobby has an orchestrator and at least 1 more player
-    */
+    let lobby_info: LobbyInfo = json_data.into_inner();
+    let data = shared_data.game_controller.lock();
+    match data {
+        Ok(mut game_controller) => {
+            let game_result = game_controller.create_new_game(lobby_info);
+            match game_result {
+                Ok(g) => HttpResponse::Ok().json(json!(g)),
+                Err(e) => HttpResponse::InternalServerError()
+                    .body(format!("Failed to start game because: {e}")),
+            }
+        }
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to start game because {e}"))
+        }
+    }
 }
 
 #[get("/debug/playerIDs/amount")]

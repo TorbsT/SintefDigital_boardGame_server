@@ -86,7 +86,7 @@ pub struct NewGameInfo {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct LobbyInfo {
-    //TODO: add (PlayerID, InGameID) vector and implement the struct
+    pub player_list: Vec<(PlayerID, InGameID)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -461,5 +461,35 @@ impl PlayerInput {
             related_role: None,
             related_node_id: None,
         }
+    }
+}
+
+impl LobbyInfo {
+    #[must_use]
+    pub const fn new() -> Self {
+        let player_list: Vec<(i32, InGameID)> = Vec::new();
+        Self {
+            player_list,
+        }
+    }
+
+    pub fn add_player_to_list(&mut self, player_info: (i32, InGameID)) {
+        self.player_list.push(player_info);
+    }
+
+    #[allow(non_snake_case)]
+    pub fn remove_player_from_list(&mut self, player_Id: i32) {
+        let mut index: usize = 42;
+        for i in 0..self.player_list.len() {
+            if self.player_list[i].0 == player_Id {
+                index = i;
+                break;
+            }
+        }
+        if index == 42 {
+            //TODO: Add error handling
+            return;
+        }
+        self.player_list.remove(index);
     }
 }
