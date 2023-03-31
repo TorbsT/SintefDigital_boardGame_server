@@ -48,6 +48,7 @@ pub struct GameState {
     pub name: String,
     pub players: Vec<Player>,
     pub is_lobby: bool,
+    pub current_players_turn: InGameID,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -105,6 +106,7 @@ impl GameState {
             name,
             players: Vec::new(),
             is_lobby: true,
+            current_players_turn: InGameID::Orchestrator,
         }
     }
 
