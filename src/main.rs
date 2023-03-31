@@ -75,7 +75,7 @@ async fn start_new_game(
     let data = shared_data.game_controller.lock();
     match data {
         Ok(mut game_controller) => {
-            let game_result = game_controller.create_new_game(lobby_info);
+            let game_result = game_controller.start_game(lobby_info, gamestate); //TODO: Fix this in the game controller
             match game_result {
                 Ok(g) => HttpResponse::Ok().json(json!(g)),
                 Err(e) => HttpResponse::InternalServerError()

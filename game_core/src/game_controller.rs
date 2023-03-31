@@ -6,7 +6,7 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{self, GameState, NewGameInfo, PlayerInput, PlayerID, InGameID},
+    game_data::{self, GameState, NewGameInfo, PlayerInput, PlayerID, InGameID, LobbyInfo},
     rule_checker::RuleChecker,
 };
 
@@ -65,7 +65,9 @@ impl GameController {
     }
 
     //TODO: Start game
-    pub fn start_game(&mut self, lobby_info: LobbyInfo) -> Result<> {}
+    pub fn start_game(&mut self, lobby_info: LobbyInfo, gamestate: &mut GameState) { //TODO: Should return Result<GameState, String>
+        gamestate.is_lobby = false;
+    }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         let mut games_iter = self.games.iter_mut();
