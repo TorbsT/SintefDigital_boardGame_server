@@ -65,6 +65,14 @@ impl GameController {
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
+        if !self
+            .unique_ids
+            .iter()
+            .any(|id| id == &player_input.player_id)
+        {
+            return Err("There does not exist a player with the unique id".to_string());
+        }
+
         let mut games_iter = self.games.iter_mut();
 
         let connected_game_id = player_input.game_id;
