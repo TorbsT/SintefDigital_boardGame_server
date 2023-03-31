@@ -485,4 +485,27 @@ mod tests {
         assert!(lobby.players.iter().any(|p| p.unique_id == player.unique_id && p.in_game_id == InGameID::Orchestrator));
         assert!(lobby.players.iter().any(|p| p.unique_id == player2.unique_id && p.in_game_id == InGameID::Undecided));
     }
+
+    #[actix_web::test]
+    async fn test_if_player_exists() {
+        let app_data = create_game_controller();
+        let app = test::init_service(server_app_with_data!(app_data)).await;
+
+        let player = make_player!(app, "P1");
+        let lobby = make_new_lobby_with_player!(app, player, "L1");
+        assert!(player.unique_id != 0);
+
+        let mut player_input = PlayerInput{player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
+        
+        let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
+        let mut input_resp = app.call(input_req).await.unwrap();
+        assert_eq!(input_resp.status(), StatusCode::OK);
+
+        player_input.player_id = 0;
+        player_input.related_role = Some(InGameID::PlayerOne);
+        
+        input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
+        input_resp = app.call(input_req).await.unwrap();
+        assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
 }
