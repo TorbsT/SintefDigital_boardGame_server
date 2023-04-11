@@ -239,6 +239,21 @@ impl GameController {
     }
 
     fn handle_input(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
+        let mut game_clone = game.clone();
+        for action in game.actions.iter() {
+            match Self::apply_input(action.clone(), &mut game_clone) {
+                Ok(_) => (),
+                Err(e) => return Err(e),
+            }
+        }
+
+        Self::apply_input(input.clone(), game);
+        // Check if it works by applying the new input to the game clone
+        game.actions.push(input.clone());
+        Ok(())
+    }
+
+    fn apply_input(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
         match input.input_type {
             game_data::PlayerInputType::Movement => match Self::handle_movement(input, game) {
                 Ok(_) => Ok(()),

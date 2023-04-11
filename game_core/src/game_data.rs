@@ -48,6 +48,8 @@ pub struct GameState {
     pub name: String,
     pub players: Vec<Player>,
     pub is_lobby: bool,
+    #[serde(skip)]
+    pub actions: Vec<PlayerInput>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -105,6 +107,7 @@ impl GameState {
             name,
             players: Vec::new(),
             is_lobby: true,
+            actions: Vec::new(),
         }
     }
 
