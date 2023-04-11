@@ -25,11 +25,9 @@ impl RuleChecker for GameRuleChecker {
     fn is_input_valid(&self, game: &GameState, player_input: &PlayerInput) -> Option<ErrorData> {
         let mut error_str = "Invalid input!".to_string();
         let foreach_status = &self.rules.iter().try_for_each(|rule| {
-            if rule
-                .related_inputs
-                .iter()
-                .all(|input_type| input_type != &player_input.input_type)
-            {
+            if rule.related_inputs.iter().all(|input_type| {
+                input_type != &player_input.input_type && input_type != &PlayerInputType::All
+            }) {
                 return ControlFlow::Continue(());
             }
 
@@ -64,7 +62,7 @@ impl GameRuleChecker {
 
     fn get_rules() -> Vec<Rule> {
         let players_turn = Rule {
-            related_inputs: vec![PlayerInputType::Movement],
+            related_inputs: vec![PlayerInputType::All],
             rule_fn: Box::new(is_players_turn),
         };
 
@@ -182,13 +180,17 @@ fn next_node_is_neighbour(
 }
 
 fn is_players_turn(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    if game.is_lobby {
+        return ValidationResponse::Valid;
+    }
+
     let player = match game.get_player_with_unique_id(player_input.player_id) {
         Ok(p) => p,
         Err(e) => return ValidationResponse::Invalid(e.to_string()),
     };
 
     if game.current_players_turn != player.in_game_id {
-        ValidationResponse::Invalid("It's not the current players turn".to_string());
+        return ValidationResponse::Invalid("It's not the current players turn".to_string());
     }
 
     ValidationResponse::Valid

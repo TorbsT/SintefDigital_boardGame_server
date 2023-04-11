@@ -248,6 +248,9 @@ impl GameController {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e.to_string()),
             },
+            game_data::PlayerInputType::All => {
+                Err("This input type should not be used by players".to_string())
+            }
         }
     }
 
