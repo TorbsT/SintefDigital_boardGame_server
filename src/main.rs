@@ -1,7 +1,7 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, GameID, LobbyInfo},
+    game_data::{NewGameInfo, Player, PlayerInput, GameID, LobbyInfo, GameState},
 };
 use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
@@ -75,7 +75,17 @@ async fn start_new_game(
     let data = shared_data.game_controller.lock();
     match data {
         Ok(mut game_controller) => {
-            let game_result = game_controller.start_game(lobby_info, gamestate); //TODO: Fix this in the game controller
+            let mut gamestate: GameState;
+            for game in data.unwrap().games {
+                for player in game.players {
+                    if lobby_info.player_list[0].0 == player.unique_id {
+                        gamestate = game;
+                        break;
+                    }
+                }
+                if gamestate { break; } //TODO: Check if gamestate has been set
+            }
+            let game_result = game_controller.start_game(&mut gamestate); //TODO: Fix this in the game controller
             match game_result {
                 Ok(g) => HttpResponse::Ok().json(json!(g)),
                 Err(e) => HttpResponse::InternalServerError()
