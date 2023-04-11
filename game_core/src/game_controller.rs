@@ -66,7 +66,18 @@ impl GameController {
 
     //TODO: Start game
     pub fn start_game(&mut self, lobby_info: LobbyInfo, gamestate: &mut GameState) { //TODO: Should return Result<GameState, String>
-        gamestate.is_lobby = false;
+        let mut can_start_game = false;
+        for player in &gamestate.players {
+            if player.in_game_id as usize == 6 {
+                if gamestate.players.len() < 2 { break };
+                can_start_game = true;
+                break;
+            }
+        }
+        if can_start_game {
+            gamestate.is_lobby = false;
+            return;
+        }
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
