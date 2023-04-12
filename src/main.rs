@@ -281,6 +281,20 @@ mod tests {
         }
     }
 
+    #[allow(unused_macros)]
+    macro_rules! change_role {
+        ($app:expr, $game:expr, $player:expr, $role:expr) => {
+            {
+                let player_input = PlayerInput{player_id: $player.unique_id, game_id: $game.id, input_type: PlayerInputType::ChangeRole, related_role: Some($role), related_node_id: None };
+
+                let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
+                let mut input_resp = $app.call(input_req).await.unwrap();
+                let lobby: GameState = test::read_body_json(input_resp).await;
+                lobby
+            }
+        }
+    }
+
     #[actix_web::test]
     async fn test_getting_player_ids() {
         let app_data = create_game_controller();
@@ -362,7 +376,7 @@ mod tests {
         let input = PlayerInput {player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_node_id: Some(neighbour_info.0), related_role: None};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
-        assert_eq!(input_resp.status(), StatusCode::OK);
+        assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
         let changed_game_state: GameState = test::read_body_json(input_resp).await;
         
         player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();

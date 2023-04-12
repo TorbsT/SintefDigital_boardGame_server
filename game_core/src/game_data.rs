@@ -14,7 +14,7 @@ pub type MovesRemaining = MovementCost;
 const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
 
 //// =============== Enums ===============
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum InGameID {
     Undecided = 0,
     PlayerOne = 1,
@@ -25,10 +25,11 @@ pub enum InGameID {
     Orchestrator = 6,
 }
 
-#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Debug)]
 pub enum PlayerInputType {
     Movement,
     ChangeRole,
+    All,
     NextTurn,
     UndoAction,
 }
@@ -44,7 +45,7 @@ pub enum Neighbourhood {
 }
 
 //// =============== Structs ===============
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct GameState {
     pub id: GameID,
     pub name: String,
@@ -55,7 +56,7 @@ pub struct GameState {
     pub actions: Vec<PlayerInput>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Player {
     pub connected_game_id: Option<GameID>,
     pub in_game_id: InGameID,
@@ -92,7 +93,7 @@ pub struct NewGameInfo {
     pub name: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PlayerInput {
     pub player_id: PlayerID,
     pub game_id: GameID,

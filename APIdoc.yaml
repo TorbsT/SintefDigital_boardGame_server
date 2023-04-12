@@ -184,6 +184,7 @@ components:
       enum:
         - Movement
         - ChangeRole
+        - All
         - NextTurn
         - UndoAction
     GameState:
