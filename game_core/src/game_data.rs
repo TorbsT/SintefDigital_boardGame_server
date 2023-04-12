@@ -30,6 +30,8 @@ pub enum PlayerInputType {
     Movement,
     ChangeRole,
     All,
+    NextTurn,
+    UndoAction,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -50,6 +52,8 @@ pub struct GameState {
     pub players: Vec<Player>,
     pub is_lobby: bool,
     pub current_players_turn: InGameID,
+    #[serde(skip)]
+    pub actions: Vec<PlayerInput>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -107,6 +111,7 @@ impl GameState {
             name,
             players: Vec::new(),
             is_lobby: true,
+            actions: Vec::new(),
             current_players_turn: InGameID::Orchestrator,
         }
     }
@@ -188,6 +193,39 @@ impl GameState {
 
     pub fn remove_player_with_id(&mut self, player_id: i32) {
         self.players.retain(|player| player.unique_id != player_id);
+    }
+
+    pub fn next_player_turn(&mut self) {
+        let mut next_player_turn = self.current_players_turn.next();
+        let mut counter = 0;
+        while !self
+            .players
+            .iter()
+            .any(|p| p.in_game_id == next_player_turn)
+        {
+            next_player_turn = next_player_turn.next();
+            if counter >= 1000 {
+                next_player_turn = InGameID::Orchestrator;
+                break;
+            }
+            counter += 1;
+        }
+
+        self.current_players_turn = next_player_turn;
+    }
+}
+
+impl InGameID {
+    pub fn next(&self) -> Self {
+        match self {
+            InGameID::Undecided => Self::Orchestrator,
+            InGameID::PlayerOne => Self::PlayerTwo,
+            InGameID::PlayerTwo => Self::PlayerThree,
+            InGameID::PlayerThree => Self::PlayerFour,
+            InGameID::PlayerFour => Self::PlayerFive,
+            InGameID::PlayerFive => Self::Orchestrator,
+            InGameID::Orchestrator => Self::PlayerOne,
+        }
     }
 }
 

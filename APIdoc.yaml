@@ -185,6 +185,8 @@ components:
         - Movement
         - ChangeRole
         - All
+        - NextTurn
+        - UndoAction
     GameState:
       type: object
       properties:
