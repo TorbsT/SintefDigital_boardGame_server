@@ -65,7 +65,7 @@ impl GameController {
     }
 
     //TODO: Start game
-    pub fn start_game(&mut self, gamestate: &mut GameState) { //TODO: Should return Result<GameState, String>
+    pub fn start_game(&mut self, gamestate: &mut GameState) -> Result<GameState, String> { //TODO: Should return Result<GameState, String>
         let mut can_start_game = false;
         for player in &gamestate.players {
             if player.in_game_id as usize == 6 {

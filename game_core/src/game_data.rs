@@ -90,6 +90,13 @@ pub struct LobbyInfo {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
+pub struct GameStartInput {
+    pub player_id: PlayerID,
+    pub in_game_id: InGameID,
+    pub game_id: GameID,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct PlayerInput {
     pub player_id: PlayerID,
     pub game_id: GameID,
