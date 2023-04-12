@@ -7,7 +7,9 @@ pub type NodeID = u8;
 pub type PlayerID = i32;
 pub type GameID = i32;
 pub type NeighbourRelationshipID = u8;
-pub type MovementCost = u8;
+pub type MovementCost = i16;
+pub type MovementBuff = MovementCost;
+pub type MovementPenalty = MovementCost;
 pub type MovesRemaining = MovementCost;
 
 //// =============== Constants ===============
@@ -32,6 +34,7 @@ pub enum PlayerInputType {
     All,
     NextTurn,
     UndoAction,
+    DistrictRestrictions,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -44,6 +47,22 @@ pub enum Neighbourhood {
     Airport,
 }
 
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub enum AccessType {
+    Electric(MovementCost),
+    Buss,
+    Emergency,
+    Industrial,
+}
+
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
+pub enum PriorityType {
+    Electric(MovementBuff),
+    Buss(MovementBuff),
+    Emergency(MovementBuff),
+    Industrial(MovementBuff),
+}
+
 //// =============== Structs ===============
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct GameState {
@@ -52,6 +71,7 @@ pub struct GameState {
     pub players: Vec<Player>,
     pub is_lobby: bool,
     pub current_players_turn: InGameID,
+    pub district_modifiers: Vec<DistrictModifier>,
     #[serde(skip)]
     pub actions: Vec<PlayerInput>,
 }
@@ -100,6 +120,13 @@ pub struct PlayerInput {
     pub input_type: PlayerInputType,
     pub related_role: Option<InGameID>,
     pub related_node_id: Option<NodeID>,
+    pub district_modifier: Option<DistrictModifier>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct DistrictModifier {
+    pub access: Option<AccessType>,
+    pub priority: Option<PriorityType>,
 }
 
 //// =============== Structs impls ===============
@@ -113,6 +140,7 @@ impl GameState {
             is_lobby: true,
             actions: Vec::new(),
             current_players_turn: InGameID::Orchestrator,
+            district_modifiers: Vec::new(),
         }
     }
 
@@ -289,7 +317,7 @@ impl Node {
 }
 
 lazy_static! {
-    static ref GROUP_COST_MAP: Mutex<HashMap<Neighbourhood, u8>> = Mutex::new({
+    static ref GROUP_COST_MAP: Mutex<HashMap<Neighbourhood, MovementCost>> = Mutex::new({
         let mut map = HashMap::new();
         map.insert(Neighbourhood::IndustryPark, 1);
         map.insert(Neighbourhood::Port, 1);
@@ -316,11 +344,11 @@ impl NeighbourRelationship {
         }
     }
 
-    pub fn update_individual_cost(&mut self, update: u8) {
+    pub fn update_individual_cost(&mut self, update: MovementCost) {
         self.individual_cost = update;
     }
 
-    pub const fn total_cost(&self) -> u8 {
+    pub const fn total_cost(&self) -> MovementCost {
         self.group_cost + self.individual_cost
     }
 }
@@ -339,7 +367,11 @@ impl NodeMap {
     }
 
     #[allow(clippy::unwrap_used)]
-    pub fn update_neighbour_costs(&mut self, neighbourhood_enum: Neighbourhood, value: u8) {
+    pub fn update_neighbour_costs(
+        &mut self,
+        neighbourhood_enum: Neighbourhood,
+        value: MovementCost,
+    ) {
         let mut group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
         group_cost_map_reference.insert(neighbourhood_enum, value);
         for node in &mut self.map {
@@ -352,16 +384,21 @@ impl NodeMap {
     }
 
     #[allow(non_snake_case)]
-    pub fn update_individual_cost(&mut self, node1_ID: u8, node2_ID: u8, value: u8) {
+    pub fn update_individual_cost(
+        &mut self,
+        node1_ID: NodeID,
+        node2_ID: NodeID,
+        value: MovementCost,
+    ) {
         self.update_individual_cost_recursion(node1_ID, node2_ID, value, false);
     }
 
     #[allow(non_snake_case)]
     fn update_individual_cost_recursion(
         &mut self,
-        node1_ID: u8,
-        node2_ID: u8,
-        value: u8,
+        node1_ID: NodeID,
+        node2_ID: NodeID,
+        value: MovementCost,
         updated_other_neighbour: bool,
     ) {
         let mut found_neighbour: bool = false;
@@ -704,6 +741,7 @@ impl PlayerInput {
             related_node_id: None,
             player_id,
             game_id,
+            district_modifier: None,
         }
     }
 }

@@ -329,6 +329,12 @@ impl GameController {
             PlayerInputType::UndoAction => {
                 Err("This cannot be done in GameController::apply_action!".to_string())
             }
+            PlayerInputType::DistrictRestrictions => {
+                match Self::handle_district_restriction(input, game) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e),
+                }
+            }
         }
     }
 
@@ -340,5 +346,9 @@ impl GameController {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Failed to move player because: {e}")),
         }
+    }
+
+    fn handle_district_restriction(input: PlayerInput, game: &mut GameState) -> Result<_, String> {
+        todo!()
     }
 }
