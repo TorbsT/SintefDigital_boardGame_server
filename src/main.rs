@@ -89,12 +89,11 @@ async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> i
         Ok(controller) => controller,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
-    
-    let games = game_controller.get_created_games();
-    
-    games.iter().find(|&g| g.id == *id).map_or_else(||
-        HttpResponse::InternalServerError().body(format!("Could not find the game with id {}", id.clone())), 
-        |game| HttpResponse::Ok().json(json!(game.clone())))
+
+    match game_controller.get_game_by_id(*id) {
+        Ok(game) => HttpResponse::Ok().json(json!(game.clone())),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Could not return the game because: {}", e)),
+    }  
 }
 
 #[post("/games/join/{game_id}")]
@@ -207,7 +206,7 @@ mod tests {
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
-            LogLevel::Debug,
+            LogLevel::Ignore,
             LogLevel::Ignore,
         )));
                 

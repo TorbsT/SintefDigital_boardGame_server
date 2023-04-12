@@ -195,3 +195,5 @@ fn next_node_is_neighbour(
         Err(e) => Err(e.to_string()),
     }
 }
+
+// TODO: Check if a player is on the destination node before letting them pressing next turn
