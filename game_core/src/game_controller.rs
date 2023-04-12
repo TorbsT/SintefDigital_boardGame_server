@@ -256,7 +256,7 @@ impl GameController {
     fn apply_game_actions(game: &mut GameState) -> Result<(), String> {
         for action in game.actions.clone().iter() {
             match Self::apply_input(action.clone(), game) {
-                Ok(_) => return Ok(()),
+                Ok(_) => (),
                 Err(e) => return Err(e + " No actions are applied to the game."),
             };
         }
@@ -319,12 +319,16 @@ impl GameController {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e.to_string()),
             },
-            game_data::PlayerInputType::All => Err("This input type should not be used by players".to_string()),
+            PlayerInputType::All => {
+                Err("This input type should not be used by players".to_string())
+            }
             PlayerInputType::NextTurn => Err(
                 "This is not an action that can be handled by GameController::apply_action!"
                     .to_string(),
             ),
-            PlayerInputType::UndoAction => Err("This cannot be done in GameController::apply_action!".to_string()),
+            PlayerInputType::UndoAction => {
+                Err("This cannot be done in GameController::apply_action!".to_string())
+            }
         }
     }
 

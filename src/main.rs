@@ -90,8 +90,9 @@ async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> i
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
 
-    match game_controller.get_game_by_id(*id) {
-        Ok(game) => HttpResponse::Ok().json(json!(game.clone())),
+    let game_result = game_controller.get_game_by_id(*id);
+    match game_result {
+        Ok(game) => HttpResponse::Ok().json(json!(game)),
         Err(e) => HttpResponse::InternalServerError().body(format!("Could not return the game because: {}", e)),
     }  
 }

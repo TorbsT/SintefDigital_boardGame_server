@@ -216,15 +216,15 @@ impl GameState {
 }
 
 impl InGameID {
-    pub fn next(&self) -> Self {
+    pub const fn next(&self) -> Self {
         match self {
-            InGameID::Undecided => Self::Orchestrator,
-            InGameID::PlayerOne => Self::PlayerTwo,
-            InGameID::PlayerTwo => Self::PlayerThree,
-            InGameID::PlayerThree => Self::PlayerFour,
-            InGameID::PlayerFour => Self::PlayerFive,
-            InGameID::PlayerFive => Self::Orchestrator,
-            InGameID::Orchestrator => Self::PlayerOne,
+            Self::Undecided => Self::Orchestrator,
+            Self::PlayerOne => Self::PlayerTwo,
+            Self::PlayerTwo => Self::PlayerThree,
+            Self::PlayerThree => Self::PlayerFour,
+            Self::PlayerFour => Self::PlayerFive,
+            Self::PlayerFive => Self::Orchestrator,
+            Self::Orchestrator => Self::PlayerOne,
         }
     }
 }
