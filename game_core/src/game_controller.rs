@@ -74,9 +74,9 @@ impl GameController {
                 break;
             }
         }
-        if can_start_game {
-            gamestate.is_lobby = false;
-            return;
+        match can_start_game {
+            true => Ok(gamestate.to_owned()),
+            false => Err("Unable to start game".to_owned()),
         }
     }
 

@@ -76,7 +76,7 @@ async fn start_new_game(
     match data {
         Ok(mut game_controller) => {
             let games = game_controller.get_created_games();
-            let mut gamestate: GameState;
+            let mut gamestate: GameState; //TODO: Find a way to bind the gamestate without using the for loop (Rust doesn't like jank 😥)
             for game in games {
                 if game.id == game_start_input.game_id {
                     gamestate = game;
