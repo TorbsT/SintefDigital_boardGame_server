@@ -189,7 +189,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap};
+    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap, InGameID};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
@@ -295,5 +295,30 @@ mod tests {
         
         player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.position_node_id.unwrap() == neighbour_info.0);
+    }
+
+    #[allow(unused_must_use)]
+    #[actix_web::test] //TODO: Test start game request
+    async fn test_starting_game() {
+
+        let mut gamestate = GameState::new("Test".to_string(), 42);
+        gamestate.assign_player_to_game(Player::new(0, "Player0".to_string()));
+        gamestate.assign_player_to_game(Player::new(1, "Player1".to_string()));
+        gamestate.assign_player_to_game(Player::new(2, "Player2".to_string()));
+        gamestate.players[0].in_game_id = InGameID::Orchestrator;
+        gamestate.players[1].in_game_id = InGameID::PlayerOne;
+        gamestate.players[2].in_game_id = InGameID::PlayerTwo;
+
+        let game_start_input: GameStartInput =
+            GameStartInput::new(gamestate.players[0].unique_id, gamestate.players[0].in_game_id, gamestate.id);
+        
+        let app_data = create_game_controller();
+        let app =
+            test::init_service(App::new().app_data(app_data.clone()).service(start_new_game)).await;
+
+        //TODO: Troubleshoot HTTP 500 error
+        let start_req = test::TestRequest::post().uri("/start/game").set_json(game_start_input).to_request();
+        let start_resp = app.call(start_req).await.unwrap();
+        assert_eq!(start_resp.status(), StatusCode::OK);
     }
 }

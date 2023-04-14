@@ -500,3 +500,14 @@ impl LobbyInfo {
         self.player_list.remove(index);
     }
 }
+
+impl GameStartInput {
+    #[must_use]
+    pub const fn new(player_id: PlayerID, in_game_id: InGameID, game_id: GameID) -> Self {
+        Self {
+            player_id,
+            in_game_id,
+            game_id,
+        }
+    }
+}

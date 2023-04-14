@@ -232,14 +232,14 @@ mod tests {
         player3.in_game_id = InGameID::PlayerTwo;
 
         let lobby = NewGameInfo {
-            host: player1.clone(),
+            host: player1,
             name: "Test".to_string(),
         };
 
         let mut game = controller.create_new_game(lobby).expect("Expected to get GameState but did not get it. Seems like the game failed to be created.");
 
-        game.assign_player_to_game(player2);
-        game.assign_player_to_game(player3);
+        assert!(game.assign_player_to_game(player2).is_ok());
+        assert!(game.assign_player_to_game(player3).is_ok());
 
         assert!(controller.start_game(&mut game).is_ok());
     }
