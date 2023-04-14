@@ -220,4 +220,27 @@ mod tests {
             .iter()
             .any(|p| p.clone().position_node_id.unwrap() == neighbour_info.0));
     }
+    #[test]
+    fn test_starting_game() {
+        let mut controller = make_game_controller();
+
+        let mut player1 = make_random_player_info(&mut controller);
+        player1.in_game_id = InGameID::Orchestrator;
+        let mut player2 = make_random_player_info(&mut controller);
+        player2.in_game_id = InGameID::PlayerOne;
+        let mut player3 = make_random_player_info(&mut controller);
+        player3.in_game_id = InGameID::PlayerTwo;
+
+        let lobby = NewGameInfo {
+            host: player1.clone(),
+            name: "Test".to_string(),
+        };
+
+        let mut game = controller.create_new_game(lobby).expect("Expected to get GameState but did not get it. Seems like the game failed to be created.");
+
+        game.assign_player_to_game(player2);
+        game.assign_player_to_game(player3);
+
+        assert!(controller.start_game(&mut game).is_ok());
+    }
 }

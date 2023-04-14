@@ -86,6 +86,9 @@ async fn start_new_game(
             if gamestate.name == "null" && gamestate.id == 0 {
                 return HttpResponse::InternalServerError().body("Failed to start game because: Failed to find game");
             }
+            if gamestate.is_lobby == false {
+                return HttpResponse::InternalServerError().body("Failed to start game because: Game already started");
+            }
             let game_result = game_controller.start_game(&mut gamestate);
             match game_result {
                 Ok(g) => HttpResponse::Ok().json(json!(g)),
