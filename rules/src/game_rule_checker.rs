@@ -127,6 +127,11 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
         );
     }
 
+    let related_node = match map.get_node_by_id(related_node_id) {
+        Ok(node) => node,
+        Err(e) => return ValidationResponse::Invalid(e),
+    };
+
     ValidationResponse::Valid
 }
 

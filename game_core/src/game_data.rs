@@ -8,12 +8,15 @@ pub type PlayerID = i32;
 pub type GameID = i32;
 pub type NeighbourRelationshipID = u8;
 pub type MovementCost = i16;
-pub type MovementBuff = MovementCost;
-pub type MovementPenalty = MovementCost;
+pub type MovementValue = MovementCost;
 pub type MovesRemaining = MovementCost;
+pub type Money = i32;
 
 //// =============== Constants ===============
 const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
+pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
+pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
+pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
 
 //// =============== Enums ===============
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -34,7 +37,7 @@ pub enum PlayerInputType {
     All,
     NextTurn,
     UndoAction,
-    DistrictRestrictions,
+    ModifyDistrict,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -47,20 +50,19 @@ pub enum Neighbourhood {
     Airport,
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub enum AccessType {
-    Electric(MovementCost),
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum VehicleType {
+    Electric,
     Buss,
     Emergency,
     Industrial,
 }
 
-#[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
-pub enum PriorityType {
-    Electric(MovementBuff),
-    Buss(MovementBuff),
-    Emergency(MovementBuff),
-    Industrial(MovementBuff),
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum DistrictModifierType {
+    Access,
+    Priority,
+    Toll,
 }
 
 //// =============== Structs ===============
@@ -74,6 +76,8 @@ pub struct GameState {
     pub district_modifiers: Vec<DistrictModifier>,
     #[serde(skip)]
     pub actions: Vec<PlayerInput>,
+    #[serde(skip)]
+    pub accessed_districts: Vec<Neighbourhood>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -123,10 +127,14 @@ pub struct PlayerInput {
     pub district_modifier: Option<DistrictModifier>,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DistrictModifier {
-    pub access: Option<AccessType>,
-    pub priority: Option<PriorityType>,
+    pub district: Neighbourhood,
+    pub modifier: DistrictModifierType,
+    pub vehicle_type: Option<VehicleType>,
+    pub associated_movement_value: Option<MovementValue>,
+    pub associated_money_value: Option<Money>,
+    pub delete: bool,
 }
 
 //// =============== Structs impls ===============
@@ -141,6 +149,7 @@ impl GameState {
             actions: Vec::new(),
             current_players_turn: InGameID::Orchestrator,
             district_modifiers: Vec::new(),
+            accessed_districts: Vec::new(),
         }
     }
 
@@ -178,6 +187,26 @@ impl GameState {
         for player in self.players.iter_mut() {
             if player.unique_id != player_id {
                 continue;
+            }
+
+            let Some(current_node_id) = player.position_node_id else {
+                return Err("The player is not at any node!".to_string());
+            };
+
+            let current_node = match NodeMap::new().get_node_by_id(current_node_id) {
+                Ok(node) => node,
+                Err(e) => return Err(e),
+            };
+
+            let Some((_, neighbour_relationship)) = current_node.neighbours.iter().find(|(node_id, _)| node_id == &to_node_id) else {
+                return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
+            };
+            if !self
+                .accessed_districts
+                .contains(&neighbour_relationship.neighbourhood)
+            {
+                self.accessed_districts
+                    .push(neighbour_relationship.neighbourhood.clone());
             }
             player.position_node_id = Some(to_node_id);
             return Ok(());
