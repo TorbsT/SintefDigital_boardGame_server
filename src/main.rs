@@ -76,14 +76,17 @@ async fn start_new_game(
     match data {
         Ok(mut game_controller) => {
             let games = game_controller.get_created_games();
-            let mut gamestate: GameState; //TODO: Find a way to bind the gamestate without using the for loop (Rust doesn't like jank 😥)
+            let mut gamestate: GameState = GameState::new("null".to_owned(), 0);
             for game in games {
                 if game.id == game_start_input.game_id {
                     gamestate = game;
                     break;
                 }
             }
-            let game_result = game_controller.start_game(&mut gamestate); //TODO: Fix this in the game controller
+            if gamestate.name == "null" && gamestate.id == 0 {
+                return HttpResponse::InternalServerError().body("Failed to start game because: Failed to find game");
+            }
+            let game_result = game_controller.start_game(&mut gamestate);
             match game_result {
                 Ok(g) => HttpResponse::Ok().json(json!(g)),
                 Err(e) => HttpResponse::InternalServerError()
