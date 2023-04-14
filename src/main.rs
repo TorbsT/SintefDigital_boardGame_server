@@ -1,7 +1,7 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, GameID, LobbyInfo, GameState, GameStartInput},
+    game_data::{NewGameInfo, Player, PlayerInput, GameID, GameState, GameStartInput},
 };
 use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
@@ -86,7 +86,7 @@ async fn start_new_game(
             if gamestate.name == "null" && gamestate.id == 0 {
                 return HttpResponse::InternalServerError().body("Failed to start game because: Failed to find game");
             }
-            if gamestate.is_lobby == false {
+            if !gamestate.is_lobby {
                 return HttpResponse::InternalServerError().body("Failed to start game because: Game already started");
             }
             let game_result = game_controller.start_game(&mut gamestate);

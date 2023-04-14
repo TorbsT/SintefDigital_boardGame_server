@@ -6,7 +6,7 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{self, GameState, NewGameInfo, PlayerInput, PlayerID, InGameID, LobbyInfo},
+    game_data::{self, GameState, NewGameInfo, PlayerInput, PlayerID, InGameID},
     rule_checker::RuleChecker,
 };
 
