@@ -78,8 +78,8 @@ impl GameController {
             }
         }
         match can_start_game {
-            true => Ok(gamestate.to_owned()),
-            false => Err("Unable to start game".to_owned()),
+            true => Ok(gamestate.clone()),
+            false => Err("Unable to start game".to_string()),
         }
     }
 
