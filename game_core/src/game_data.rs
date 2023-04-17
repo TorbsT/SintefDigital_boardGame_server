@@ -207,6 +207,17 @@ impl GameState {
             {
                 self.accessed_districts
                     .push(neighbour_relationship.neighbourhood.clone());
+                player.remaining_moves -= neighbour_relationship.total_cost();
+                for modifier in self.district_modifiers.iter() {
+                    if modifier.district != neighbour_relationship.neighbourhood {
+                        continue;
+                    }
+                    if let Some(movement_value) = modifier.associated_movement_value {
+                        player.remaining_moves += movement_value;
+                    }
+                }
+            } else {
+                player.remaining_moves -= neighbour_relationship.individual_cost;
             }
             player.position_node_id = Some(to_node_id);
             return Ok(());
