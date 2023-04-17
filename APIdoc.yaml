@@ -45,6 +45,28 @@ paths:
             text/plain:
               schema:
                 type: string
+  /start/game:
+    post:
+      summary: Start game
+      description: Start game
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GameStartInput"
+      responses:
+        200:
+          description: The new game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameState"
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
   /games/game/{id}:
     get:
       summary: Get the game state
@@ -251,6 +273,15 @@ components:
           $ref: "#/components/schemas/Player"
         name:
           type: string
+    GameStartInput:
+      type: object
+      properties:
+        player_id:
+          type: integer
+        in_game_id:
+          type: integer
+        game_id:
+          type: integer
     PlayerInput:
       type: object
       properties:
