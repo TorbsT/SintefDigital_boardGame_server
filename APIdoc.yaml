@@ -280,6 +280,8 @@ components:
       type: object
       properties:
         district:
+          $ref: "#/components/schemas/Neighbourhood"
+        modifier:
           $ref: "#/components/schemas/DistrictModifierType"
         vehicle_type:
           $ref: "#/components/schemas/VehicleType"
