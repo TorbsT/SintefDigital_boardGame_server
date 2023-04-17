@@ -187,6 +187,20 @@ components:
         - All
         - NextTurn
         - UndoAction
+        - ModifyDistrict
+    VehicleType:
+      type: string
+      enum:
+        - Electric
+        - Buss
+        - Emergency
+        - Industrial
+    DistrictModifierType:
+      type: string
+      enum:
+        - Access
+        - Priority
+        - Toll
     GameState:
       type: object
       properties:
@@ -202,6 +216,10 @@ components:
           type: boolean
         current_players_turn:
           $ref: "#/components/schemas/InGameID"
+        district_modifiers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DistrictModifier"
     Player:
       type: object
       properties:
@@ -242,8 +260,15 @@ components:
           type: integer
         input_type:
           $ref: "#/components/schemas/PlayerInputType"
+        related_role:
+          $ref: "#/components/schemas/InGameID"
+          nullable: true
         related_node_id:
           type: integer
+          nullable: true
+        district_modifier:
+          $ref: "#/components/schemas/DistrictModifier"
+          nullable: true
     LobbyList:
       type: object
       properties:
@@ -251,3 +276,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/GameState"
+    DistrictModifier:
+      type: object
+      properties:
+        district:
+          $ref: "#/components/schemas/DistrictModifierType"
+        vehicle_type:
+          $ref: "#/components/schemas/VehicleType"
+          nullable: true
+        associated_movement_value:
+          type: integer
+        associated_money_value:
+          type: integer
+        delete:
+          type: boolean
