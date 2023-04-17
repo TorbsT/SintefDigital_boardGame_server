@@ -6,7 +6,7 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{self, GameState, NewGameInfo, Player, PlayerInput},
+    game_data::{GameID, GameState, NewGameInfo, Player, PlayerInput, PlayerInputType},
     rule_checker::RuleChecker,
 };
 
@@ -111,8 +111,12 @@ impl GameController {
                 return Err(e);
             }
         };
-
-        Ok(related_game.clone())
+        let mut game_clone = related_game.clone();
+        match Self::apply_game_actions(&mut game_clone) {
+            Ok(_) => Ok(game_clone.clone()),
+            Err(e) => Err(e),
+        }
+        // Ok(related_game.clone())
     }
 
     pub fn get_amount_of_created_player_ids(&self) -> i32 {
@@ -156,6 +160,17 @@ impl GameController {
         };
 
         Ok(related_game.clone())
+    }
+
+    pub fn get_game_by_id(&self, game_id: GameID) -> Result<GameState, String> {
+        let Some(game) = self.games.iter().find(|g| g.id == game_id) else {
+            return Err(format!("There is no game with id {}!", game_id));
+        };
+        let mut game_clone = game.clone();
+        match Self::apply_game_actions(&mut game_clone) {
+            Ok(_) => Ok(game_clone.clone()),
+            Err(e) => Err(e),
+        }
     }
 
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
@@ -238,16 +253,82 @@ impl GameController {
         id
     }
 
+    fn apply_game_actions(game: &mut GameState) -> Result<(), String> {
+        for action in game.actions.clone().iter() {
+            match Self::apply_input(action.clone(), game) {
+                Ok(_) => (),
+                Err(e) => return Err(e + " No actions are applied to the game."),
+            };
+        }
+        Ok(())
+    }
+
+    fn game_next_turn(game: &mut GameState) -> Result<(), String> {
+        let mut game_clone = game.clone();
+        match Self::apply_game_actions(&mut game_clone) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        std::mem::swap(game, &mut game_clone);
+        game.actions.clear();
+        game.next_player_turn();
+        Ok(())
+    }
+
+    fn add_action(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
+        let mut game_clone = game.clone();
+        for action in game.actions.iter() {
+            match Self::apply_input(action.clone(), &mut game_clone) {
+                Ok(_) => (),
+                Err(e) => return Err(e),
+            }
+        }
+
+        match Self::apply_input(input.clone(), &mut game_clone) {
+            Ok(_) => game.actions.push(input),
+            Err(e) => return Err(e),
+        }
+        Ok(())
+    }
+
     fn handle_input(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
+        if input.input_type == PlayerInputType::NextTurn {
+            return Self::game_next_turn(game);
+        } else if input.input_type == PlayerInputType::UndoAction {
+            match game.actions.pop() {
+                Some(_) => return Ok(()),
+                None => return Err("There is no action to undo!".to_string()),
+            }
+        } else if input.input_type == PlayerInputType::ChangeRole {
+            match Self::apply_input(input, game) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(e),
+            }
+        }
+
+        Self::add_action(input, game)
+    }
+
+    fn apply_input(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
         match input.input_type {
-            game_data::PlayerInputType::Movement => match Self::handle_movement(input, game) {
+            PlayerInputType::Movement => match Self::handle_movement(input, game) {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e),
             },
-            game_data::PlayerInputType::ChangeRole => match Self::change_role_player(input, game) {
+            PlayerInputType::ChangeRole => match Self::change_role_player(input, game) {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e.to_string()),
             },
+            PlayerInputType::All => {
+                Err("This input type should not be used by players".to_string())
+            }
+            PlayerInputType::NextTurn => Err(
+                "This is not an action that can be handled by GameController::apply_action!"
+                    .to_string(),
+            ),
+            PlayerInputType::UndoAction => {
+                Err("This cannot be done in GameController::apply_action!".to_string())
+            }
         }
     }
 

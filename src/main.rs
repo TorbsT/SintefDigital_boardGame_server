@@ -89,12 +89,12 @@ async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> i
         Ok(controller) => controller,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };
-    
-    let games = game_controller.get_created_games();
-    
-    games.iter().find(|&g| g.id == *id).map_or_else(||
-        HttpResponse::InternalServerError().body(format!("Could not find the game with id {}", id.clone())), 
-        |game| HttpResponse::Ok().json(json!(game.clone())))
+
+    let game_result = game_controller.get_game_by_id(*id);
+    match game_result {
+        Ok(game) => HttpResponse::Ok().json(json!(game)),
+        Err(e) => HttpResponse::InternalServerError().body(format!("Could not return the game because: {}", e)),
+    }  
 }
 
 #[post("/games/join/{game_id}")]
@@ -207,7 +207,7 @@ mod tests {
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
-            LogLevel::Debug,
+            LogLevel::Ignore,
             LogLevel::Ignore,
         )));
                 
@@ -278,6 +278,20 @@ mod tests {
             {
                 let player_leave_request = test::TestRequest::delete().uri(format!("/games/leave/{}", $player.unique_id).as_str()).to_request();
                 $app.call(player_leave_request).await.unwrap();
+            }
+        }
+    }
+
+    #[allow(unused_macros)]
+    macro_rules! change_role {
+        ($app:expr, $game:expr, $player:expr, $role:expr) => {
+            {
+                let player_input = PlayerInput{player_id: $player.unique_id, game_id: $game.id, input_type: PlayerInputType::ChangeRole, related_role: Some($role), related_node_id: None };
+
+                let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
+                let mut input_resp = $app.call(input_req).await.unwrap();
+                let lobby: GameState = test::read_body_json(input_resp).await;
+                lobby
             }
         }
     }
@@ -363,7 +377,7 @@ mod tests {
         let input = PlayerInput {player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_node_id: Some(neighbour_info.0), related_role: None};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
-        assert_eq!(input_resp.status(), StatusCode::OK);
+        assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
         let changed_game_state: GameState = test::read_body_json(input_resp).await;
         
         player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();

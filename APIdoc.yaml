@@ -183,6 +183,10 @@ components:
       type: string
       enum:
         - Movement
+        - ChangeRole
+        - All
+        - NextTurn
+        - UndoAction
     GameState:
       type: object
       properties:
@@ -196,6 +200,8 @@ components:
             $ref: "#/components/schemas/Player"
         is_lobby:
           type: boolean
+        current_players_turn:
+          $ref: "#/components/schemas/InGameID"
     Player:
       type: object
       properties:
