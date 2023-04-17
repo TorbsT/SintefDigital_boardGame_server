@@ -61,6 +61,16 @@ impl GameRuleChecker {
     }
 
     fn get_rules() -> Vec<Rule> {
+        let game_started = Rule {
+            related_inputs: vec![
+                PlayerInputType::Movement,
+                PlayerInputType::ModifyDistrict,
+                PlayerInputType::NextTurn,
+                PlayerInputType::UndoAction,
+            ],
+            rule_fn: Box::new(has_game_started),
+        };
+
         let players_turn = Rule {
             related_inputs: vec![PlayerInputType::All],
             rule_fn: Box::new(is_players_turn),
@@ -80,6 +90,7 @@ impl GameRuleChecker {
         };
 
         let rules = vec![
+            game_started,
             players_turn,
             player_has_position,
             next_to_node,
@@ -90,6 +101,13 @@ impl GameRuleChecker {
 }
 
 // ==================== RULES ====================
+
+fn has_game_started(game: &GameState, _player_input: &PlayerInput) -> ValidationResponse<String> {
+    match game.is_lobby {
+        true => ValidationResponse::Invalid("The game has not started yet!".to_string()),
+        false => ValidationResponse::Valid,
+    }
+}
 
 fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
     let player_result = game.get_player_with_unique_id(player_input.player_id);
@@ -102,29 +120,44 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
         return ValidationResponse::Invalid("The player has no remaining moves!".to_string());
     }
 
-    let Some(position_node_id) = player.position_node_id else {
-        return ValidationResponse::Invalid(format!("Player {} has no position!", player.unique_id));
-    };
+    // let Some(position_node_id) = player.position_node_id else {
+    //     return ValidationResponse::Invalid(format!("Player {} has no position!", player.unique_id));
+    // };
 
-    let map = NodeMap::new();
-    let current_node = match map.get_node_by_id(position_node_id) {
-        Ok(node) => node,
-        Err(e) => return ValidationResponse::Invalid(e),
-    };
+    // let map = NodeMap::new();
+    // let current_node = match map.get_node_by_id(position_node_id) {
+    //     Ok(node) => node,
+    //     Err(e) => return ValidationResponse::Invalid(e),
+    // };
 
     let Some(related_node_id) = player_input.related_node_id else {
         return ValidationResponse::Invalid("There was no node to get cost to!".to_string());
     };
 
-    let cost = match current_node.get_movement_cost_to_neighbour_with_id(related_node_id) {
-        Ok(cost) => cost,
-        Err(e) => return ValidationResponse::Invalid(e),
-    };
+    // let cost = match current_node.get_movement_cost_to_neighbour_with_id(related_node_id) {
+    //     Ok(cost) => cost,
+    //     Err(e) => return ValidationResponse::Invalid(e),
+    // };
 
-    if player.remaining_moves < cost {
-        return ValidationResponse::Invalid(
-            "The player has not enough remaining moves!".to_string(),
-        );
+    // if player.remaining_moves < cost {
+    //     return ValidationResponse::Invalid(
+    //         "The player has not enough remaining moves!".to_string(),
+    //     );
+    // }
+
+    let mut game_clone = game.clone();
+
+    match game_clone.move_player_with_id(player_input.player_id, related_node_id) {
+        Ok(_) => (),
+        Err(e) => return ValidationResponse::Invalid(e),
+    }
+
+    if let Ok(p) = game_clone.get_player_with_unique_id(player_input.player_id) {
+        if p.remaining_moves < 0 {
+            return ValidationResponse::Invalid(
+                "The player does not have enough remaining moves!".to_string(),
+            );
+        }
     }
 
     ValidationResponse::Valid

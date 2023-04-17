@@ -6,7 +6,10 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{GameID, GameState, NewGameInfo, Player, PlayerInput, PlayerInputType},
+    game_data::{
+        GameID, GameState, NewGameInfo, Player, PlayerInput, PlayerInputType,
+        MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
+    },
     rule_checker::RuleChecker,
 };
 
@@ -329,6 +332,12 @@ impl GameController {
             PlayerInputType::UndoAction => {
                 Err("This cannot be done in GameController::apply_action!".to_string())
             }
+            PlayerInputType::ModifyDistrict => {
+                match Self::handle_district_restriction(input, game) {
+                    Ok(_) => Ok(()),
+                    Err(e) => Err(e),
+                }
+            }
         }
     }
 
@@ -340,5 +349,39 @@ impl GameController {
             Ok(_) => Ok(()),
             Err(e) => Err(format!("Failed to move player because: {e}")),
         }
+    }
+
+    fn handle_district_restriction(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
+        let Some(district_modifier) = input.district_modifier else {
+            return Err("There was no district in the input modifier even though it was marked as a district input".to_string());
+        };
+        if district_modifier.delete {
+            let mut distr_mod = district_modifier;
+            distr_mod.delete = false;
+            let Some(mod_pos) = game.district_modifiers.iter().position(|d_m| d_m == &distr_mod) else {
+                return Err("There is no modifier like the given one in the game!".to_string());
+            };
+            game.district_modifiers.remove(mod_pos);
+            return Ok(());
+        }
+
+        let max_amount: usize = match district_modifier.modifier {
+            crate::game_data::DistrictModifierType::Access => MAX_ACCESS_MODIFIER_COUNT,
+            crate::game_data::DistrictModifierType::Priority => MAX_PRIORITY_MODIFIER_COUNT,
+            crate::game_data::DistrictModifierType::Toll => MAX_TOLL_MODIFIER_COUNT,
+        };
+
+        if max_amount
+            >= game
+                .district_modifiers
+                .iter()
+                .filter(|m| m.modifier == district_modifier.modifier)
+                .count()
+        {
+            return Err(format!("Cannot add more modifiers of type {:?} because there are already {} modifiers of that type!", district_modifier.modifier, max_amount));
+        }
+
+        game.district_modifiers.push(district_modifier);
+        Ok(())
     }
 }

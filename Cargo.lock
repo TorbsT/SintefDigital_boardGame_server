@@ -688,16 +688,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "integration_tests"
-version = "0.1.0"
-dependencies = [
- "game_core",
- "logging",
- "rand",
- "rules",
-]
-
-[[package]]
 name = "itoa"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1124,7 +1114,6 @@ dependencies = [
  "actix-cors",
  "actix-web",
  "game_core",
- "integration_tests",
  "lazy_static",
  "logging",
  "parameterized",

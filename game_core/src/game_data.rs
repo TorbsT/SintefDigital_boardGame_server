@@ -7,11 +7,16 @@ pub type NodeID = u8;
 pub type PlayerID = i32;
 pub type GameID = i32;
 pub type NeighbourRelationshipID = u8;
-pub type MovementCost = u8;
+pub type MovementCost = i16;
+pub type MovementValue = MovementCost;
 pub type MovesRemaining = MovementCost;
+pub type Money = i32;
 
 //// =============== Constants ===============
 const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
+pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
+pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
+pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
 
 //// =============== Enums ===============
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -32,6 +37,7 @@ pub enum PlayerInputType {
     All,
     NextTurn,
     UndoAction,
+    ModifyDistrict,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -44,6 +50,21 @@ pub enum Neighbourhood {
     Airport,
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum VehicleType {
+    Electric,
+    Buss,
+    Emergency,
+    Industrial,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum DistrictModifierType {
+    Access,
+    Priority,
+    Toll,
+}
+
 //// =============== Structs ===============
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct GameState {
@@ -52,8 +73,11 @@ pub struct GameState {
     pub players: Vec<Player>,
     pub is_lobby: bool,
     pub current_players_turn: InGameID,
+    pub district_modifiers: Vec<DistrictModifier>,
     #[serde(skip)]
     pub actions: Vec<PlayerInput>,
+    #[serde(skip)]
+    pub accessed_districts: Vec<Neighbourhood>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -100,6 +124,17 @@ pub struct PlayerInput {
     pub input_type: PlayerInputType,
     pub related_role: Option<InGameID>,
     pub related_node_id: Option<NodeID>,
+    pub district_modifier: Option<DistrictModifier>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct DistrictModifier {
+    pub district: Neighbourhood,
+    pub modifier: DistrictModifierType,
+    pub vehicle_type: Option<VehicleType>,
+    pub associated_movement_value: Option<MovementValue>,
+    pub associated_money_value: Option<Money>,
+    pub delete: bool,
 }
 
 //// =============== Structs impls ===============
@@ -113,6 +148,8 @@ impl GameState {
             is_lobby: true,
             actions: Vec::new(),
             current_players_turn: InGameID::Orchestrator,
+            district_modifiers: Vec::new(),
+            accessed_districts: Vec::new(),
         }
     }
 
@@ -150,6 +187,37 @@ impl GameState {
         for player in self.players.iter_mut() {
             if player.unique_id != player_id {
                 continue;
+            }
+
+            let Some(current_node_id) = player.position_node_id else {
+                return Err("The player is not at any node!".to_string());
+            };
+
+            let current_node = match NodeMap::new().get_node_by_id(current_node_id) {
+                Ok(node) => node,
+                Err(e) => return Err(e),
+            };
+
+            let Some((_, neighbour_relationship)) = current_node.neighbours.iter().find(|(node_id, _)| node_id == &to_node_id) else {
+                return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
+            };
+            if !self
+                .accessed_districts
+                .contains(&neighbour_relationship.neighbourhood)
+            {
+                self.accessed_districts
+                    .push(neighbour_relationship.neighbourhood);
+                player.remaining_moves -= neighbour_relationship.total_cost();
+                for modifier in self.district_modifiers.iter() {
+                    if modifier.district != neighbour_relationship.neighbourhood {
+                        continue;
+                    }
+                    if let Some(movement_value) = modifier.associated_movement_value {
+                        player.remaining_moves += movement_value;
+                    }
+                }
+            } else {
+                player.remaining_moves -= neighbour_relationship.individual_cost;
             }
             player.position_node_id = Some(to_node_id);
             return Ok(());
@@ -289,7 +357,7 @@ impl Node {
 }
 
 lazy_static! {
-    static ref GROUP_COST_MAP: Mutex<HashMap<Neighbourhood, u8>> = Mutex::new({
+    static ref GROUP_COST_MAP: Mutex<HashMap<Neighbourhood, MovementCost>> = Mutex::new({
         let mut map = HashMap::new();
         map.insert(Neighbourhood::IndustryPark, 1);
         map.insert(Neighbourhood::Port, 1);
@@ -316,11 +384,11 @@ impl NeighbourRelationship {
         }
     }
 
-    pub fn update_individual_cost(&mut self, update: u8) {
+    pub fn update_individual_cost(&mut self, update: MovementCost) {
         self.individual_cost = update;
     }
 
-    pub const fn total_cost(&self) -> u8 {
+    pub const fn total_cost(&self) -> MovementCost {
         self.group_cost + self.individual_cost
     }
 }
@@ -339,7 +407,11 @@ impl NodeMap {
     }
 
     #[allow(clippy::unwrap_used)]
-    pub fn update_neighbour_costs(&mut self, neighbourhood_enum: Neighbourhood, value: u8) {
+    pub fn update_neighbour_costs(
+        &mut self,
+        neighbourhood_enum: Neighbourhood,
+        value: MovementCost,
+    ) {
         let mut group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
         group_cost_map_reference.insert(neighbourhood_enum, value);
         for node in &mut self.map {
@@ -352,16 +424,21 @@ impl NodeMap {
     }
 
     #[allow(non_snake_case)]
-    pub fn update_individual_cost(&mut self, node1_ID: u8, node2_ID: u8, value: u8) {
+    pub fn update_individual_cost(
+        &mut self,
+        node1_ID: NodeID,
+        node2_ID: NodeID,
+        value: MovementCost,
+    ) {
         self.update_individual_cost_recursion(node1_ID, node2_ID, value, false);
     }
 
     #[allow(non_snake_case)]
     fn update_individual_cost_recursion(
         &mut self,
-        node1_ID: u8,
-        node2_ID: u8,
-        value: u8,
+        node1_ID: NodeID,
+        node2_ID: NodeID,
+        value: MovementCost,
         updated_other_neighbour: bool,
     ) {
         let mut found_neighbour: bool = false;
@@ -704,6 +781,7 @@ impl PlayerInput {
             related_node_id: None,
             player_id,
             game_id,
+            district_modifier: None,
         }
     }
 }

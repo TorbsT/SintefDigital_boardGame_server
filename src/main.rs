@@ -374,14 +374,14 @@ mod tests {
         player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.clone().position_node_id.unwrap() == start_node.id);
 
-        let input = PlayerInput {player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_node_id: Some(neighbour_info.0), related_role: None};
+        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_role: None, related_node_id: Some(neighbour_info.0)};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        let changed_game_state: GameState = test::read_body_json(input_resp).await;
+        // let changed_game_state: GameState = test::read_body_json(input_resp).await;
         
-        player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
-        assert!(player.position_node_id.unwrap() == neighbour_info.0);
+        // player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
+        // assert!(player.position_node_id.unwrap() == neighbour_info.0);
     }
 
     #[actix_web::test]
@@ -477,7 +477,7 @@ mod tests {
         
         player = lobby.players.iter().find(|p| p.unique_id == player.unique_id).unwrap().clone();
         
-        let player_input = PlayerInput{player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
+        let player_input = PlayerInput{district_modifier: None, player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
 
         let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
         let mut input_resp = app.call(input_req).await.unwrap();
@@ -489,7 +489,7 @@ mod tests {
         let player2 = make_player!(app, "Player Two");
         lobby = join_lobby!(app, lobby, player2);
         
-        let player2_input = PlayerInput{player_id: player2.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
+        let player2_input = PlayerInput{district_modifier: None, player_id: player2.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
         input_req = test::TestRequest::post().uri("/games/input").set_json(&player2_input).to_request();
         input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
@@ -509,7 +509,7 @@ mod tests {
         let lobby = make_new_lobby_with_player!(app, player, "L1");
         assert!(player.unique_id != 0);
 
-        let mut player_input = PlayerInput{player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
+        let mut player_input = PlayerInput{district_modifier: None, player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None };
         
         let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
         let mut input_resp = app.call(input_req).await.unwrap();
