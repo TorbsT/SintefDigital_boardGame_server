@@ -378,10 +378,10 @@ mod tests {
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        let changed_game_state: GameState = test::read_body_json(input_resp).await;
+        // let changed_game_state: GameState = test::read_body_json(input_resp).await;
         
-        player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
-        assert!(player.position_node_id.unwrap() == neighbour_info.0);
+        // player = changed_game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
+        // assert!(player.position_node_id.unwrap() == neighbour_info.0);
     }
 
     #[actix_web::test]

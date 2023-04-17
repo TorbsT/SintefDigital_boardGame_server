@@ -62,7 +62,12 @@ impl GameRuleChecker {
 
     fn get_rules() -> Vec<Rule> {
         let game_started = Rule {
-            related_inputs: vec![PlayerInputType::All],
+            related_inputs: vec![
+                PlayerInputType::Movement,
+                PlayerInputType::ModifyDistrict,
+                PlayerInputType::NextTurn,
+                PlayerInputType::UndoAction,
+            ],
             rule_fn: Box::new(has_game_started),
         };
 

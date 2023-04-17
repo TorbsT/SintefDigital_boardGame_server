@@ -206,7 +206,7 @@ impl GameState {
                 .contains(&neighbour_relationship.neighbourhood)
             {
                 self.accessed_districts
-                    .push(neighbour_relationship.neighbourhood.clone());
+                    .push(neighbour_relationship.neighbourhood);
                 player.remaining_moves -= neighbour_relationship.total_cost();
                 for modifier in self.district_modifiers.iter() {
                     if modifier.district != neighbour_relationship.neighbourhood {

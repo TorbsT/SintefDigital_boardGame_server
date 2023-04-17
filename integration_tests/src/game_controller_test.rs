@@ -216,6 +216,7 @@ mod tests {
             player_id: player.unique_id,
             game_id: game.id,
             related_role: None,
+            district_modifier: None,
         };
 
         game = controller.handle_player_input(input).expect("Expected to get GameState after doing an input. Seems like something went wrong when handling the input");

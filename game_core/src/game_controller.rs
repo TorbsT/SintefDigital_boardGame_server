@@ -356,7 +356,7 @@ impl GameController {
             return Err("There was no district in the input modifier even though it was marked as a district input".to_string());
         };
         if district_modifier.delete {
-            let mut distr_mod = district_modifier.clone();
+            let mut distr_mod = district_modifier;
             distr_mod.delete = false;
             let Some(mod_pos) = game.district_modifiers.iter().position(|d_m| d_m == &distr_mod) else {
                 return Err("There is no modifier like the given one in the game!".to_string());
