@@ -64,13 +64,13 @@ impl GameController {
         Ok(new_game)
     }
 
-    //TODO: Start game
-    pub fn start_game(&mut self, gamestate: &mut GameState) -> Result<GameState, String> { //TODO: Should return Result<GameState, String>
+    pub fn start_game(&mut self, gamestate: &mut GameState) -> Result<GameState, String> {
         let mut can_start_game = false;
         for player in &gamestate.players {
             if player.in_game_id as usize == 6 {
                 if gamestate.players.len() < 2 { break };
                 can_start_game = true;
+                gamestate.is_lobby = false;
                 break;
             }
         }

@@ -242,5 +242,7 @@ mod tests {
         assert!(game.assign_player_to_game(player3).is_ok());
 
         assert!(controller.start_game(&mut game).is_ok());
+
+        assert!(!game.is_lobby);
     }
 }

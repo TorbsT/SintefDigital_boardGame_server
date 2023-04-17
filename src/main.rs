@@ -1,10 +1,10 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, GameID, GameState, GameStartInput},
+    game_data::{NewGameInfo, Player, PlayerInput, GameID, GameState, GameStartInput, InGameID},
 };
 use rules::game_rule_checker::GameRuleChecker;
-use std::sync::{Arc, Mutex, RwLock};
+use std::{sync::{Arc, Mutex, RwLock}};
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
@@ -63,9 +63,6 @@ async fn create_new_game(
     }
 }
 
-/*TODO: Check if orchestrator can start game; start game
-        Game can only be started if the lobby has an orchestrator and at least 1 more player
-*/
 #[post("/start/game")]
 async fn start_new_game(
     json_data: web::Json<GameStartInput>,
@@ -73,6 +70,9 @@ async fn start_new_game(
 ) -> impl Responder {
     let game_start_input: GameStartInput = json_data.into_inner();
     let data = shared_data.game_controller.lock();
+    if game_start_input.in_game_id != InGameID::Orchestrator {
+        return HttpResponse::InternalServerError().body("Failed to start game because: Player is not orchestrator");
+    }
     match data {
         Ok(mut game_controller) => {
             let games = game_controller.get_created_games();
@@ -298,7 +298,7 @@ mod tests {
     }
 
     #[allow(unused_must_use)]
-    #[actix_web::test] //TODO: Test start game request
+    #[actix_web::test]
     async fn test_starting_game() {
 
         let mut gamestate = GameState::new("Test".to_string(), 42);
@@ -313,11 +313,11 @@ mod tests {
             GameStartInput::new(gamestate.players[0].unique_id, gamestate.players[0].in_game_id, gamestate.id);
         
         let app_data = create_game_controller();
+        app_data.game_controller.lock().unwrap().games.push(gamestate);
         let app =
             test::init_service(App::new().app_data(app_data.clone()).service(start_new_game)).await;
 
-        //TODO: Troubleshoot HTTP 500 error
-        let start_req = test::TestRequest::post().uri("/start/game").set_json(game_start_input).to_request();
+        let start_req = test::TestRequest::post().uri("/start/game").set_json(&game_start_input).to_request();
         let start_resp = app.call(start_req).await.unwrap();
         assert_eq!(start_resp.status(), StatusCode::OK);
     }
