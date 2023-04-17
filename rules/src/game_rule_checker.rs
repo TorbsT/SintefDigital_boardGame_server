@@ -120,30 +120,9 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
         return ValidationResponse::Invalid("The player has no remaining moves!".to_string());
     }
 
-    // let Some(position_node_id) = player.position_node_id else {
-    //     return ValidationResponse::Invalid(format!("Player {} has no position!", player.unique_id));
-    // };
-
-    // let map = NodeMap::new();
-    // let current_node = match map.get_node_by_id(position_node_id) {
-    //     Ok(node) => node,
-    //     Err(e) => return ValidationResponse::Invalid(e),
-    // };
-
     let Some(related_node_id) = player_input.related_node_id else {
         return ValidationResponse::Invalid("There was no node to get cost to!".to_string());
     };
-
-    // let cost = match current_node.get_movement_cost_to_neighbour_with_id(related_node_id) {
-    //     Ok(cost) => cost,
-    //     Err(e) => return ValidationResponse::Invalid(e),
-    // };
-
-    // if player.remaining_moves < cost {
-    //     return ValidationResponse::Invalid(
-    //         "The player has not enough remaining moves!".to_string(),
-    //     );
-    // }
 
     let mut game_clone = game.clone();
 
