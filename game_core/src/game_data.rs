@@ -87,6 +87,7 @@ pub struct GameState {
     pub actions: Vec<PlayerInput>,
     #[serde(skip)]
     pub accessed_districts: Vec<Neighbourhood>,
+    pub situation_card: Option<SituationCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -175,6 +176,7 @@ impl GameState {
             current_players_turn: InGameID::Orchestrator,
             district_modifiers: Vec::new(),
             accessed_districts: Vec::new(),
+            situation_card: None,
         }
     }
 
