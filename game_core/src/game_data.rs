@@ -38,6 +38,7 @@ pub enum PlayerInputType {
     NextTurn,
     UndoAction,
     ModifyDistrict,
+    Ping,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]

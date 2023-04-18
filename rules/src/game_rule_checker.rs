@@ -192,7 +192,7 @@ fn next_node_is_neighbour(
 }
 
 fn is_players_turn(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    if game.is_lobby {
+    if game.is_lobby || player_input.input_type == PlayerInputType::Ping {
         return ValidationResponse::Valid;
     }
 
