@@ -308,6 +308,10 @@ impl GameState {
 
         self.current_players_turn = next_player_turn;
     }
+
+    pub fn change_situation_card(&mut self, new_situation_card: SituationCard) {
+        self.situation_card = Some(new_situation_card);
+    }
 }
 
 impl InGameID {
