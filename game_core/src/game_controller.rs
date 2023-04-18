@@ -8,7 +8,7 @@ use logging::logger::{LogData, LogLevel, Logger};
 use crate::{
     game_data::{
         GameID, GameState, NewGameInfo, Player, PlayerInput, PlayerInputType,
-        MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
+        MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT, InGameID,
     },
     rule_checker::RuleChecker,
 };
@@ -69,9 +69,13 @@ impl GameController {
 
     pub fn start_game(&mut self, gamestate: &mut GameState) -> Result<GameState, String> {
         let mut can_start_game = false;
+        let mut errormessage = String::from("Unable to start game because lobby does not have an orchestrator");
         for player in &gamestate.players {
-            if player.in_game_id as usize == 6 {
-                if gamestate.players.len() < 2 { break };
+            if player.in_game_id == InGameID::Orchestrator {
+                if gamestate.players.len() < 2 { 
+                    errormessage = "Unable to start game because there are not enough players".to_string();
+                    break
+                };
                 can_start_game = true;
                 gamestate.is_lobby = false;
                 break;
@@ -79,7 +83,7 @@ impl GameController {
         }
         match can_start_game {
             true => Ok(gamestate.clone()),
-            false => Err("Unable to start game".to_string()),
+            false => Err(errormessage),
         }
     }
 
