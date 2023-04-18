@@ -30,6 +30,15 @@ pub enum InGameID {
     Orchestrator = 6,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum Traffic {
+    LevelOne,
+    LevelTwo,
+    LevelThree,
+    LevelFour,
+    LevelFive,
+}
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Debug)]
 pub enum PlayerInputType {
     Movement,
@@ -142,6 +151,15 @@ pub struct DistrictModifier {
     pub associated_movement_value: Option<MovementValue>,
     pub associated_money_value: Option<Money>,
     pub delete: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SituationCard {
+    pub card_id: u8,
+    pub title: String,
+    pub description: String,
+    pub goal: String,
+    pub costs: Vec<(Neighbourhood, Traffic)>,
 }
 
 //// =============== Structs impls ===============
@@ -725,6 +743,31 @@ impl NodeMap {
     }
 }
 
+impl GameStartInput {
+    #[must_use]
+    pub const fn new(player_id: PlayerID, in_game_id: InGameID, game_id: GameID) -> Self {
+        Self {
+            player_id,
+            in_game_id,
+            game_id,
+        }
+    }
+}
+
+impl SituationCard {
+    #[must_use]
+    pub const fn new(card_id: u8, title: String, description: String, goal: String, costs: Vec<(Neighbourhood, Traffic)>) -> Self {
+        Self {
+            card_id,
+            title,
+            description,
+            goal,
+            costs,
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
 
@@ -789,17 +832,6 @@ impl PlayerInput {
             player_id,
             game_id,
             district_modifier: None,
-        }
-    }
-}
-
-impl GameStartInput {
-    #[must_use]
-    pub const fn new(player_id: PlayerID, in_game_id: InGameID, game_id: GameID) -> Self {
-        Self {
-            player_id,
-            in_game_id,
-            game_id,
         }
     }
 }
