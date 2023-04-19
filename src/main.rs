@@ -154,7 +154,7 @@ async fn join_game(game_id: web::Path<i32>, player: web::Json<Player>, shared_da
 }
 
 #[post("/games/input")]
-async fn handle_player_input(
+async fn handle_player_input( //TODO: Orchestrator must be able to assign situation card to gamestate
     json_data: web::Json<PlayerInput>,
     shared_data: web::Data<AppData>,
 ) -> impl Responder {
