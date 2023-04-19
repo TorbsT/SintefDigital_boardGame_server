@@ -201,6 +201,14 @@ components:
         - RingRoad
         - CityCentre
         - Airport
+    Traffic:
+      type: string
+      enum:
+        - LevelOne
+        - LevelTwo
+        - LevelThree
+        - LevelFour
+        - LevelFive
     PlayerInputType:
       type: string
       enum:
@@ -242,6 +250,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DistrictModifier"
+        situation_card:
+          $ref: "#/components/schemas/SituationCard"
     Player:
       type: object
       properties:
@@ -279,7 +289,7 @@ components:
         player_id:
           type: integer
         in_game_id:
-          type: integer
+          $ref: "#/components/schemas/InGameID"
         game_id:
           type: integer
     PlayerInput:
@@ -323,3 +333,29 @@ components:
           type: integer
         delete:
           type: boolean
+    SituationCard:
+      type: object
+      properties:
+        card_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        goal:
+          type: string
+        costs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostTuple"
+    CostTuple:
+      type: object
+      description: "Must be a tuple"
+      properties:
+        neighbourhood:
+          $ref: "#/components/schemas/Neighbourhood"
+        traffic:
+          $ref: "#/components/schemas/Traffic"
+
+            
+
