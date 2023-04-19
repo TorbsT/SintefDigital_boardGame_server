@@ -243,7 +243,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap, InGameID};
+    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap, InGameID, SituationCard, Neighbourhood, Traffic};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
@@ -586,5 +586,26 @@ mod tests {
         let start_req = test::TestRequest::post().uri("/start/game").set_json(&game_start_input).to_request();
         let start_resp = app.call(start_req).await.unwrap();
         assert_eq!(start_resp.status(), StatusCode::OK);
+    }
+    #[actix_web::test]
+    async fn test_get_situation_card() {
+        let mut gamestate = GameState::new("Test".to_string(), 42);
+        assert!(gamestate.situation_card == None);
+        let situation_card = SituationCard::new(
+            0,
+            "Situation Test Scenario".to_string(),
+            "Traffic is arbitrarily selected in this scenario".to_string(),
+            "Test to see that situation cards work as intended".to_string(),
+            vec![
+                (Neighbourhood::IndustryPark, Traffic::LevelOne),
+                (Neighbourhood::Port, Traffic::LevelTwo),
+                (Neighbourhood::Suburbs, Traffic::LevelThree),
+                (Neighbourhood::RingRoad, Traffic::LevelFour),
+                (Neighbourhood::CityCentre, Traffic::LevelFive),
+                (Neighbourhood::Airport, Traffic::LevelThree),
+            ],
+        );
+        gamestate.update_situation_card(situation_card);
+        assert!(gamestate.situation_card != None);
     }
 }
