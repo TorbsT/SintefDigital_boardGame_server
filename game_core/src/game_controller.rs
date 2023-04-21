@@ -1,18 +1,20 @@
 use std::{
     any::type_name,
     sync::{Arc, RwLock},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
     game_data::{
-        GameID, GameState, InGameID, NewGameInfo, Player, PlayerInput, PlayerInputType,
+        GameID, GameState, InGameID, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
         MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
     },
     rule_checker::RuleChecker,
 };
+
+pub const PLAYER_TIMEOUT: Duration = Duration::from_secs(90);
 
 pub struct GameController {
     pub games: Vec<GameState>,
@@ -91,6 +93,8 @@ impl GameController {
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
+        self.remove_inactive_ids();
+
         if !self
             .unique_ids
             .iter()
@@ -123,8 +127,6 @@ impl GameController {
             }
             return Err(format!("The input was not valid! Because: {error}"));
         }
-
-        //TODO: Add check of ping here!
 
         match Self::handle_input(player_input, related_game) {
             Ok(_) => (),
@@ -199,6 +201,24 @@ impl GameController {
             Ok(_) => Ok(game_clone.clone()),
             Err(e) => Err(e),
         }
+    }
+
+    pub fn update_check_in_and_remove_inactive(&mut self, player_id: PlayerID) {
+        for mut id in self.unique_ids.iter_mut() {
+            if id.0 == player_id {
+                id.1 = Instant::now();
+            }
+        }
+        self.remove_inactive_ids();
+    }
+
+    fn remove_inactive_ids(&mut self) {
+        self.unique_ids = self
+            .unique_ids
+            .iter()
+            .filter(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT)
+            .cloned()
+            .collect();
     }
 
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
@@ -366,9 +386,6 @@ impl GameController {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
-            }
-            PlayerInputType::Ping => {
-                Err("This cannot be done in GameController::apply_input()".to_string())
             }
         }
     }

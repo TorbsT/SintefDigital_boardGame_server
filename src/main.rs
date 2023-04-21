@@ -193,6 +193,15 @@ async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) 
     HttpResponse::Ok().body("")
 }
 
+#[get("/check-in/{player_id}")]
+async fn player_check_in(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
+    let Ok(mut game_controller) = shared_data.game_controller.lock() else {
+        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    };
+    game_controller.update_check_in_and_remove_inactive(*player_id);
+    HttpResponse::Ok().body("")
+}
+
 macro_rules! server_app_with_data {
     ($x:expr) => {
         {
