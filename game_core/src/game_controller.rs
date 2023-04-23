@@ -213,12 +213,8 @@ impl GameController {
     }
 
     fn remove_inactive_ids(&mut self) {
-        self.unique_ids = self
-            .unique_ids
-            .iter()
-            .filter(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT)
-            .cloned()
-            .collect();
+        self.unique_ids
+            .retain(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT);
     }
 
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
