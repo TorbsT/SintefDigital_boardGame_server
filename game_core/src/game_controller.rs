@@ -1,6 +1,7 @@
 use std::{
     any::type_name,
     sync::{Arc, RwLock},
+    time::{Duration, Instant},
 };
 
 use logging::logger::{LogData, LogLevel, Logger};
@@ -13,9 +14,11 @@ use crate::{
     rule_checker::RuleChecker,
 };
 
+pub const PLAYER_TIMEOUT: Duration = Duration::from_secs(90);
+
 pub struct GameController {
     pub games: Vec<GameState>,
-    pub unique_ids: Vec<i32>,
+    pub unique_ids: Vec<(i32, Instant)>,
     pub logger: Arc<RwLock<dyn Logger + Send + Sync>>,
     pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
@@ -45,7 +48,7 @@ impl GameController {
             None => return Err("Failed to make new ID!"),
         };
 
-        self.unique_ids.push(new_id);
+        self.unique_ids.push((new_id, Instant::now()));
 
         if let Ok(mut logger) = self.logger.write() {
             logger.log(LogData::new(
@@ -66,12 +69,14 @@ impl GameController {
         self.games.push(new_game.clone());
         Ok(new_game)
     }
-
+    
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
+        self.remove_inactive_ids();
+
         if !self
             .unique_ids
             .iter()
-            .any(|id| id == &player_input.player_id)
+            .any(|(id, _)| id == &player_input.player_id)
         {
             return Err("There does not exist a player with the unique id".to_string());
         }
@@ -176,6 +181,20 @@ impl GameController {
         }
     }
 
+    pub fn update_check_in_and_remove_inactive(&mut self, player_id: PlayerID) {
+        for mut id in self.unique_ids.iter_mut() {
+            if id.0 == player_id {
+                id.1 = Instant::now();
+            }
+        }
+        self.remove_inactive_ids();
+    }
+
+    fn remove_inactive_ids(&mut self) {
+        self.unique_ids
+            .retain(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT);
+    }
+
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
         let Some(related_role) = input.related_role else {
             return Err("There was no related role to change to!");
@@ -197,7 +216,7 @@ impl GameController {
         let mut found_unique_id = false;
         for _ in 0..100_000 {
             {
-                if !self.unique_ids.contains(&id) {
+                if !self.unique_ids.iter().any(|(l_id, _)| l_id == &id) {
                     found_unique_id = true;
                     break;
                 }
@@ -224,7 +243,11 @@ impl GameController {
         &mut self,
         new_lobby: NewGameInfo,
     ) -> Result<GameState, String> {
-        if !self.unique_ids.contains(&new_lobby.host.unique_id) {
+        if self
+            .unique_ids
+            .iter()
+            .all(|(id, _)| id != &new_lobby.host.unique_id)
+        {
             return Err("A player that has a unique ID that was not made by the server cannot create a lobby.".to_string());
         }
 
@@ -328,11 +351,11 @@ impl GameController {
                 Err("This input type should not be used by players".to_string())
             }
             PlayerInputType::NextTurn => Err(
-                "This is not an action that can be handled by GameController::apply_action!"
+                "This is not an action that can be handled by GameController::apply_input!"
                     .to_string(),
             ),
             PlayerInputType::UndoAction => {
-                Err("This cannot be done in GameController::apply_action!".to_string())
+                Err("This cannot be done in GameController::apply_input!".to_string())
             }
             PlayerInputType::ModifyDistrict => {
                 match Self::handle_district_restriction(input, game) {
