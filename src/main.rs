@@ -1,3 +1,5 @@
+#![allow(unknown_lints, clippy::significant_drop_tightening)]
+
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
@@ -5,7 +7,7 @@ use game_core::{
 };
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
-use std::{sync::{Arc, Mutex, RwLock}};
+use std::sync::{Arc, Mutex, RwLock};
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
@@ -69,6 +71,7 @@ async fn create_new_game(
     }
 }
 
+#[allow(clippy::unwrap_used)]
 #[post("/start/game")]
 async fn start_new_game(
     json_data: web::Json<GameStartInput>,
@@ -81,14 +84,7 @@ async fn start_new_game(
     }
     match data {
         Ok(mut game_controller) => {
-            let games = game_controller.get_created_games();
-            let mut gamestate: GameState = GameState::new("null".to_owned(), 0);
-            for game in games {
-                if game.id == game_start_input.game_id {
-                    gamestate = game;
-                    break;
-                }
-            }
+            let mut gamestate: GameState = game_controller.get_created_games().iter().find(|game| game.id == game_start_input.game_id).unwrap().clone();
             if gamestate.name == "null" && gamestate.id == 0 {
                 return HttpResponse::InternalServerError().body("Failed to start game because: Failed to find game");
             }
