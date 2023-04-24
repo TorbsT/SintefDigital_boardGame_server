@@ -486,8 +486,9 @@ impl NodeMap {
 
         let mut neighbourhood = Neighbourhood::first();
         map.change_neighbourhood_cost(neighbourhood, 1);
-        while let Some(neighbourhood) = neighbourhood.next() {
-            map.change_neighbourhood_cost(neighbourhood, 1);
+        while let Some(n) = neighbourhood.next() {
+            neighbourhood = n;
+            map.change_neighbourhood_cost(n, 1);
         }
 
         map

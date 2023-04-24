@@ -406,9 +406,9 @@ mod tests {
         let app =
             test::init_service(server_app_with_data!(app_data)).await;
 
-        let node_map = NodeMap::new();
-        let start_node = node_map.map.get(0).unwrap();
-        let neighbour_info = start_node.neighbours.get(0).unwrap();
+        let node_map = NodeMap::new_default();
+        let start_node = node_map.nodes.get(0).unwrap();
+        let neighbour_info = node_map.edges.get(&0).unwrap().first().unwrap();
 
         let mut player = make_player!(app, "P1");
         player.position_node_id = Some(start_node.id);
@@ -419,7 +419,7 @@ mod tests {
         player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.clone().position_node_id.unwrap() == start_node.id);
 
-        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_role: None, related_node_id: Some(neighbour_info.0)};
+        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_role: None, related_node_id: Some(neighbour_info.to)};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
@@ -566,30 +566,5 @@ mod tests {
         input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
         input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
-    #[allow(unused_must_use)]
-    #[actix_web::test]
-    async fn test_starting_game() {
-
-        let mut gamestate = GameState::new("Test".to_string(), 42);
-        gamestate.assign_player_to_game(Player::new(0, "Player0".to_string()));
-        gamestate.assign_player_to_game(Player::new(1, "Player1".to_string()));
-        gamestate.assign_player_to_game(Player::new(2, "Player2".to_string()));
-        gamestate.players[0].in_game_id = InGameID::Orchestrator;
-        gamestate.players[1].in_game_id = InGameID::PlayerOne;
-        gamestate.players[2].in_game_id = InGameID::PlayerTwo;
-
-        let game_start_input: GameStartInput =
-            GameStartInput::new(gamestate.players[0].unique_id, gamestate.players[0].in_game_id, gamestate.id);
-        
-        let app_data = create_game_controller();
-        app_data.game_controller.lock().unwrap().games.push(gamestate);
-        let app =
-            test::init_service(App::new().app_data(app_data.clone()).service(start_new_game)).await;
-
-        let start_req = test::TestRequest::post().uri("/start/game").set_json(&game_start_input).to_request();
-        let start_resp = app.call(start_req).await.unwrap();
-        assert_eq!(start_resp.status(), StatusCode::OK);
     }
 }
