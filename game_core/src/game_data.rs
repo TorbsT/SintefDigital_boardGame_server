@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{
+    collections::{hash_map, HashMap},
+    sync::Mutex,
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -78,6 +81,8 @@ pub struct GameState {
     pub actions: Vec<PlayerInput>,
     #[serde(skip)]
     pub accessed_districts: Vec<Neighbourhood>,
+    #[serde(skip)]
+    pub map: NodeMap,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -94,21 +99,22 @@ pub struct Player {
 pub struct Node {
     pub id: NodeID,
     pub name: String,
-    #[serde(skip)]
-    pub neighbours: Vec<(NodeID, NeighbourRelationship)>,
+    // #[serde(skip)]
+    // pub neighbours: Vec<(NodeID, NeighbourRelationship)>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct NeighbourRelationship {
-    pub id: NeighbourRelationshipID,
+    pub to: NodeID,
     pub neighbourhood: Neighbourhood,
-    pub group_cost: MovementCost,
-    pub individual_cost: MovementCost,
+    pub movement_cost: MovementCost,
 }
 
 #[derive(Clone, Default)]
 pub struct NodeMap {
-    pub map: Vec<Node>,
+    pub nodes: Vec<Node>,
+    pub edges: HashMap<NodeID, Vec<NeighbourRelationship>>,
+    pub neighbourhood_cost: HashMap<Neighbourhood, MovementCost>,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -142,6 +148,14 @@ pub struct DistrictModifier {
     pub associated_movement_value: Option<MovementValue>,
     pub associated_money_value: Option<Money>,
     pub delete: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct PlayerObjectiveCard {
+    pub start_node_id: NodeID,
+    pub pick_up_node_id: NodeID,
+    pub drop_off_node_id: NodeID,
+    pub special_vehicle_type: Option<VehicleType>,
 }
 
 //// =============== Structs impls ===============
@@ -205,7 +219,11 @@ impl GameState {
                 Err(e) => return Err(e),
             };
 
-            let Some((_, neighbour_relationship)) = current_node.neighbours.iter().find(|(node_id, _)| node_id == &to_node_id) else {
+            let Some(neighbours) = self.map.get_neighbour_relationships_of_node_with_id(current_node_id) else {
+                return Err(format!("There was no node with id {}!", current_node_id));
+            };
+
+            let Some(neighbour_relationship) = neighbours.iter().find(|relationship| relationship.to == to_node_id) else {
                 return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
             };
             if !self
@@ -304,6 +322,23 @@ impl InGameID {
     }
 }
 
+impl Neighbourhood {
+    pub const fn first() -> Self {
+        Self::IndustryPark
+    }
+
+    pub const fn next(&self) -> Option<Self> {
+        match self {
+            Self::IndustryPark => Some(Self::Port),
+            Self::Port => Some(Self::Suburbs),
+            Self::Suburbs => Some(Self::RingRoad),
+            Self::RingRoad => Some(Self::CityCentre),
+            Self::CityCentre => Some(Self::Airport),
+            Self::Airport => None,
+        }
+    }
+}
+
 impl Player {
     #[must_use]
     pub const fn new(unique_id: PlayerID, name: String) -> Self {
@@ -321,158 +356,34 @@ impl Player {
 impl Node {
     #[must_use]
     pub const fn new(id: NodeID, name: String) -> Self {
-        Self {
-            id,
-            name,
-            neighbours: Vec::new(),
-        }
+        Self { id, name }
     }
-
-    pub fn add_neighbour(&mut self, neighbour: &mut Self, relationship: NeighbourRelationship) {
-        self.neighbours.push((neighbour.id, relationship.clone()));
-        neighbour.neighbours.push((self.id, relationship));
-    }
-
-    pub fn has_neighbour_with_id(&self, neighbour_id: NodeID) -> bool {
-        self.neighbours.iter().any(|(id, _)| *id == neighbour_id)
-    }
-
-    pub fn get_movement_cost_to_neighbour_with_id(
-        &self,
-        neighbour_id: NodeID,
-    ) -> Result<MovementCost, String> {
-        if !self.has_neighbour_with_id(neighbour_id) {
-            return Err(format!(
-                "Node {} does not have a neighbour with id {}",
-                self.id, neighbour_id
-            ));
-        }
-
-        self.neighbours
-            .iter()
-            .find(|(id, _)| *id == neighbour_id)
-            .map_or_else(
-                || {
-                    Err(format!(
-                        "Node {} could not find a cost to the neighbour with id {}",
-                        self.id, neighbour_id
-                    ))
-                },
-                |(_, relationship)| Ok(relationship.total_cost()),
-            )
-    }
-}
-
-lazy_static! {
-    static ref GROUP_COST_MAP: Mutex<HashMap<Neighbourhood, MovementCost>> = Mutex::new({
-        let mut map = HashMap::new();
-        map.insert(Neighbourhood::IndustryPark, 1);
-        map.insert(Neighbourhood::Port, 1);
-        map.insert(Neighbourhood::Suburbs, 1);
-        map.insert(Neighbourhood::RingRoad, 1);
-        map.insert(Neighbourhood::CityCentre, 1);
-        map.insert(Neighbourhood::Airport, 1);
-        map
-    });
 }
 
 #[allow(clippy::unwrap_used)]
 impl NeighbourRelationship {
-    #[must_use]
-    pub fn new(id: NeighbourRelationshipID, neighbourhood_enum: Neighbourhood) -> Self {
-        let group_cost: MovementCost = *GROUP_COST_MAP
-            .lock()
-            .unwrap()
-            .get(&neighbourhood_enum)
-            .unwrap();
-        let neighbourhood = neighbourhood_enum;
+    pub fn new(to: NodeID, neighbourhood: Neighbourhood, movement_cost: MovementCost) -> Self {
         Self {
-            id,
+            to,
             neighbourhood,
-            group_cost,
-            individual_cost: 0,
+            movement_cost,
         }
-    }
-
-    pub fn update_individual_cost(&mut self, update: MovementCost) {
-        self.individual_cost = update;
-    }
-
-    pub const fn total_cost(&self) -> MovementCost {
-        self.group_cost + self.individual_cost
     }
 }
 
 impl NodeMap {
-    pub fn add_to_map(map: &mut Vec<Node>, node: Node) {
-        map.push(node);
-    }
-
-    pub fn add_relationship(
-        node1: &mut Node,
-        node2: &mut Node,
-        relationship: &mut NeighbourRelationship,
-    ) {
-        node1.add_neighbour(node2, relationship.clone());
-    }
-
-    #[allow(clippy::unwrap_used)]
-    pub fn update_neighbour_costs(
-        &mut self,
-        neighbourhood_enum: Neighbourhood,
-        value: MovementCost,
-    ) {
-        GROUP_COST_MAP
-            .lock()
-            .unwrap()
-            .insert(neighbourhood_enum, value);
-        for node in &mut self.map {
-            for neighbour_relationship in &mut node.neighbours {
-                if neighbour_relationship.1.neighbourhood == neighbourhood_enum {
-                    neighbour_relationship.1.group_cost = value;
-                }
-            }
-        }
-    }
-
-    #[allow(non_snake_case)]
-    pub fn update_individual_cost(
-        &mut self,
-        node1_ID: NodeID,
-        node2_ID: NodeID,
-        value: MovementCost,
-    ) {
-        self.update_individual_cost_recursion(node1_ID, node2_ID, value, false);
-    }
-
-    #[allow(non_snake_case)]
-    fn update_individual_cost_recursion(
-        &mut self,
-        node1_ID: NodeID,
-        node2_ID: NodeID,
-        value: MovementCost,
-        updated_other_neighbour: bool,
-    ) {
-        let mut found_neighbour: bool = false;
-        let node1 = &mut self.map[node1_ID as usize];
-        for mut neighbour in &mut node1.neighbours {
-            if neighbour.0 == node2_ID {
-                found_neighbour = true;
-                neighbour.1.individual_cost = value;
-                break;
-            }
-        }
-        if !found_neighbour {
-            //TODO: Throw error
-        }
-        if !updated_other_neighbour {
-            self.update_individual_cost_recursion(node2_ID, node1_ID, value, true);
+    pub fn new() -> Self {
+        Self {
+            nodes: Vec::new(),
+            edges: HashMap::new(),
+            neighbourhood_cost: HashMap::new(),
         }
     }
 
     #[must_use]
-    pub fn new() -> Self {
-        let mut map: Vec<Node> = Vec::new();
+    pub fn new_default() -> Self {
+        let mut map = Self::new();
+
         let mut node0: Node = Node::new(0, String::from("Factory"));
         let mut node1: Node = Node::new(1, String::from("Refinery"));
         let mut node2: Node = Node::new(2, String::from("Industry Park"));
@@ -502,220 +413,85 @@ impl NodeMap {
         let mut node26: Node = Node::new(26, String::from("I10"));
         let mut node27: Node = Node::new(27, String::from("Terminal 1"));
         let mut node28: Node = Node::new(28, String::from("Terminal 2"));
-        Self::add_relationship(
-            &mut node0,
-            &mut node1,
-            &mut NeighbourRelationship::new(0, Neighbourhood::IndustryPark),
-        );
-        Self::add_relationship(
-            &mut node0,
-            &mut node2,
-            &mut NeighbourRelationship::new(1, Neighbourhood::IndustryPark),
-        );
-        Self::add_relationship(
-            &mut node1,
-            &mut node2,
-            &mut NeighbourRelationship::new(2, Neighbourhood::IndustryPark),
-        );
-        Self::add_relationship(
-            &mut node2,
-            &mut node3,
-            &mut NeighbourRelationship::new(3, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node3,
-            &mut node4,
-            &mut NeighbourRelationship::new(4, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node3,
-            &mut node9,
-            &mut NeighbourRelationship::new(5, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node4,
-            &mut node5,
-            &mut NeighbourRelationship::new(6, Neighbourhood::Port),
-        );
-        Self::add_relationship(
-            &mut node4,
-            &mut node6,
-            &mut NeighbourRelationship::new(7, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node6,
-            &mut node13,
-            &mut NeighbourRelationship::new(8, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node6,
-            &mut node7,
-            &mut NeighbourRelationship::new(9, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node7,
-            &mut node8,
-            &mut NeighbourRelationship::new(10, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node9,
-            &mut node10,
-            &mut NeighbourRelationship::new(11, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node9,
-            &mut node18,
-            &mut NeighbourRelationship::new(12, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node10,
-            &mut node11,
-            &mut NeighbourRelationship::new(13, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node10,
-            &mut node15,
-            &mut NeighbourRelationship::new(14, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node11,
-            &mut node12,
-            &mut NeighbourRelationship::new(15, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node11,
-            &mut node16,
-            &mut NeighbourRelationship::new(16, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node12,
-            &mut node13,
-            &mut NeighbourRelationship::new(17, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node13,
-            &mut node14,
-            &mut NeighbourRelationship::new(18, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node13,
-            &mut node20,
-            &mut NeighbourRelationship::new(19, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node14,
-            &mut node21,
-            &mut NeighbourRelationship::new(20, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node15,
-            &mut node16,
-            &mut NeighbourRelationship::new(21, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node16,
-            &mut node19,
-            &mut NeighbourRelationship::new(22, Neighbourhood::CityCentre),
-        );
-        Self::add_relationship(
-            &mut node17,
-            &mut node18,
-            &mut NeighbourRelationship::new(23, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node18,
-            &mut node19,
-            &mut NeighbourRelationship::new(24, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node18,
-            &mut node23,
-            &mut NeighbourRelationship::new(25, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node19,
-            &mut node20,
-            &mut NeighbourRelationship::new(26, Neighbourhood::RingRoad),
-        );
-        Self::add_relationship(
-            &mut node20,
-            &mut node26,
-            &mut NeighbourRelationship::new(27, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node20,
-            &mut node27,
-            &mut NeighbourRelationship::new(28, Neighbourhood::Airport),
-        );
-        Self::add_relationship(
-            &mut node21,
-            &mut node27,
-            &mut NeighbourRelationship::new(29, Neighbourhood::Airport),
-        );
-        Self::add_relationship(
-            &mut node22,
-            &mut node23,
-            &mut NeighbourRelationship::new(30, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node23,
-            &mut node24,
-            &mut NeighbourRelationship::new(31, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node24,
-            &mut node25,
-            &mut NeighbourRelationship::new(32, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node25,
-            &mut node26,
-            &mut NeighbourRelationship::new(33, Neighbourhood::Suburbs),
-        );
-        Self::add_relationship(
-            &mut node26,
-            &mut node27,
-            &mut NeighbourRelationship::new(34, Neighbourhood::Airport),
-        );
-        Self::add_relationship(
-            &mut node27,
-            &mut node28,
-            &mut NeighbourRelationship::new(35, Neighbourhood::Airport),
-        );
-        Self::add_to_map(&mut map, node0);
-        Self::add_to_map(&mut map, node1);
-        Self::add_to_map(&mut map, node2);
-        Self::add_to_map(&mut map, node3);
-        Self::add_to_map(&mut map, node4);
-        Self::add_to_map(&mut map, node5);
-        Self::add_to_map(&mut map, node6);
-        Self::add_to_map(&mut map, node7);
-        Self::add_to_map(&mut map, node8);
-        Self::add_to_map(&mut map, node9);
-        Self::add_to_map(&mut map, node10);
-        Self::add_to_map(&mut map, node11);
-        Self::add_to_map(&mut map, node12);
-        Self::add_to_map(&mut map, node13);
-        Self::add_to_map(&mut map, node14);
-        Self::add_to_map(&mut map, node15);
-        Self::add_to_map(&mut map, node16);
-        Self::add_to_map(&mut map, node17);
-        Self::add_to_map(&mut map, node18);
-        Self::add_to_map(&mut map, node19);
-        Self::add_to_map(&mut map, node20);
-        Self::add_to_map(&mut map, node21);
-        Self::add_to_map(&mut map, node22);
-        Self::add_to_map(&mut map, node23);
-        Self::add_to_map(&mut map, node24);
-        Self::add_to_map(&mut map, node25);
-        Self::add_to_map(&mut map, node26);
-        Self::add_to_map(&mut map, node27);
-        Self::add_to_map(&mut map, node28);
-        Self { map }
+
+        map.nodes.push(node0.clone());
+        map.nodes.push(node1.clone());
+        map.nodes.push(node2.clone());
+        map.nodes.push(node3.clone());
+        map.nodes.push(node4.clone());
+        map.nodes.push(node5.clone());
+        map.nodes.push(node6.clone());
+        map.nodes.push(node7.clone());
+        map.nodes.push(node8.clone());
+        map.nodes.push(node9.clone());
+        map.nodes.push(node10.clone());
+        map.nodes.push(node11.clone());
+        map.nodes.push(node12.clone());
+        map.nodes.push(node13.clone());
+        map.nodes.push(node14.clone());
+        map.nodes.push(node15.clone());
+        map.nodes.push(node16.clone());
+        map.nodes.push(node17.clone());
+        map.nodes.push(node18.clone());
+        map.nodes.push(node19.clone());
+        map.nodes.push(node20.clone());
+        map.nodes.push(node21.clone());
+        map.nodes.push(node22.clone());
+        map.nodes.push(node23.clone());
+        map.nodes.push(node24.clone());
+        map.nodes.push(node25.clone());
+        map.nodes.push(node26.clone());
+        map.nodes.push(node27.clone());
+        map.nodes.push(node28.clone());
+
+        map.add_relationship(node0, node1, Neighbourhood::IndustryPark, 0);
+        map.add_relationship(node0, node2, Neighbourhood::IndustryPark, 0);
+        map.add_relationship(node1, node2, Neighbourhood::IndustryPark, 0);
+        map.add_relationship(node2, node3, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node3, node4, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node3, node9, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node4, node5, Neighbourhood::Port, 0);
+        map.add_relationship(node4, node6, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node6, node13, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node6, node7, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node7, node8, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node9, node10, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node9, node18, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node10, node11, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node10, node15, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node11, node12, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node11, node16, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node12, node13, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node13, node14, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node13, node20, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node14, node21, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node15, node16, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node16, node19, Neighbourhood::CityCentre, 0);
+        map.add_relationship(node17, node18, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node18, node19, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node18, node23, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node19, node20, Neighbourhood::RingRoad, 0);
+        map.add_relationship(node20, node26, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node20, node27, Neighbourhood::Airport, 0);
+        map.add_relationship(node21, node27, Neighbourhood::Airport, 0);
+        map.add_relationship(node22, node23, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node23, node24, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node24, node25, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node25, node26, Neighbourhood::Suburbs, 0);
+        map.add_relationship(node26, node27, Neighbourhood::Airport, 0);
+        map.add_relationship(node27, node28, Neighbourhood::Airport, 0);
+
+        let mut neighbourhood = Neighbourhood::first();
+        map.change_neighbourhood_cost(neighbourhood, 1);
+        while let Some(neighbourhood) = neighbourhood.next() {
+            map.change_neighbourhood_cost(neighbourhood, 1);
+        }
+
+        map
     }
 
     pub fn get_node_by_id(&self, position_node_id: NodeID) -> Result<Node, String> {
-        self.map
+        self.nodes
             .iter()
             .find(|&node| node.id == position_node_id)
             .map_or_else(
@@ -728,83 +504,47 @@ impl NodeMap {
                 |node| Ok(node.clone()),
             )
     }
-}
 
-#[cfg(test)]
-mod tests {
-
-    use crate::game_data::{NeighbourRelationship, Node};
-
-    use super::*;
-
-    #[test]
-    fn test_node_add_neighbour() {
-        let mut node0: Node = Node::new(0, String::from("First testing node"));
-        let mut node1: Node = Node::new(1, String::from("Second testing node"));
-        node0.add_neighbour(
-            &mut node1,
-            NeighbourRelationship::new(0, Neighbourhood::Suburbs),
-        );
-        assert!(node0.neighbours[0].0 == 1);
-        let group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
-        assert!(
-            node0.neighbours[0].1.group_cost
-                == *group_cost_map_reference
-                    .get(&Neighbourhood::Suburbs)
-                    .unwrap()
-        );
-    }
-
-    #[test]
-    fn test_cost() {
-        let mut node_map: NodeMap = NodeMap::new();
-        assert!(node_map.map[0].neighbours[0].1.total_cost() == 1);
-        node_map.update_neighbour_costs(Neighbourhood::IndustryPark, 2);
-        assert!(node_map.map[0].neighbours[0].1.total_cost() == 2);
-        assert!(node_map.map[27].neighbours[0].1.total_cost() == 1);
-        node_map.update_individual_cost(0, 1, 2);
-        assert!(node_map.map[0].neighbours[0].1.total_cost() == 4);
-        assert!(node_map.map[1].neighbours[0].1.total_cost() == 4);
-        assert!(node_map.map[1].neighbours[0].1.individual_cost == 2);
-        assert!(node_map.map[1].neighbours[0].1.group_cost == 2);
-        assert!(node_map.map[0].neighbours[1].1.total_cost() == 2);
-        node_map.update_individual_cost(27, 28, 1);
-        assert!(node_map.map[27].neighbours[3].1.total_cost() == 2);
-        assert!(node_map.map[28].neighbours[0].1.total_cost() == 2);
-    }
-
-    #[test]
-    fn test_nodemap_access() {
-        let node_map: NodeMap = NodeMap::new();
-        assert!(node_map.map.len() == 29);
-        assert!(node_map.map[16].neighbours[0].0 == 11);
-        for n in 0..node_map.map.len() {
-            assert!(node_map.map[n].id == n as u8);
+    pub fn get_neighbour_relationships_of_node_with_id(
+        &self,
+        node_id: NodeID,
+    ) -> Option<Vec<NeighbourRelationship>> {
+        match self.edges.get(&node_id) {
+            Some(edge) => Some(edge.clone()),
+            None => None,
         }
     }
-}
 
-impl PlayerInput {
-    #[must_use]
-    pub const fn new(player_id: PlayerID, game_id: GameID, input_type: PlayerInputType) -> Self {
-        Self {
-            input_type,
-            related_role: None,
-            related_node_id: None,
-            player_id,
-            game_id,
-            district_modifier: None,
-        }
+    pub fn change_neighbourhood_cost(&mut self, neighbourhood: Neighbourhood, cost: MovementCost) {
+        self.neighbourhood_cost.insert(neighbourhood, cost);
     }
-}
 
-impl GameStartInput {
-    #[must_use]
-    pub const fn new(player_id: PlayerID, in_game_id: InGameID, game_id: GameID) -> Self {
-        Self {
-            player_id,
-            in_game_id,
-            game_id,
-        }
+    pub fn first_time_in_district_cost(
+        &self,
+        neighbour_relationship: NeighbourRelationship,
+    ) -> Result<MovementCost, String> {
+        let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
+            return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
+        };
+        Ok(neighbourhood_cost + neighbour_relationship.movement_cost)
+    }
+
+    fn add_relationship(
+        &mut self,
+        node1: Node,
+        node2: Node,
+        neighbourhood: Neighbourhood,
+        cost: MovementCost,
+    ) {
+        let mut relationship = NeighbourRelationship::new(node2.id, neighbourhood, cost);
+        self.edges
+            .entry(node1.id)
+            .or_insert(Vec::new())
+            .push(relationship.clone());
+        relationship.to = node1.id;
+        self.edges
+            .entry(node2.id)
+            .or_insert(Vec::new())
+            .push(relationship);
     }
 }
