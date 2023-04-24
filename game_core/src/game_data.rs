@@ -95,7 +95,7 @@ pub struct Player {
     pub remaining_moves: MovesRemaining,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Node {
     pub id: NodeID,
     pub name: String,
@@ -103,14 +103,14 @@ pub struct Node {
     // pub neighbours: Vec<(NodeID, NeighbourRelationship)>,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct NeighbourRelationship {
     pub to: NodeID,
     pub neighbourhood: Neighbourhood,
     pub movement_cost: MovementCost,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub struct NodeMap {
     pub nodes: Vec<Node>,
     pub edges: HashMap<NodeID, Vec<NeighbourRelationship>>,
@@ -161,7 +161,7 @@ pub struct PlayerObjectiveCard {
 //// =============== Structs impls ===============
 impl GameState {
     #[must_use]
-    pub const fn new(name: String, game_id: GameID) -> Self {
+    pub fn new(name: String, game_id: GameID) -> Self {
         Self {
             id: game_id,
             name,
@@ -171,6 +171,7 @@ impl GameState {
             current_players_turn: InGameID::Orchestrator,
             district_modifiers: Vec::new(),
             accessed_districts: Vec::new(),
+            map: NodeMap::new_default(),
         }
     }
 
@@ -214,11 +215,6 @@ impl GameState {
                 return Err("The player is not at any node!".to_string());
             };
 
-            let current_node = match NodeMap::new().get_node_by_id(current_node_id) {
-                Ok(node) => node,
-                Err(e) => return Err(e),
-            };
-
             let Some(neighbours) = self.map.get_neighbour_relationships_of_node_with_id(current_node_id) else {
                 return Err(format!("There was no node with id {}!", current_node_id));
             };
@@ -232,7 +228,14 @@ impl GameState {
             {
                 self.accessed_districts
                     .push(neighbour_relationship.neighbourhood);
-                player.remaining_moves -= neighbour_relationship.total_cost();
+                player.remaining_moves -= match self
+                    .map
+                    .first_time_in_district_cost(neighbour_relationship.clone())
+                {
+                    Ok(cost) => cost,
+                    Err(e) => return Err(e),
+                };
+
                 for modifier in self.district_modifiers.iter() {
                     if modifier.district != neighbour_relationship.neighbourhood {
                         continue;
@@ -242,7 +245,7 @@ impl GameState {
                     }
                 }
             } else {
-                player.remaining_moves -= neighbour_relationship.individual_cost;
+                player.remaining_moves -= neighbour_relationship.movement_cost;
             }
             player.position_node_id = Some(to_node_id);
             return Ok(());
@@ -384,20 +387,20 @@ impl NodeMap {
     pub fn new_default() -> Self {
         let mut map = Self::new();
 
-        let mut node0: Node = Node::new(0, String::from("Factory"));
-        let mut node1: Node = Node::new(1, String::from("Refinery"));
-        let mut node2: Node = Node::new(2, String::from("Industry Park"));
-        let mut node3: Node = Node::new(3, String::from("I1"));
-        let mut node4: Node = Node::new(4, String::from("I2"));
-        let mut node5: Node = Node::new(5, String::from("Port"));
-        let mut node6: Node = Node::new(6, String::from("I3"));
-        let mut node7: Node = Node::new(7, String::from("Beach"));
-        let mut node8: Node = Node::new(8, String::from("Northside"));
-        let mut node9: Node = Node::new(9, String::from("I4"));
-        let mut node10: Node = Node::new(10, String::from("Central Station"));
-        let mut node11: Node = Node::new(11, String::from("City Square"));
-        let mut node12: Node = Node::new(12, String::from("Concert Hall"));
-        let mut node13: Node = Node::new(13, String::from("Eastside Mart"));
+        let node0: Node = Node::new(0, String::from("Factory"));
+        let node1: Node = Node::new(1, String::from("Refinery"));
+        let node2: Node = Node::new(2, String::from("Industry Park"));
+        let node3: Node = Node::new(3, String::from("I1"));
+        let node4: Node = Node::new(4, String::from("I2"));
+        let node5: Node = Node::new(5, String::from("Port"));
+        let node6: Node = Node::new(6, String::from("I3"));
+        let node7: Node = Node::new(7, String::from("Beach"));
+        let node8: Node = Node::new(8, String::from("Northside"));
+        let node9: Node = Node::new(9, String::from("I4"));
+        let node10: Node = Node::new(10, String::from("Central Station"));
+        let node11: Node = Node::new(11, String::from("City Square"));
+        let node12: Node = Node::new(12, String::from("Concert Hall"));
+        let node13: Node = Node::new(13, String::from("Eastside Mart"));
         let mut node14: Node = Node::new(14, String::from("East Town"));
         let mut node15: Node = Node::new(15, String::from("Food Court"));
         let mut node16: Node = Node::new(16, String::from("City Park"));
