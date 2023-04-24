@@ -8,7 +8,7 @@ use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
     game_data::{
-        GameID, GameState, InGameID, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
+        GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
         MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
     },
     rule_checker::RuleChecker,
@@ -68,28 +68,6 @@ impl GameController {
 
         self.games.push(new_game.clone());
         Ok(new_game)
-    }
-
-    pub fn start_game(&mut self, gamestate: &mut GameState) -> Result<GameState, String> {
-        let mut can_start_game = false;
-        let mut errormessage =
-            String::from("Unable to start game because lobby does not have an orchestrator");
-        for player in &gamestate.players {
-            if player.in_game_id == InGameID::Orchestrator {
-                if gamestate.players.len() < 2 {
-                    errormessage =
-                        "Unable to start game because there are not enough players".to_string();
-                    break;
-                };
-                can_start_game = true;
-                gamestate.is_lobby = false;
-                break;
-            }
-        }
-        match can_start_game {
-            true => Ok(gamestate.clone()),
-            false => Err(errormessage),
-        }
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
@@ -347,7 +325,9 @@ impl GameController {
                 Some(_) => return Ok(()),
                 None => return Err("There is no action to undo!".to_string()),
             }
-        } else if input.input_type == PlayerInputType::ChangeRole {
+        } else if input.input_type == PlayerInputType::ChangeRole
+            || input.input_type == PlayerInputType::StartGame
+        {
             match Self::apply_input(input, game) {
                 Ok(_) => return Ok(()),
                 Err(e) => return Err(e),
@@ -382,6 +362,10 @@ impl GameController {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
+            }
+            PlayerInputType::StartGame => {
+                game.is_lobby = false;
+                Ok(())
             }
         }
     }

@@ -231,6 +231,7 @@ components:
         - NextTurn
         - UndoAction
         - ModifyDistrict
+        - StartGame
     VehicleType:
       type: string
       enum:

@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{GameState, NodeMap, PlayerInput, PlayerInputType},
+    game_data::{GameState, InGameID, NodeMap, PlayerInput, PlayerInputType},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -76,6 +76,11 @@ impl GameRuleChecker {
             rule_fn: Box::new(is_players_turn),
         };
 
+        let orchestrator_check = Rule {
+            related_inputs: vec![PlayerInputType::StartGame],
+            rule_fn: Box::new(is_orchestrator),
+        };
+
         let player_has_position = Rule {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_position),
@@ -92,6 +97,7 @@ impl GameRuleChecker {
         let rules = vec![
             game_started,
             players_turn,
+            orchestrator_check,
             player_has_position,
             next_to_node,
             enough_moves,
@@ -203,6 +209,21 @@ fn is_players_turn(game: &GameState, player_input: &PlayerInput) -> ValidationRe
 
     if game.current_players_turn != player.in_game_id {
         return ValidationResponse::Invalid("It's not the current players turn".to_string());
+    }
+
+    ValidationResponse::Valid
+}
+
+fn is_orchestrator(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player = match game.get_player_with_unique_id(player_input.player_id) {
+        Ok(p) => p,
+        Err(e) => return ValidationResponse::Invalid(e.to_string()),
+    };
+
+    if player.in_game_id != InGameID::Orchestrator {
+        return ValidationResponse::Invalid(
+            "The player is not the orchestrator of the game!".to_string(),
+        );
     }
 
     ValidationResponse::Valid
