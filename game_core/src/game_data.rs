@@ -57,6 +57,8 @@ pub enum VehicleType {
     Buss,
     Emergency,
     Industrial,
+    Normal,
+    Geolocation,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]

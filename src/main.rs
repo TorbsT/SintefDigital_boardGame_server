@@ -186,6 +186,7 @@ macro_rules! server_app_with_data {
                 .service(join_game)
                 .service(leave_game)
                 .service(test)
+                .service(player_check_in)
         }
     }
 }
