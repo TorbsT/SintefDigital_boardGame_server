@@ -1,6 +1,5 @@
 use std::{
-    collections::{hash_map, HashMap},
-    sync::Mutex,
+    collections::{HashMap},
 };
 
 use serde::{Deserialize, Serialize};
@@ -401,21 +400,21 @@ impl NodeMap {
         let node11: Node = Node::new(11, String::from("City Square"));
         let node12: Node = Node::new(12, String::from("Concert Hall"));
         let node13: Node = Node::new(13, String::from("Eastside Mart"));
-        let mut node14: Node = Node::new(14, String::from("East Town"));
-        let mut node15: Node = Node::new(15, String::from("Food Court"));
-        let mut node16: Node = Node::new(16, String::from("City Park"));
-        let mut node17: Node = Node::new(17, String::from("Quarry"));
-        let mut node18: Node = Node::new(18, String::from("I5"));
-        let mut node19: Node = Node::new(19, String::from("I6"));
-        let mut node20: Node = Node::new(20, String::from("I7"));
-        let mut node21: Node = Node::new(21, String::from("I8"));
-        let mut node22: Node = Node::new(22, String::from("West Town"));
-        let mut node23: Node = Node::new(23, String::from("Lakeside"));
-        let mut node24: Node = Node::new(24, String::from("Warehouses"));
-        let mut node25: Node = Node::new(25, String::from("I9"));
-        let mut node26: Node = Node::new(26, String::from("I10"));
-        let mut node27: Node = Node::new(27, String::from("Terminal 1"));
-        let mut node28: Node = Node::new(28, String::from("Terminal 2"));
+        let node14: Node = Node::new(14, String::from("East Town"));
+        let node15: Node = Node::new(15, String::from("Food Court"));
+        let node16: Node = Node::new(16, String::from("City Park"));
+        let node17: Node = Node::new(17, String::from("Quarry"));
+        let node18: Node = Node::new(18, String::from("I5"));
+        let node19: Node = Node::new(19, String::from("I6"));
+        let node20: Node = Node::new(20, String::from("I7"));
+        let node21: Node = Node::new(21, String::from("I8"));
+        let node22: Node = Node::new(22, String::from("West Town"));
+        let node23: Node = Node::new(23, String::from("Lakeside"));
+        let node24: Node = Node::new(24, String::from("Warehouses"));
+        let node25: Node = Node::new(25, String::from("I9"));
+        let node26: Node = Node::new(26, String::from("I10"));
+        let node27: Node = Node::new(27, String::from("Terminal 1"));
+        let node28: Node = Node::new(28, String::from("Terminal 2"));
 
         map.nodes.push(node0.clone());
         map.nodes.push(node1.clone());
@@ -448,41 +447,41 @@ impl NodeMap {
         map.nodes.push(node28.clone());
 
         map.add_relationship(node0.clone(), node1.clone(), Neighbourhood::IndustryPark, 0);
-        map.add_relationship(node0.clone(), node2.clone(), Neighbourhood::IndustryPark, 0);
-        map.add_relationship(node1.clone(), node2.clone(), Neighbourhood::IndustryPark, 0);
-        map.add_relationship(node2.clone(), node3.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node0, node2.clone(), Neighbourhood::IndustryPark, 0);
+        map.add_relationship(node1, node2.clone(), Neighbourhood::IndustryPark, 0);
+        map.add_relationship(node2, node3.clone(), Neighbourhood::Suburbs, 0);
         map.add_relationship(node3.clone(), node4.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node3.clone(), node9.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node4.clone(), node5.clone(), Neighbourhood::Port, 0);
-        map.add_relationship(node4.clone(), node6.clone(), Neighbourhood::RingRoad, 0);
+        map.add_relationship(node3, node9.clone(), Neighbourhood::RingRoad, 0);
+        map.add_relationship(node4.clone(), node5, Neighbourhood::Port, 0);
+        map.add_relationship(node4, node6.clone(), Neighbourhood::RingRoad, 0);
         map.add_relationship(node6.clone(), node13.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node6.clone(), node7.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node7.clone(), node8.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node6, node7.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node7, node8, Neighbourhood::Suburbs, 0);
         map.add_relationship(node9.clone(), node10.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node9.clone(), node18.clone(), Neighbourhood::RingRoad, 0);
+        map.add_relationship(node9, node18.clone(), Neighbourhood::RingRoad, 0);
         map.add_relationship(node10.clone(), node11.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node10.clone(), node15.clone(), Neighbourhood::CityCentre, 0);
+        map.add_relationship(node10, node15.clone(), Neighbourhood::CityCentre, 0);
         map.add_relationship(node11.clone(), node12.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node11.clone(), node16.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node12.clone(), node13.clone(), Neighbourhood::CityCentre, 0);
+        map.add_relationship(node11, node16.clone(), Neighbourhood::CityCentre, 0);
+        map.add_relationship(node12, node13.clone(), Neighbourhood::CityCentre, 0);
         map.add_relationship(node13.clone(), node14.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node13.clone(), node20.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node14.clone(), node21.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node15.clone(), node16.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node16.clone(), node19.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node17.clone(), node18.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node13, node20.clone(), Neighbourhood::RingRoad, 0);
+        map.add_relationship(node14, node21.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node15, node16.clone(), Neighbourhood::CityCentre, 0);
+        map.add_relationship(node16, node19.clone(), Neighbourhood::CityCentre, 0);
+        map.add_relationship(node17, node18.clone(), Neighbourhood::Suburbs, 0);
         map.add_relationship(node18.clone(), node19.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node18.clone(), node23.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node19.clone(), node20.clone(), Neighbourhood::RingRoad, 0);
+        map.add_relationship(node18, node23.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node19, node20.clone(), Neighbourhood::RingRoad, 0);
         map.add_relationship(node20.clone(), node26.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node20.clone(), node27.clone(), Neighbourhood::Airport, 0);
-        map.add_relationship(node21.clone(), node27.clone(), Neighbourhood::Airport, 0);
-        map.add_relationship(node22.clone(), node23.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node23.clone(), node24.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node24.clone(), node25.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node25.clone(), node26.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node26.clone(), node27.clone(), Neighbourhood::Airport, 0);
-        map.add_relationship(node27.clone(), node28.clone(), Neighbourhood::Airport, 0);
+        map.add_relationship(node20, node27.clone(), Neighbourhood::Airport, 0);
+        map.add_relationship(node21, node27.clone(), Neighbourhood::Airport, 0);
+        map.add_relationship(node22, node23.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node23, node24.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node24, node25.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node25, node26.clone(), Neighbourhood::Suburbs, 0);
+        map.add_relationship(node26, node27.clone(), Neighbourhood::Airport, 0);
+        map.add_relationship(node27, node28, Neighbourhood::Airport, 0);
 
         let mut neighbourhood = Neighbourhood::first();
         map.change_neighbourhood_cost(neighbourhood, 1);
@@ -513,10 +512,7 @@ impl NodeMap {
         &self,
         node_id: NodeID,
     ) -> Option<Vec<NeighbourRelationship>> {
-        match self.edges.get(&node_id) {
-            Some(edge) => Some(edge.clone()),
-            None => None,
-        }
+        self.edges.get(&node_id).cloned()
     }
 
     pub fn change_neighbourhood_cost(&mut self, neighbourhood: Neighbourhood, cost: MovementCost) {
