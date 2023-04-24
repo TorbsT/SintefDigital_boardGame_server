@@ -8,7 +8,7 @@ use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
     game_data::{
-        GameID, GameState, NewGameInfo, Player, PlayerInput, PlayerInputType,
+        GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
         MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
     },
     rule_checker::RuleChecker,
@@ -69,7 +69,7 @@ impl GameController {
         self.games.push(new_game.clone());
         Ok(new_game)
     }
-    
+
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         self.remove_inactive_ids();
 
