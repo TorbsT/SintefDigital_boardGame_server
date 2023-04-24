@@ -164,20 +164,19 @@ fn next_node_is_neighbour(
         Ok(p) => {
             match p.position_node_id {
                 Some(node_id) => {
-                    let map = NodeMap::new();
-                    match map.get_node_by_id(node_id) {
-                        Ok(node) => {
-                            let Some(related_node_id) = player_input.related_node_id else {
-                                return ValidationResponse::Invalid("There was node to check if it's a neighbour!".to_string());
-                            };
-                            if !node.has_neighbour_with_id(related_node_id) {
-                                return ValidationResponse::Invalid(format!(
-                                    "The node {related_node_id} is not a neighbour of the player's position!",
-                                ));
-                            }
-                        }
-                        Err(e) => return ValidationResponse::Invalid(e),
+                    let Some(related_node_id) = player_input.related_node_id else {
+                        return ValidationResponse::Invalid("There was node to check if it's a neighbour!".to_string());
                     };
+                    let are_neighbours =
+                        match game.map.are_nodes_neighbours(node_id, related_node_id) {
+                            Ok(b) => b,
+                            Err(e) => return ValidationResponse::Invalid(e),
+                        };
+                    if !are_neighbours {
+                        return ValidationResponse::Invalid(format!(
+                            "The node {related_node_id} is not a neighbour of the player's position!",
+                        ));
+                    }
                 }
                 None => {
                     return ValidationResponse::Invalid(

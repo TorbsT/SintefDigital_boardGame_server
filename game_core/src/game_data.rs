@@ -532,6 +532,15 @@ impl NodeMap {
         Ok(neighbourhood_cost + neighbour_relationship.movement_cost)
     }
 
+    pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
+        let Some(neighbours) = self.edges.get(&node_1) else {
+            return Err(format!("There is no node with id {} that has any neighbours!", node_1));
+        };
+        Ok(neighbours
+            .iter()
+            .any(|relationship| relationship.to == node_2))
+    }
+
     fn add_relationship(
         &mut self,
         node1: Node,
