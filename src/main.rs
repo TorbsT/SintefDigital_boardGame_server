@@ -3,7 +3,7 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
-    game_data::{NewGameInfo, Player, PlayerInput, GameState, GameStartInput, InGameID},
+    game_data::{NewGameInfo, Player, PlayerInput, GameState},
 };
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
@@ -67,39 +67,6 @@ async fn create_new_game(
         }
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to create game because {e}"))
-        }
-    }
-}
-
-#[allow(clippy::unwrap_used)]
-#[post("/start/game")]
-async fn start_new_game(
-    json_data: web::Json<GameStartInput>,
-    shared_data: web::Data<AppData>,
-) -> impl Responder {
-    let game_start_input: GameStartInput = json_data.into_inner();
-    let data = shared_data.game_controller.lock();
-    if game_start_input.in_game_id != InGameID::Orchestrator {
-        return HttpResponse::InternalServerError().body("Failed to start game because: Player is not orchestrator");
-    }
-    match data {
-        Ok(mut game_controller) => {
-            let mut gamestate: GameState = game_controller.get_created_games().iter().find(|game| game.id == game_start_input.game_id).unwrap().clone();
-            if gamestate.name == "null" && gamestate.id == 0 {
-                return HttpResponse::InternalServerError().body("Failed to start game because: Failed to find game");
-            }
-            if !gamestate.is_lobby {
-                return HttpResponse::InternalServerError().body("Failed to start game because: Game already started");
-            }
-            let game_result = game_controller.start_game(&mut gamestate);
-            match game_result {
-                Ok(g) => HttpResponse::Ok().json(json!(g)),
-                Err(e) => HttpResponse::InternalServerError()
-                    .body(format!("Failed to start game because: {e}")),
-            }
-        }
-        Err(e) => {
-            HttpResponse::InternalServerError().body(format!("Failed to start game because {e}"))
         }
     }
 }
@@ -219,7 +186,6 @@ macro_rules! server_app_with_data {
                 .service(join_game)
                 .service(leave_game)
                 .service(test)
-                .service(start_new_game)
         }
     }
 }
@@ -566,30 +532,5 @@ mod tests {
         input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
         input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
-    }
-
-    #[allow(unused_must_use)]
-    #[actix_web::test]
-    async fn test_starting_game() {
-
-        let mut gamestate = GameState::new("Test".to_string(), 42);
-        gamestate.assign_player_to_game(Player::new(0, "Player0".to_string()));
-        gamestate.assign_player_to_game(Player::new(1, "Player1".to_string()));
-        gamestate.assign_player_to_game(Player::new(2, "Player2".to_string()));
-        gamestate.players[0].in_game_id = InGameID::Orchestrator;
-        gamestate.players[1].in_game_id = InGameID::PlayerOne;
-        gamestate.players[2].in_game_id = InGameID::PlayerTwo;
-
-        let game_start_input: GameStartInput =
-            GameStartInput::new(gamestate.players[0].unique_id, gamestate.players[0].in_game_id, gamestate.id);
-        
-        let app_data = create_game_controller();
-        app_data.game_controller.lock().unwrap().games.push(gamestate);
-        let app =
-            test::init_service(App::new().app_data(app_data.clone()).service(start_new_game)).await;
-
-        let start_req = test::TestRequest::post().uri("/start/game").set_json(&game_start_input).to_request();
-        let start_resp = app.call(start_req).await.unwrap();
-        assert_eq!(start_resp.status(), StatusCode::OK);
     }
 }
