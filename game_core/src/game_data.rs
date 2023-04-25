@@ -163,6 +163,11 @@ pub struct SituationCard {
     pub costs: Vec<(Neighbourhood, Traffic)>,
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SituationCardList {
+    pub situation_cards: Vec<SituationCard>,
+}
+
 //// =============== Structs impls ===============
 impl GameState {
     #[must_use]
@@ -773,6 +778,14 @@ impl SituationCard {
     }
 }
 
+impl SituationCardList {
+    #[must_use]
+    pub const fn new(situation_cards: Vec<SituationCard>) -> Self {
+        Self {
+            situation_cards,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

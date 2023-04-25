@@ -1,9 +1,13 @@
-use game_data::{SituationCard};
+use game_data::{SituationCard, SituationCardList};
 
 use crate::game_data::{self, Neighbourhood, Traffic};
 
+pub fn situation_card_list_wrapper() -> SituationCardList {
+    SituationCardList::new(situation_card_list())
+}
+
 pub fn situation_card_list() -> Vec<SituationCard> {
-    let situation_card_list = vec![
+    vec![
         SituationCard::new(
             1,
             "Regular traffic".to_string(),
@@ -74,6 +78,5 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::Airport, Traffic::LevelFour),
             ],
         ),
-    ];
-    return situation_card_list;
+    ]
 }
