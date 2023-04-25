@@ -6,8 +6,8 @@ use crate::game_data;
 
 pub fn situation_card_list() -> Vec<SituationCard> {
     let situation_card_list = vec![
-        SituationCard::new(
-            1,
+        SituationCard::new( //Template card; delete this after list is complete
+            0,
             "title".to_string(),
             "description".to_string(),
             "goal".to_string(),
