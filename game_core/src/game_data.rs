@@ -1,6 +1,4 @@
-use std::{
-    collections::{HashMap},
-};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,6 +17,7 @@ const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
 pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
 pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
 pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
+pub const START_MOVEMENT_AMOUNT: MovementValue = 8;
 
 //// =============== Enums ===============
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -92,6 +91,7 @@ pub struct Player {
     pub name: String,
     pub position_node_id: Option<NodeID>,
     pub remaining_moves: MovesRemaining,
+    pub objective_card: Option<PlayerObjectiveCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -308,6 +308,10 @@ impl GameState {
 
         self.current_players_turn = next_player_turn;
     }
+
+    pub const fn get_starting_player_movement_value() -> MovementValue {
+        START_MOVEMENT_AMOUNT
+    }
 }
 
 impl InGameID {
@@ -351,6 +355,7 @@ impl Player {
             name,
             position_node_id: None,
             remaining_moves: 0,
+            objective_card: None,
         }
     }
 }

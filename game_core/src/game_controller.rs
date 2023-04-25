@@ -38,7 +38,8 @@ impl GameController {
         }
     }
 
-    pub fn get_created_games(&self) -> Vec<GameState> {
+    pub fn get_created_games(&mut self) -> Vec<GameState> {
+        self.remove_empty_games();
         self.games.clone()
     }
 
@@ -81,18 +82,25 @@ impl GameController {
                         "Unable to start game because there are not enough players".to_string();
                     break;
                 };
+
                 can_start_game = true;
                 gamestate.is_lobby = false;
                 break;
             }
         }
         match can_start_game {
-            true => Ok(gamestate.clone()),
+            true => {
+                for mut player in &gamestate.players {
+                    player.remaining_moves = GameState::get_starting_player_movement_value();
+                }
+                return Ok(gamestate.clone());
+            }
             false => Err(errormessage),
         }
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
+        self.remove_empty_games();
         self.remove_inactive_ids();
 
         if !self
@@ -210,6 +218,11 @@ impl GameController {
             }
         }
         self.remove_inactive_ids();
+        self.remove_empty_games();
+    }
+
+    fn remove_empty_games(&mut self) {
+        self.games.retain(|game| game.players.len() > 0);
     }
 
     fn remove_inactive_ids(&mut self) {
