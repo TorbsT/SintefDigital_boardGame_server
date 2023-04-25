@@ -1,6 +1,6 @@
 use game_data::{SituationCard};
 
-use crate::game_data::{self, Neighbourhood};
+use crate::game_data::{self, Neighbourhood, Traffic};
 
 pub fn situation_card_list() -> Vec<SituationCard> {
     let situation_card_list = vec![
@@ -10,12 +10,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "Regular traffic in all zones.".to_string(),
             "Facilitate transport operations. Rewards green behavior.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Trafic::LevelOne),
-                (Neighbourhood::Suburbs, Trafic::LevelOne),
-                (Neighbourhood::Port, Trafic::LevelOne),
-                (Neighbourhood::RingRoad, Trafic::LevelOne),
-                (Neighbourhood::CityCentre, Trafic::LevelOne),
-                (Neighbourhood::Airport, Trafic::LevelOne),
+                (Neighbourhood::IndustryPark, Traffic::LevelOne),
+                (Neighbourhood::Suburbs, Traffic::LevelOne),
+                (Neighbourhood::Port, Traffic::LevelOne),
+                (Neighbourhood::RingRoad, Traffic::LevelOne),
+                (Neighbourhood::CityCentre, Traffic::LevelOne),
+                (Neighbourhood::Airport, Traffic::LevelOne),
             ],
         ),
         SituationCard::new(
@@ -24,12 +24,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "City centre is crowded. Reduced capacity for traffic.".to_string(),
             "Facilitate transport of people to concert. Limit other traffic in city centre to what is necesary.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Trafic::LevelOne),
-                (Neighbourhood::Suburbs, Trafic::LevelOne),
-                (Neighbourhood::Port, Trafic::LevelOne),
-                (Neighbourhood::RingRoad, Trafic::LevelThree),
-                (Neighbourhood::CityCentre, Trafic::LevelFive),
-                (Neighbourhood::Airport, Trafic::LevelOne),
+                (Neighbourhood::IndustryPark, Traffic::LevelOne),
+                (Neighbourhood::Suburbs, Traffic::LevelOne),
+                (Neighbourhood::Port, Traffic::LevelOne),
+                (Neighbourhood::RingRoad, Traffic::LevelThree),
+                (Neighbourhood::CityCentre, Traffic::LevelFive),
+                (Neighbourhood::Airport, Traffic::LevelOne),
             ],
         ),
         SituationCard::new(
@@ -38,12 +38,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "Gas leakage in Industry Park zone. Health and explosion risk.".to_string(),
             "Evacuate people and dangerous goods from the area. Safety comes first.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Trafic::LevelOne),
-                (Neighbourhood::Suburbs, Trafic::LevelOne),
-                (Neighbourhood::Port, Trafic::LevelOne),
-                (Neighbourhood::RingRoad, Trafic::LevelThree),
-                (Neighbourhood::CityCentre, Trafic::LevelOne),
-                (Neighbourhood::Airport, Trafic::LevelOne),
+                (Neighbourhood::IndustryPark, Traffic::LevelOne),
+                (Neighbourhood::Suburbs, Traffic::LevelOne),
+                (Neighbourhood::Port, Traffic::LevelOne),
+                (Neighbourhood::RingRoad, Traffic::LevelThree),
+                (Neighbourhood::CityCentre, Traffic::LevelOne),
+                (Neighbourhood::Airport, Traffic::LevelOne),
             ],
         ),
         SituationCard::new(
@@ -52,12 +52,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "Accident in ring road section I6 - I7. Traffic blocked in east-bound lanes".to_string(),
             "Support emergency services. Coordinate with other zones.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Trafic::LevelOne),
-                (Neighbourhood::Suburbs, Trafic::LevelOne),
-                (Neighbourhood::Port, Trafic::LevelThree),
-                (Neighbourhood::RingRoad, Trafic::LevelFive),
-                (Neighbourhood::CityCentre, Trafic::LevelThree),
-                (Neighbourhood::Airport, Trafic::LevelOne),
+                (Neighbourhood::IndustryPark, Traffic::LevelOne),
+                (Neighbourhood::Suburbs, Traffic::LevelOne),
+                (Neighbourhood::Port, Traffic::LevelThree),
+                (Neighbourhood::RingRoad, Traffic::LevelFive),
+                (Neighbourhood::CityCentre, Traffic::LevelThree),
+                (Neighbourhood::Airport, Traffic::LevelOne),
             ],
         ),
         SituationCard::new(
@@ -66,12 +66,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "No train from City Centre to Airport during rush hours. Delays for passengers.".to_string(),
             "Passengers reach airport in time.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Trafic::LevelOne),
-                (Neighbourhood::Suburbs, Trafic::LevelTwo),
-                (Neighbourhood::Port, Trafic::LevelOne),
-                (Neighbourhood::RingRoad, Trafic::LevelFour),
-                (Neighbourhood::CityCentre, Trafic::LevelOne),
-                (Neighbourhood::Airport, Trafic::LevelFour),
+                (Neighbourhood::IndustryPark, Traffic::LevelOne),
+                (Neighbourhood::Suburbs, Traffic::LevelTwo),
+                (Neighbourhood::Port, Traffic::LevelOne),
+                (Neighbourhood::RingRoad, Traffic::LevelFour),
+                (Neighbourhood::CityCentre, Traffic::LevelOne),
+                (Neighbourhood::Airport, Traffic::LevelFour),
             ],
         ),
     ];
