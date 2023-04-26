@@ -192,7 +192,7 @@ paths:
           description: The ID of the player
       responses:
         200:
-          description: The player_id was checked in. This will return even if the player_id does not exist.
+          description: The player_id was checked in.
         500:
           description: Internal server error, with error message
           content:
