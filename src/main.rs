@@ -186,7 +186,7 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
 }
 
 #[get("/resources/situationcards")]
-async fn get_situation_cards() -> impl Responder {
+async fn get_situation_cards(shared_data: web::Data<AppData>) -> impl Responder {
     HttpResponse::Ok().json(json!(situation_card_list_wrapper()))
 }
 
@@ -221,6 +221,7 @@ macro_rules! server_app_with_data {
                 .service(leave_game)
                 .service(test)
                 .service(start_new_game)
+                .service(get_situation_cards)
         }
     }
 }
@@ -249,7 +250,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap, InGameID, SituationCard, Neighbourhood, Traffic};
+    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap, InGameID, SituationCard, Neighbourhood, Traffic, SituationCardList};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
@@ -613,5 +614,23 @@ mod tests {
         );
         gamestate.update_situation_card(situation_card);
         assert!(gamestate.situation_card != None);
+    }
+    #[actix_web::test]
+    async fn test_get_situation_card_list() {
+        let internal_situation_card_list = situation_card_list_wrapper();
+
+        let app_data = create_game_controller();
+        
+        let app = test::init_service(server_app_with_data!(app_data)).await;
+
+        let situation_card_list_req = test::TestRequest::get().uri("/resources/situationcards").to_request();
+        let situation_card_list_resp = app.call(situation_card_list_req).await.unwrap();
+        assert_eq!(situation_card_list_resp.status(), StatusCode::OK);
+        let situation_card_list: SituationCardList = test::read_body_json(situation_card_list_resp).await;
+
+        assert!(!situation_card_list.situation_cards.is_empty())
+
+        //assert_eq(situation_card_list, internal_situation_card_list);
+
     }
 }
