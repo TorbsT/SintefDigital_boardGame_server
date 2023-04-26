@@ -582,4 +582,23 @@ mod tests {
         assert_eq!(situation_card_list, internal_situation_card_list);
 
     }
+    #[actix_web::test]
+    async fn test_assign_situation_card() {
+        let app_data = create_game_controller();
+        let app = test::init_service(server_app_with_data!(app_data)).await;
+
+        let mut player = make_player!(app, "P1");
+
+        let game_state: GameState = make_new_lobby_with_player!(app, player, "Lobby1");
+
+        let situation_card_list = situation_card_list_wrapper();
+        let situation_card = situation_card_list.situation_cards.get(0);
+        
+        //TODO: Fix this error
+        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::AssignSituationCard, related_role: None, related_node_id: None, situation_card: situation_card};
+        let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
+        let input_resp = app.call(input_req).await.unwrap();
+        assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+
+    }
 }

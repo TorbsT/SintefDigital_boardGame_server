@@ -48,6 +48,7 @@ pub enum PlayerInputType {
     UndoAction,
     ModifyDistrict,
     StartGame,
+    AssignSituationCard,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]

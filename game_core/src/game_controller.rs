@@ -339,6 +339,11 @@ impl GameController {
                 Ok(_) => return Ok(()),
                 Err(e) => return Err(e),
             }
+        } else if input.input_type == PlayerInputType::AssignSituationCard {
+            match Self::apply_input(input, game) {
+                Ok(_) => return Ok(()),
+                Err(e) => return Err(e),
+            }
         }
 
         Self::add_action(input, game)
@@ -372,6 +377,10 @@ impl GameController {
             }
             PlayerInputType::StartGame => {
                 game.is_lobby = false;
+                Ok(())
+            }
+            PlayerInputType::AssignSituationCard => {
+                game.situation_card = input.situation_card;
                 Ok(())
             }
         }
