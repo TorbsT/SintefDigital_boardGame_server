@@ -1,6 +1,7 @@
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
+    situation_card_list::situation_card_list_wrapper,
     game_data::{NewGameInfo, Player, PlayerInput, GameState, GameStartInput, InGameID},
 };
 use serde::{Serialize, Deserialize};
@@ -184,9 +185,10 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
     HttpResponse::Ok().json(json!(lobbies))
 }
 
-//TODO: add GET request to fetch all sitation cards
 #[get("/resources/situationcards")]
-async fn get_situation_cards(shared_data: web::Data<AppData>) -> impl Responder {}
+async fn get_situation_cards() -> impl Responder {
+    HttpResponse::Ok().json(json!(situation_card_list_wrapper()))
+}
 
 #[delete("/games/leave/{player_id}")]
 async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
