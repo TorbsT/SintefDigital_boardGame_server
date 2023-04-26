@@ -186,7 +186,7 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
 }
 
 #[get("/resources/situationcards")]
-async fn get_situation_cards(shared_data: web::Data<AppData>) -> impl Responder {
+async fn get_situation_cards() -> impl Responder {
     HttpResponse::Ok().json(json!(situation_card_list_wrapper()))
 }
 
