@@ -47,6 +47,7 @@ pub enum PlayerInputType {
     NextTurn,
     UndoAction,
     ModifyDistrict,
+    StartGame,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -65,6 +66,8 @@ pub enum VehicleType {
     Buss,
     Emergency,
     Industrial,
+    Normal,
+    Geolocation,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -125,13 +128,6 @@ pub struct NodeMap {
 pub struct NewGameInfo {
     pub host: Player,
     pub name: String,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
-pub struct GameStartInput {
-    pub player_id: PlayerID,
-    pub in_game_id: InGameID,
-    pub game_id: GameID,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -409,8 +405,11 @@ lazy_static! {
 impl NeighbourRelationship {
     #[must_use]
     pub fn new(id: NeighbourRelationshipID, neighbourhood_enum: Neighbourhood) -> Self {
-        let group = GROUP_COST_MAP.lock().unwrap();
-        let group_cost: MovementCost = *group.get(&neighbourhood_enum).unwrap();
+        let group_cost: MovementCost = *GROUP_COST_MAP
+            .lock()
+            .unwrap()
+            .get(&neighbourhood_enum)
+            .unwrap();
         let neighbourhood = neighbourhood_enum;
         Self {
             id,
@@ -448,8 +447,10 @@ impl NodeMap {
         neighbourhood_enum: Neighbourhood,
         value: MovementCost,
     ) {
-        let mut group_cost_map_reference = GROUP_COST_MAP.lock().unwrap();
-        group_cost_map_reference.insert(neighbourhood_enum, value);
+        GROUP_COST_MAP
+            .lock()
+            .unwrap()
+            .insert(neighbourhood_enum, value);
         for node in &mut self.map {
             for neighbour_relationship in &mut node.neighbours {
                 if neighbour_relationship.1.neighbourhood == neighbourhood_enum {
@@ -751,17 +752,6 @@ impl NodeMap {
                 },
                 |node| Ok(node.clone()),
             )
-    }
-}
-
-impl GameStartInput {
-    #[must_use]
-    pub const fn new(player_id: PlayerID, in_game_id: InGameID, game_id: GameID) -> Self {
-        Self {
-            player_id,
-            in_game_id,
-            game_id,
-        }
     }
 }
 

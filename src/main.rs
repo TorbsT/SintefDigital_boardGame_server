@@ -1,12 +1,14 @@
+#![allow(unknown_lints, clippy::significant_drop_tightening)]
+
 use actix_cors::Cors;
 use game_core::{
     game_controller::GameController,
     situation_card_list::situation_card_list_wrapper,
-    game_data::{NewGameInfo, Player, PlayerInput, GameState, GameStartInput, InGameID},
+    game_data::{NewGameInfo, Player, PlayerInput, GameState},
 };
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
-use std::{sync::{Arc, Mutex, RwLock}};
+use std::sync::{Arc, Mutex, RwLock};
 
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
@@ -66,45 +68,6 @@ async fn create_new_game(
         }
         Err(e) => {
             HttpResponse::InternalServerError().body(format!("Failed to create game because {e}"))
-        }
-    }
-}
-
-#[post("/start/game")]
-async fn start_new_game(
-    json_data: web::Json<GameStartInput>,
-    shared_data: web::Data<AppData>,
-) -> impl Responder {
-    let game_start_input: GameStartInput = json_data.into_inner();
-    let data = shared_data.game_controller.lock();
-    if game_start_input.in_game_id != InGameID::Orchestrator {
-        return HttpResponse::InternalServerError().body("Failed to start game because: Player is not orchestrator");
-    }
-    match data {
-        Ok(mut game_controller) => {
-            let games = game_controller.get_created_games();
-            let mut gamestate: GameState = GameState::new("null".to_owned(), 0);
-            for game in games {
-                if game.id == game_start_input.game_id {
-                    gamestate = game;
-                    break;
-                }
-            }
-            if gamestate.name == "null" && gamestate.id == 0 {
-                return HttpResponse::InternalServerError().body("Failed to start game because: Failed to find game");
-            }
-            if !gamestate.is_lobby {
-                return HttpResponse::InternalServerError().body("Failed to start game because: Game already started");
-            }
-            let game_result = game_controller.start_game(&mut gamestate);
-            match game_result {
-                Ok(g) => HttpResponse::Ok().json(json!(g)),
-                Err(e) => HttpResponse::InternalServerError()
-                    .body(format!("Failed to start game because: {e}")),
-            }
-        }
-        Err(e) => {
-            HttpResponse::InternalServerError().body(format!("Failed to start game because {e}"))
         }
     }
 }
@@ -199,6 +162,18 @@ async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) 
     HttpResponse::Ok().body("")
 }
 
+#[get("/check-in/{player_id}")]
+async fn player_check_in(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
+    let Ok(mut game_controller) = shared_data.game_controller.lock() else {
+        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
+    };
+    let result = game_controller.update_check_in_and_remove_inactive(*player_id);
+    match result {
+        Ok(_) => HttpResponse::Ok().body(""),
+        Err(e) => HttpResponse::InternalServerError().body(e),
+    }
+}
+
 macro_rules! server_app_with_data {
     ($x:expr) => {
         {
@@ -220,8 +195,8 @@ macro_rules! server_app_with_data {
                 .service(join_game)
                 .service(leave_game)
                 .service(test)
-                .service(start_new_game)
                 .service(get_situation_cards)
+                .service(player_check_in)
         }
     }
 }
@@ -570,30 +545,6 @@ mod tests {
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
-    #[allow(unused_must_use)]
-    #[actix_web::test]
-    async fn test_starting_game() {
-
-        let mut gamestate = GameState::new("Test".to_string(), 42);
-        gamestate.assign_player_to_game(Player::new(0, "Player0".to_string()));
-        gamestate.assign_player_to_game(Player::new(1, "Player1".to_string()));
-        gamestate.assign_player_to_game(Player::new(2, "Player2".to_string()));
-        gamestate.players[0].in_game_id = InGameID::Orchestrator;
-        gamestate.players[1].in_game_id = InGameID::PlayerOne;
-        gamestate.players[2].in_game_id = InGameID::PlayerTwo;
-
-        let game_start_input: GameStartInput =
-            GameStartInput::new(gamestate.players[0].unique_id, gamestate.players[0].in_game_id, gamestate.id);
-        
-        let app_data = create_game_controller();
-        app_data.game_controller.lock().unwrap().games.push(gamestate);
-        let app =
-            test::init_service(App::new().app_data(app_data.clone()).service(start_new_game)).await;
-
-        let start_req = test::TestRequest::post().uri("/start/game").set_json(&game_start_input).to_request();
-        let start_resp = app.call(start_req).await.unwrap();
-        assert_eq!(start_resp.status(), StatusCode::OK);
-    }
     #[actix_web::test]
     async fn test_get_situation_card() {
         let mut gamestate = GameState::new("Test".to_string(), 42);

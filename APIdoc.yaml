@@ -179,6 +179,27 @@ paths:
             text/plain:
               schema:
                 type: string
+  /check-in/{player_id}:
+    get:
+      summary: Let's the server know that the player_id is still used
+      description: Let's the server know that the player_id is still used
+      parameters:
+        - in: path
+          name: player_id
+          schema:
+            type: integer
+          required: true
+          description: The ID of the player
+      responses:
+        200:
+          description: The player_id was checked in.
+        500:
+          description: Internal server error, with error message
+          content:
+            text/plain:
+              schema:
+                type: string
+          
 
 components:
   schemas:
@@ -218,6 +239,7 @@ components:
         - NextTurn
         - UndoAction
         - ModifyDistrict
+        - StartGame
     VehicleType:
       type: string
       enum:
@@ -225,6 +247,8 @@ components:
         - Buss
         - Emergency
         - Industrial
+        - Normal
+        - Geolocation
     DistrictModifierType:
       type: string
       enum:
