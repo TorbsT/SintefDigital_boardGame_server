@@ -181,13 +181,20 @@ impl GameController {
         }
     }
 
-    pub fn update_check_in_and_remove_inactive(&mut self, player_id: PlayerID) {
+    pub fn update_check_in_and_remove_inactive(
+        &mut self,
+        player_id: PlayerID,
+    ) -> Result<(), String> {
+        if self.unique_ids.iter().all(|(id, _)| id != &player_id) {
+            return Err(format!("Player with id {} does not exist!", player_id));
+        }
         for mut id in self.unique_ids.iter_mut() {
             if id.0 == player_id {
                 id.1 = Instant::now();
             }
         }
         self.remove_inactive_ids();
+        Ok(())
     }
 
     fn remove_inactive_ids(&mut self) {
