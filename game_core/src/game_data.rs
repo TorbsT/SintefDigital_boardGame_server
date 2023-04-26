@@ -312,6 +312,10 @@ impl GameState {
     pub const fn get_starting_player_movement_value() -> MovementValue {
         START_MOVEMENT_AMOUNT
     }
+
+    pub fn assign_random_situation_card_to_players(&mut self) {
+        todo!()
+    }
 }
 
 impl InGameID {

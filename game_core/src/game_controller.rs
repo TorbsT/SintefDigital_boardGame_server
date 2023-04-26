@@ -90,9 +90,10 @@ impl GameController {
         }
         match can_start_game {
             true => {
-                for mut player in &gamestate.players {
-                    player.remaining_moves = GameState::get_starting_player_movement_value();
-                }
+                gamestate.players.iter_mut().for_each(|player| {
+                    player.remaining_moves = GameState::get_starting_player_movement_value()
+                });
+                gamestate.assign_random_situation_card_to_players();
                 return Ok(gamestate.clone());
             }
             false => Err(errormessage),
@@ -176,7 +177,8 @@ impl GameController {
             if game.players.iter().any(|p| p.unique_id == player_id) {
                 game.remove_player_with_id(player_id);
             }
-        })
+        });
+        self.remove_empty_games();
     }
 
     pub fn join_game(&mut self, game_id: i32, player: Player) -> Result<GameState, String> {
@@ -228,6 +230,11 @@ impl GameController {
     fn remove_inactive_ids(&mut self) {
         self.unique_ids
             .retain(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT);
+        let remaining_ids = self.unique_ids.clone();
+        self.games.iter_mut().for_each(|game| {
+            game.players
+                .retain(|player| remaining_ids.iter().any(|(id, _)| &player.unique_id == id));
+        });
     }
 
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
