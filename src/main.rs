@@ -161,10 +161,11 @@ async fn player_check_in(player_id: web::Path<i32>, shared_data: web::Data<AppDa
     let Ok(mut game_controller) = shared_data.game_controller.lock() else {
         return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
     };
-    match game_controller.update_check_in_and_remove_inactive(*player_id) {
-        Ok(_) => return HttpResponse::Ok().body(""),
-        Err(e) => return HttpResponse::InternalServerError().body(e),
-    };
+    let result = game_controller.update_check_in_and_remove_inactive(*player_id);
+    match result {
+        Ok(_) => HttpResponse::Ok().body(""),
+        Err(e) => HttpResponse::InternalServerError().body(e),
+    }
 }
 
 macro_rules! server_app_with_data {
