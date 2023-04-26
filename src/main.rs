@@ -628,9 +628,7 @@ mod tests {
         assert_eq!(situation_card_list_resp.status(), StatusCode::OK);
         let situation_card_list: SituationCardList = test::read_body_json(situation_card_list_resp).await;
 
-        assert!(!situation_card_list.situation_cards.is_empty())
-
-        //assert_eq(situation_card_list, internal_situation_card_list);
+        assert_eq!(situation_card_list, internal_situation_card_list);
 
     }
 }
