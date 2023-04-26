@@ -138,6 +138,7 @@ pub struct PlayerInput {
     pub related_role: Option<InGameID>,
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
+    pub situation_card: Option<SituationCard>
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -841,6 +842,7 @@ impl PlayerInput {
             player_id,
             game_id,
             district_modifier: None,
+            situation_card: None,
         }
     }
 }
