@@ -184,6 +184,10 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
     HttpResponse::Ok().json(json!(lobbies))
 }
 
+//TODO: add GET request to fetch all sitation cards
+#[get("/resources/situationcards")]
+async fn get_situation_cards(shared_data: web::Data<AppData>) -> impl Responder {}
+
 #[delete("/games/leave/{player_id}")]
 async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
