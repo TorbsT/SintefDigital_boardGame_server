@@ -159,6 +159,17 @@ paths:
             text/plain:
               schema:
                 type: string
+  /resources/situationcards:
+    get:
+      summary: Returns a list of every situation card
+      description: Returns a list of every situation card
+      responses:
+        200:
+          description: List of every situation card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SituationCardListStruct"
   /games/leave/{player_id}:
     delete:
       summary: Removes the player from the game
@@ -222,6 +233,14 @@ components:
         - RingRoad
         - CityCentre
         - Airport
+    Traffic:
+      type: string
+      enum:
+        - LevelOne
+        - LevelTwo
+        - LevelThree
+        - LevelFour
+        - LevelFive
     PlayerInputType:
       type: string
       enum:
@@ -266,6 +285,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DistrictModifier"
+        situation_card:
+          $ref: "#/components/schemas/SituationCard"
     Player:
       type: object
       properties:
@@ -303,7 +324,7 @@ components:
         player_id:
           type: integer
         in_game_id:
-          type: integer
+          $ref: "#/components/schemas/InGameID"
         game_id:
           type: integer
     PlayerInput:
@@ -323,6 +344,9 @@ components:
           nullable: true
         district_modifier:
           $ref: "#/components/schemas/DistrictModifier"
+          nullable: true
+        situation_card:
+          $ref: "#/components/schemas/SituationCard"
           nullable: true
     LobbyList:
       type: object
@@ -347,3 +371,36 @@ components:
           type: integer
         delete:
           type: boolean
+    SituationCard:
+      type: object
+      properties:
+        card_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        goal:
+          type: string
+        costs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CostTuple"
+    SituationCardListStruct:
+                  type: object
+                  properties:
+                    situation_card_list:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/SituationCard"
+    CostTuple:
+      type: object
+      description: "Must be a tuple"
+      properties:
+        neighbourhood:
+          $ref: "#/components/schemas/Neighbourhood"
+        traffic:
+          $ref: "#/components/schemas/Traffic"
+
+            
+

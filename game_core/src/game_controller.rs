@@ -334,6 +334,7 @@ impl GameController {
             }
         } else if input.input_type == PlayerInputType::ChangeRole
             || input.input_type == PlayerInputType::StartGame
+            || input.input_type == PlayerInputType::AssignSituationCard
         {
             match Self::apply_input(input, game) {
                 Ok(_) => return Ok(()),
@@ -372,6 +373,10 @@ impl GameController {
             }
             PlayerInputType::StartGame => {
                 game.is_lobby = false;
+                Ok(())
+            }
+            PlayerInputType::AssignSituationCard => {
+                game.situation_card = input.situation_card;
                 Ok(())
             }
         }

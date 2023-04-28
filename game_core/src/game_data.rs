@@ -30,6 +30,15 @@ pub enum InGameID {
     Orchestrator = 6,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum Traffic {
+    LevelOne,
+    LevelTwo,
+    LevelThree,
+    LevelFour,
+    LevelFive,
+}
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Debug)]
 pub enum PlayerInputType {
     Movement,
@@ -39,6 +48,7 @@ pub enum PlayerInputType {
     UndoAction,
     ModifyDistrict,
     StartGame,
+    AssignSituationCard,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -81,6 +91,7 @@ pub struct GameState {
     pub actions: Vec<PlayerInput>,
     #[serde(skip)]
     pub accessed_districts: Vec<Neighbourhood>,
+    pub situation_card: Option<SituationCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -128,6 +139,7 @@ pub struct PlayerInput {
     pub related_role: Option<InGameID>,
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
+    pub situation_card: Option<SituationCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -138,6 +150,20 @@ pub struct DistrictModifier {
     pub associated_movement_value: Option<MovementValue>,
     pub associated_money_value: Option<Money>,
     pub delete: bool,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SituationCard {
+    pub card_id: u8,
+    pub title: String,
+    pub description: String,
+    pub goal: String,
+    pub costs: Vec<(Neighbourhood, Traffic)>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SituationCardList {
+    pub situation_cards: Vec<SituationCard>,
 }
 
 //// =============== Structs impls ===============
@@ -153,6 +179,7 @@ impl GameState {
             current_players_turn: InGameID::Orchestrator,
             district_modifiers: Vec::new(),
             accessed_districts: Vec::new(),
+            situation_card: None,
         }
     }
 
@@ -283,6 +310,10 @@ impl GameState {
         }
 
         self.current_players_turn = next_player_turn;
+    }
+
+    pub fn update_situation_card(&mut self, new_situation_card: SituationCard) {
+        self.situation_card = Some(new_situation_card);
     }
 }
 
@@ -726,6 +757,28 @@ impl NodeMap {
     }
 }
 
+impl SituationCard {
+    #[must_use]
+    pub const fn new(card_id: u8, title: String, description: String, goal: String, costs: Vec<(Neighbourhood, Traffic)>) -> Self {
+        Self {
+            card_id,
+            title,
+            description,
+            goal,
+            costs,
+        }
+    }
+}
+
+impl SituationCardList {
+    #[must_use]
+    pub const fn new(situation_cards: Vec<SituationCard>) -> Self {
+        Self {
+            situation_cards,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -790,6 +843,7 @@ impl PlayerInput {
             player_id,
             game_id,
             district_modifier: None,
+            situation_card: None,
         }
     }
 }
