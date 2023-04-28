@@ -590,15 +590,17 @@ mod tests {
         let mut player = make_player!(app, "P1");
 
         let game_state: GameState = make_new_lobby_with_player!(app, player, "Lobby1");
+        player = game_state.players.iter().find(|p| p.unique_id == player.unique_id).unwrap().clone();
 
         let situation_card_list = situation_card_list_wrapper();
-        let situation_card = situation_card_list.situation_cards.get(0);
-        
+        let situation_card = situation_card_list.situation_cards.get(0).cloned();
+
         //TODO: Fix this error
-        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::AssignSituationCard, related_role: None, related_node_id: None, situation_card: situation_card};
+        println!("{:?}", situation_card);
+        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::AssignSituationCard, related_role: None, related_node_id: None, situation_card};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
-        assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(input_resp.status(), StatusCode::OK);
 
     }
 }
