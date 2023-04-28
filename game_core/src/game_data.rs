@@ -209,7 +209,7 @@ impl GameState {
         Ok(())
     }
 
-    pub fn move_player_with_id(
+    pub fn move_player_with_id( //TODO: Remove district cost from remaining movement
         &mut self,
         player_id: PlayerID,
         to_node_id: NodeID,
