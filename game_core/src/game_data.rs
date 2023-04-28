@@ -31,6 +31,15 @@ pub enum InGameID {
     Orchestrator = 6,
 }
 
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub enum Traffic {
+    LevelOne,
+    LevelTwo,
+    LevelThree,
+    LevelFour,
+    LevelFive,
+}
+
 #[derive(Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Debug)]
 pub enum PlayerInputType {
     Movement,
@@ -39,6 +48,8 @@ pub enum PlayerInputType {
     NextTurn,
     UndoAction,
     ModifyDistrict,
+    StartGame,
+    AssignSituationCard,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -57,6 +68,8 @@ pub enum VehicleType {
     Buss,
     Emergency,
     Industrial,
+    Normal,
+    Geolocation,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -81,6 +94,7 @@ pub struct GameState {
     pub accessed_districts: Vec<Neighbourhood>,
     #[serde(skip)]
     pub map: NodeMap,
+    pub situation_card: Option<SituationCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -122,13 +136,6 @@ pub struct NewGameInfo {
     pub name: String,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct GameStartInput {
-    pub player_id: PlayerID,
-    pub in_game_id: InGameID,
-    pub game_id: GameID,
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PlayerInput {
     pub player_id: PlayerID,
@@ -137,6 +144,7 @@ pub struct PlayerInput {
     pub related_role: Option<InGameID>,
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
+    pub situation_card: Option<SituationCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -157,6 +165,20 @@ pub struct PlayerObjectiveCard {
     pub special_vehicle_type: Option<VehicleType>,
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SituationCard {
+    pub card_id: u8,
+    pub title: String,
+    pub description: String,
+    pub goal: String,
+    pub costs: Vec<(Neighbourhood, Traffic)>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct SituationCardList {
+    pub situation_cards: Vec<SituationCard>,
+}
+
 //// =============== Structs impls ===============
 impl GameState {
     #[must_use]
@@ -171,6 +193,7 @@ impl GameState {
             district_modifiers: Vec::new(),
             accessed_districts: Vec::new(),
             map: NodeMap::new_default(),
+            situation_card: None,
         }
     }
 
@@ -315,6 +338,10 @@ impl GameState {
 
     pub fn assign_random_situation_card_to_players(&mut self) {
         todo!()
+    }
+
+    pub fn update_situation_card(&mut self, new_situation_card: SituationCard) {
+        self.situation_card = Some(new_situation_card);
     }
 }
 
@@ -564,5 +591,30 @@ impl NodeMap {
             .entry(node2.id)
             .or_insert(Vec::new())
             .push(relationship);
+    }
+}
+impl SituationCard {
+    #[must_use]
+    pub const fn new(
+        card_id: u8,
+        title: String,
+        description: String,
+        goal: String,
+        costs: Vec<(Neighbourhood, Traffic)>,
+    ) -> Self {
+        Self {
+            card_id,
+            title,
+            description,
+            goal,
+            costs,
+        }
+    }
+}
+
+impl SituationCardList {
+    #[must_use]
+    pub const fn new(situation_cards: Vec<SituationCard>) -> Self {
+        Self { situation_cards }
     }
 }

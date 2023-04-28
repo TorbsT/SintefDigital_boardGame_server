@@ -213,7 +213,13 @@ impl GameController {
         }
     }
 
-    pub fn update_check_in_and_remove_inactive(&mut self, player_id: PlayerID) {
+    pub fn update_check_in_and_remove_inactive(
+        &mut self,
+        player_id: PlayerID,
+    ) -> Result<(), String> {
+        if self.unique_ids.iter().all(|(id, _)| id != &player_id) {
+            return Err(format!("Player with id {} does not exist!", player_id));
+        }
         for mut id in self.unique_ids.iter_mut() {
             if id.0 == player_id {
                 id.1 = Instant::now();
@@ -221,6 +227,7 @@ impl GameController {
         }
         self.remove_inactive_ids();
         self.remove_empty_games();
+        Ok(())
     }
 
     fn remove_empty_games(&mut self) {
@@ -367,7 +374,10 @@ impl GameController {
                 Some(_) => return Ok(()),
                 None => return Err("There is no action to undo!".to_string()),
             }
-        } else if input.input_type == PlayerInputType::ChangeRole {
+        } else if input.input_type == PlayerInputType::ChangeRole
+            || input.input_type == PlayerInputType::StartGame
+            || input.input_type == PlayerInputType::AssignSituationCard
+        {
             match Self::apply_input(input, game) {
                 Ok(_) => return Ok(()),
                 Err(e) => return Err(e),
@@ -402,6 +412,14 @@ impl GameController {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 }
+            }
+            PlayerInputType::StartGame => {
+                game.is_lobby = false;
+                Ok(())
+            }
+            PlayerInputType::AssignSituationCard => {
+                game.situation_card = input.situation_card;
+                Ok(())
             }
         }
     }
