@@ -157,7 +157,7 @@ pub struct DistrictModifier {
     pub delete: bool,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct PlayerObjectiveCard {
     pub start_node_id: NodeID,
     pub pick_up_node_id: NodeID,
@@ -172,6 +172,7 @@ pub struct SituationCard {
     pub description: String,
     pub goal: String,
     pub costs: Vec<(Neighbourhood, Traffic)>,
+    pub objective_cards: Vec<PlayerObjectiveCard>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -601,6 +602,7 @@ impl SituationCard {
         description: String,
         goal: String,
         costs: Vec<(Neighbourhood, Traffic)>,
+        objective_cards: Vec<PlayerObjectiveCard>,
     ) -> Self {
         Self {
             card_id,
@@ -608,6 +610,7 @@ impl SituationCard {
             description,
             goal,
             costs,
+            objective_cards,
         }
     }
 }
@@ -616,5 +619,21 @@ impl SituationCardList {
     #[must_use]
     pub const fn new(situation_cards: Vec<SituationCard>) -> Self {
         Self { situation_cards }
+    }
+}
+
+impl PlayerObjectiveCard {
+    pub fn new(
+        start_node_id: NodeID,
+        pick_up_node_id: NodeID,
+        drop_off_node_id: NodeID,
+        special_vehicle_type: Option<VehicleType>,
+    ) -> Self {
+        Self {
+            start_node_id,
+            pick_up_node_id,
+            drop_off_node_id,
+            special_vehicle_type,
+        }
     }
 }

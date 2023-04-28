@@ -1,12 +1,13 @@
 use game_data::{SituationCard, SituationCardList};
 
-use crate::game_data::{self, Neighbourhood, Traffic};
+use crate::game_data::{self, Neighbourhood, NodeMap, PlayerObjectiveCard, Traffic};
 
 pub fn situation_card_list_wrapper() -> SituationCardList {
     SituationCardList::new(situation_card_list())
 }
 
 pub fn situation_card_list() -> Vec<SituationCard> {
+    let map = NodeMap::new_default();
     vec![
         SituationCard::new(
             1,
@@ -21,6 +22,7 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::CityCentre, Traffic::LevelOne),
                 (Neighbourhood::Airport, Traffic::LevelOne),
             ],
+            vec![PlayerObjectiveCard::new()]
         ),
         SituationCard::new(
             2,
