@@ -159,6 +159,17 @@ paths:
             text/plain:
               schema:
                 type: string
+  /resources/situationcards:
+    get:
+      summary: Returns a list of every situation card
+      description: Returns a list of every situation card
+      responses:
+        200:
+          description: List of every situation card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SituationCardListStruct"
   /games/leave/{player_id}:
     delete:
       summary: Removes the player from the game
@@ -334,6 +345,9 @@ components:
         district_modifier:
           $ref: "#/components/schemas/DistrictModifier"
           nullable: true
+        situation_card:
+          $ref: "#/components/schemas/SituationCard"
+          nullable: true
     LobbyList:
       type: object
       properties:
@@ -372,6 +386,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CostTuple"
+    SituationCardListStruct:
+                  type: object
+                  properties:
+                    situation_card_list:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/SituationCard"
     CostTuple:
       type: object
       description: "Must be a tuple"
