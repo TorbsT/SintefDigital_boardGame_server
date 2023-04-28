@@ -334,12 +334,8 @@ impl GameController {
             }
         } else if input.input_type == PlayerInputType::ChangeRole
             || input.input_type == PlayerInputType::StartGame
+            || input.input_type == PlayerInputType::AssignSituationCard
         {
-            match Self::apply_input(input, game) {
-                Ok(_) => return Ok(()),
-                Err(e) => return Err(e),
-            }
-        } else if input.input_type == PlayerInputType::AssignSituationCard {
             match Self::apply_input(input, game) {
                 Ok(_) => return Ok(()),
                 Err(e) => return Err(e),
