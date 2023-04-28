@@ -118,7 +118,7 @@ async fn join_game(game_id: web::Path<i32>, player: web::Json<Player>, shared_da
 }
 
 #[post("/games/input")]
-async fn handle_player_input( //TODO: Orchestrator must be able to assign situation card to gamestate
+async fn handle_player_input(
     json_data: web::Json<PlayerInput>,
     shared_data: web::Data<AppData>,
 ) -> impl Responder {
@@ -430,7 +430,6 @@ mod tests {
             assert!(lobby.players.iter().any(|p| p.unique_id == player1.unique_id || p.unique_id == player2.unique_id || p.unique_id == player3.unique_id)); 
         });
 
-        // TODO: Once the orchestrator can start a game, we need to check if a started game does not return
     }
 
     // Lag test her
@@ -595,8 +594,6 @@ mod tests {
         let situation_card_list = situation_card_list_wrapper();
         let situation_card = situation_card_list.situation_cards.get(0).cloned();
 
-        //TODO: Fix this error
-        println!("{:?}", situation_card);
         let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::AssignSituationCard, related_role: None, related_node_id: None, situation_card};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();

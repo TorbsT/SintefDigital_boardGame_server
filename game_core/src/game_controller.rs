@@ -70,7 +70,7 @@ impl GameController {
         Ok(new_game)
     }
 
-    pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> { //TODO: implement situation card change
+    pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         self.remove_inactive_ids();
 
         if !self
