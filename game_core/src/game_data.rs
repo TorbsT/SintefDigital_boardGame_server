@@ -162,7 +162,7 @@ pub struct PlayerObjectiveCard {
     pub start_node_id: NodeID,
     pub pick_up_node_id: NodeID,
     pub drop_off_node_id: NodeID,
-    pub special_vehicle_type: Option<VehicleType>,
+    pub special_vehicle_types: Vec<VehicleType>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -627,13 +627,13 @@ impl PlayerObjectiveCard {
         start_node_id: NodeID,
         pick_up_node_id: NodeID,
         drop_off_node_id: NodeID,
-        special_vehicle_type: Option<VehicleType>,
+        special_vehicle_types: Vec<VehicleType>,
     ) -> Self {
         Self {
             start_node_id,
             pick_up_node_id,
             drop_off_node_id,
-            special_vehicle_type,
+            special_vehicle_types,
         }
     }
 }

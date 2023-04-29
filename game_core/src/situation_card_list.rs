@@ -1,6 +1,6 @@
 use game_data::{SituationCard, SituationCardList};
 
-use crate::game_data::{self, Neighbourhood, NodeMap, PlayerObjectiveCard, Traffic};
+use crate::game_data::{self, Neighbourhood, NodeMap, PlayerObjectiveCard, Traffic, VehicleType};
 
 pub fn situation_card_list_wrapper() -> SituationCardList {
     SituationCardList::new(situation_card_list())
@@ -22,7 +22,14 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::CityCentre, Traffic::LevelOne),
                 (Neighbourhood::Airport, Traffic::LevelOne),
             ],
-            vec![PlayerObjectiveCard::new()]
+            vec![
+                PlayerObjectiveCard::new(13, 7, 15, Vec::new()),
+                PlayerObjectiveCard::new(8, 11, 27, vec![VehicleType::Electric]),
+                PlayerObjectiveCard::new(15, 23, 2, Vec::new()),
+                PlayerObjectiveCard::new(17, 22, 14, vec![VehicleType::Electric]),
+                PlayerObjectiveCard::new(5, 12, 28, Vec::new()),
+                PlayerObjectiveCard::new(11, 14, 24, Vec::new()),
+            ],
         ),
         SituationCard::new(
             2,
@@ -37,6 +44,14 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::CityCentre, Traffic::LevelFive),
                 (Neighbourhood::Airport, Traffic::LevelOne),
             ],
+            vec![
+                PlayerObjectiveCard::new(8, 14, 12, Vec::new()),
+                PlayerObjectiveCard::new(14, 28, 12, Vec::new()),
+                PlayerObjectiveCard::new(24, 22, 12, Vec::new()),
+                PlayerObjectiveCard::new(22, 10, 12, vec![VehicleType::Electric]),
+                PlayerObjectiveCard::new(5, 13, 28, Vec::new()),
+                PlayerObjectiveCard::new(23, 10, 2, Vec::new()),
+            ]
         ),
         SituationCard::new(
             3,
@@ -51,6 +66,14 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::CityCentre, Traffic::LevelOne),
                 (Neighbourhood::Airport, Traffic::LevelOne),
             ],
+            vec![
+                PlayerObjectiveCard::new(4, 0, 10, vec![VehicleType::Emergency]),
+                PlayerObjectiveCard::new(9, 0, 17, vec![VehicleType::Industrial, VehicleType::Emergency]),
+                PlayerObjectiveCard::new(15, 0, 15, vec![VehicleType::Emergency]),
+                PlayerObjectiveCard::new(5, 1, 17, vec![VehicleType::Industrial, VehicleType::Emergency]),
+                PlayerObjectiveCard::new(24, 22, 10, Vec::new()),
+                PlayerObjectiveCard::new(5, 5, 23, Vec::new()),
+            ]
         ),
         SituationCard::new(
             4,
@@ -65,6 +88,14 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::CityCentre, Traffic::LevelThree),
                 (Neighbourhood::Airport, Traffic::LevelOne),
             ],
+            vec![
+                PlayerObjectiveCard::new(15, 19, 14, vec![VehicleType::Emergency]),
+                PlayerObjectiveCard::new(14, 19, 14, vec![VehicleType::Emergency]),
+                PlayerObjectiveCard::new(16, 16, 28, Vec::new()),
+                PlayerObjectiveCard::new(17, 20, 28, vec![VehicleType::Electric]),
+                PlayerObjectiveCard::new(27, 27, 15, vec![VehicleType::Electric]),
+                PlayerObjectiveCard::new(23, 24, 7, Vec::new()),
+            ]
         ),
         SituationCard::new(
             5,
@@ -79,6 +110,14 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 (Neighbourhood::CityCentre, Traffic::LevelOne),
                 (Neighbourhood::Airport, Traffic::LevelFour),
             ],
+            vec![
+                PlayerObjectiveCard::new(23, 10, 27, vec![VehicleType::Electric]),
+                PlayerObjectiveCard::new(0, 2, 27, Vec::new()),
+                PlayerObjectiveCard::new(5, 7, 28, Vec::new()),
+                PlayerObjectiveCard::new(16, 10, 28, Vec::new()),
+                PlayerObjectiveCard::new(14, 10, 27, Vec::new()),
+                PlayerObjectiveCard::new(23, 24, 8, Vec::new()),
+            ]
         ),
     ]
 }
