@@ -304,6 +304,8 @@ components:
           nullable: true
         remaining_moves:
           type: integer
+        objective_card:
+          $ref: "#/components/schemas/PlayerObjectiveCard"
     Node:
       type: object
       properties:
@@ -386,6 +388,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/CostTuple"
+        objective_cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerObjectiveCard"
     SituationCardListStruct:
                   type: object
                   properties:
@@ -401,6 +407,21 @@ components:
           $ref: "#/components/schemas/Neighbourhood"
         traffic:
           $ref: "#/components/schemas/Traffic"
-
+    PlayerObjectiveCard:
+      type: object
+      properties:
+        start_node_id: 
+          type: integer
+        pick_up_node_id: 
+          type: integer
+        drop_off_node_id: 
+          type: integer
+        special_vehicle_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleType"
+        picked_package_up: 
+          type: boolean
+        dropped_package_off: 
+          type: boolean
             
-
