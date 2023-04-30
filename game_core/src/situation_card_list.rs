@@ -1,6 +1,6 @@
 use game_data::{SituationCard, SituationCardList};
 
-use crate::game_data::{self, Neighbourhood, PlayerObjectiveCard, Traffic, VehicleType};
+use crate::game_data::{self, CostTuple, Neighbourhood, PlayerObjectiveCard, Traffic, VehicleType};
 
 pub fn situation_card_list_wrapper() -> SituationCardList {
     SituationCardList::new(situation_card_list())
@@ -14,12 +14,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "Regular traffic in all zones.".to_string(),
             "Facilitate transport operations. Rewards green behavior.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Traffic::LevelOne),
-                (Neighbourhood::Suburbs, Traffic::LevelOne),
-                (Neighbourhood::Port, Traffic::LevelOne),
-                (Neighbourhood::RingRoad, Traffic::LevelOne),
-                (Neighbourhood::CityCentre, Traffic::LevelOne),
-                (Neighbourhood::Airport, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::IndustryPark, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Suburbs, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Port, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::RingRoad, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::CityCentre, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
                 PlayerObjectiveCard::new(13, 7, 15, Vec::new()),
@@ -36,12 +36,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "City centre is crowded. Reduced capacity for traffic.".to_string(),
             "Facilitate transport of people to concert. Limit other traffic in city centre to what is necesary.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Traffic::LevelOne),
-                (Neighbourhood::Suburbs, Traffic::LevelOne),
-                (Neighbourhood::Port, Traffic::LevelOne),
-                (Neighbourhood::RingRoad, Traffic::LevelThree),
-                (Neighbourhood::CityCentre, Traffic::LevelFive),
-                (Neighbourhood::Airport, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::IndustryPark, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Suburbs, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Port, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::RingRoad, Traffic::LevelThree),
+                CostTuple::new(Neighbourhood::CityCentre, Traffic::LevelFive),
+                CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
                 PlayerObjectiveCard::new(8, 14, 12, Vec::new()),
@@ -58,12 +58,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "Gas leakage in Industry Park zone. Health and explosion risk.".to_string(),
             "Evacuate people and dangerous goods from the area. Safety comes first.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Traffic::LevelOne),
-                (Neighbourhood::Suburbs, Traffic::LevelOne),
-                (Neighbourhood::Port, Traffic::LevelOne),
-                (Neighbourhood::RingRoad, Traffic::LevelThree),
-                (Neighbourhood::CityCentre, Traffic::LevelOne),
-                (Neighbourhood::Airport, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::IndustryPark, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Suburbs, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Port, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::RingRoad, Traffic::LevelThree),
+                CostTuple::new(Neighbourhood::CityCentre, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
                 PlayerObjectiveCard::new(4, 0, 10, vec![VehicleType::Emergency]),
@@ -80,12 +80,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "Accident in ring road section I6 - I7. Traffic blocked in east-bound lanes".to_string(),
             "Support emergency services. Coordinate with other zones.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Traffic::LevelOne),
-                (Neighbourhood::Suburbs, Traffic::LevelOne),
-                (Neighbourhood::Port, Traffic::LevelThree),
-                (Neighbourhood::RingRoad, Traffic::LevelFive),
-                (Neighbourhood::CityCentre, Traffic::LevelThree),
-                (Neighbourhood::Airport, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::IndustryPark, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Suburbs, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Port, Traffic::LevelThree),
+                CostTuple::new(Neighbourhood::RingRoad, Traffic::LevelFive),
+                CostTuple::new(Neighbourhood::CityCentre, Traffic::LevelThree),
+                CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
                 PlayerObjectiveCard::new(15, 19, 14, vec![VehicleType::Emergency]),
@@ -102,12 +102,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             "No train from City Centre to Airport during rush hours. Delays for passengers.".to_string(),
             "Passengers reach airport in time.".to_string(),
             vec![
-                (Neighbourhood::IndustryPark, Traffic::LevelOne),
-                (Neighbourhood::Suburbs, Traffic::LevelTwo),
-                (Neighbourhood::Port, Traffic::LevelOne),
-                (Neighbourhood::RingRoad, Traffic::LevelFour),
-                (Neighbourhood::CityCentre, Traffic::LevelOne),
-                (Neighbourhood::Airport, Traffic::LevelFour),
+                CostTuple::new(Neighbourhood::IndustryPark, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Suburbs, Traffic::LevelTwo),
+                CostTuple::new(Neighbourhood::Port, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::RingRoad, Traffic::LevelFour),
+                CostTuple::new(Neighbourhood::CityCentre, Traffic::LevelOne),
+                CostTuple::new(Neighbourhood::Airport, Traffic::LevelFour),
             ],
             vec![
                 PlayerObjectiveCard::new(23, 10, 27, vec![VehicleType::Electric]),

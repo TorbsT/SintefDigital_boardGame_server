@@ -8,8 +8,9 @@ use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
     game_data::{
-        GameID, GameState, InGameID, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
-        MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
+        GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
+        SituationCardList, MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT,
+        MAX_TOLL_MODIFIER_COUNT,
     },
     rule_checker::RuleChecker,
 };
@@ -69,52 +70,6 @@ impl GameController {
 
         self.games.push(new_game.clone());
         Ok(new_game)
-    }
-
-    pub fn start_game(&mut self, gamestate: &mut GameState) -> Result<GameState, String> {
-        let mut can_start_game = false;
-        let mut errormessage =
-            String::from("Unable to start game because lobby does not have an orchestrator");
-        for player in gamestate.players.clone() {
-            if player.in_game_id == InGameID::Orchestrator {
-                if gamestate.players.len() < 2 {
-                    errormessage =
-                        "Unable to start game because there are not enough players".to_string();
-                    break;
-                };
-                if gamestate.situation_card.is_none() {
-                    errormessage =
-                        "Unable to start game because a situation card is not chosen".to_string();
-                    break;
-                }
-                match gamestate.assign_random_situation_card_to_players() {
-                    Ok(_) => (),
-                    Err(e) => {
-                        errormessage = e;
-                        break;
-                    }
-                }
-                match gamestate.update_objective_status() {
-                    Ok(_) => (),
-                    Err(e) => {
-                        errormessage = e;
-                        break;
-                    }
-                }
-                can_start_game = true;
-                gamestate.is_lobby = false;
-                break;
-            }
-        }
-        match can_start_game {
-            true => {
-                gamestate.players.iter_mut().for_each(|player| {
-                    player.remaining_moves = GameState::get_starting_player_movement_value()
-                });
-                Ok(gamestate.clone())
-            }
-            false => Err(errormessage),
-        }
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
@@ -430,13 +385,21 @@ impl GameController {
                     Err(e) => Err(e),
                 }
             }
-            PlayerInputType::StartGame => {
-                game.is_lobby = false;
-                Ok(())
-            }
+            PlayerInputType::StartGame => match game.start_game() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
+            },
             PlayerInputType::AssignSituationCard => {
-                game.situation_card = input.situation_card;
-                Ok(())
+                let Some(id) = input.situation_card_id else {
+                    return Err("There was no situation card id in the input, maybe deserialization problem?".to_string());
+                };
+                match SituationCardList::get_default_situation_card_by_id(id) {
+                    Ok(card) => {
+                        game.situation_card = Some(card);
+                        Ok(())
+                    }
+                    Err(e) => Err(e),
+                }
             }
         }
     }

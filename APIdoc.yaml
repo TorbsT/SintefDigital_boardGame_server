@@ -45,28 +45,6 @@ paths:
             text/plain:
               schema:
                 type: string
-  /start/game:
-    post:
-      summary: Start game
-      description: Start game
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GameStartInput"
-      responses:
-        200:
-          description: The new game state
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GameState"
-        500:
-          description: Internal server error, with error message
-          content:
-            text/plain:
-              schema:
-                type: string
   /games/game/{id}:
     get:
       summary: Get the game state
@@ -129,7 +107,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string 
+                type: string
   /games/join/{game_id}:
     post:
       summary: Join a game
@@ -210,7 +188,6 @@ paths:
             text/plain:
               schema:
                 type: string
-          
 
 components:
   schemas:
@@ -320,15 +297,6 @@ components:
           $ref: "#/components/schemas/Player"
         name:
           type: string
-    GameStartInput:
-      type: object
-      properties:
-        player_id:
-          type: integer
-        in_game_id:
-          $ref: "#/components/schemas/InGameID"
-        game_id:
-          type: integer
     PlayerInput:
       type: object
       properties:
@@ -347,8 +315,8 @@ components:
         district_modifier:
           $ref: "#/components/schemas/DistrictModifier"
           nullable: true
-        situation_card:
-          $ref: "#/components/schemas/SituationCard"
+        situation_card_id:
+          type: integer
           nullable: true
     LobbyList:
       type: object
@@ -393,15 +361,14 @@ components:
           items:
             $ref: "#/components/schemas/PlayerObjectiveCard"
     SituationCardListStruct:
-                  type: object
-                  properties:
-                    situation_card_list:
-                      type: array
-                      items:
-                        $ref: "#/components/schemas/SituationCard"
+      type: object
+      properties:
+        situation_card_list:
+          type: array
+          items:
+            $ref: "#/components/schemas/SituationCard"
     CostTuple:
       type: object
-      description: "Must be a tuple"
       properties:
         neighbourhood:
           $ref: "#/components/schemas/Neighbourhood"
@@ -410,18 +377,17 @@ components:
     PlayerObjectiveCard:
       type: object
       properties:
-        start_node_id: 
+        start_node_id:
           type: integer
-        pick_up_node_id: 
+        pick_up_node_id:
           type: integer
-        drop_off_node_id: 
+        drop_off_node_id:
           type: integer
         special_vehicle_types:
           type: array
           items:
             $ref: "#/components/schemas/VehicleType"
-        picked_package_up: 
+        picked_package_up:
           type: boolean
-        dropped_package_off: 
+        dropped_package_off:
           type: boolean
-            

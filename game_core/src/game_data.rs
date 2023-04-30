@@ -12,6 +12,7 @@ pub type MovementCost = i16;
 pub type MovementValue = MovementCost;
 pub type MovesRemaining = MovementCost;
 pub type Money = i32;
+pub type SituationCardID = u8;
 
 //// =============== Constants ===============
 const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
@@ -145,7 +146,7 @@ pub struct PlayerInput {
     pub related_role: Option<InGameID>,
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
-    pub situation_card: Option<SituationCard>,
+    pub situation_card_id: Option<SituationCardID>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -169,12 +170,18 @@ pub struct PlayerObjectiveCard {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub struct CostTuple {
+    neighbourhood: Neighbourhood,
+    traffic: Traffic,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct SituationCard {
-    pub card_id: u8,
+    pub card_id: SituationCardID,
     pub title: String,
     pub description: String,
     pub goal: String,
-    pub costs: Vec<(Neighbourhood, Traffic)>,
+    pub costs: Vec<CostTuple>,
     pub objective_cards: Vec<PlayerObjectiveCard>,
 }
 
@@ -389,6 +396,52 @@ impl GameState {
             mem::swap(&mut player.objective_card, &mut Some(objective_card));
         }
         Ok(())
+    }
+
+    pub fn start_game(&mut self) -> Result<(), String> {
+        let mut can_start_game = false;
+        let mut errormessage =
+            String::from("Unable to start game because lobby does not have an orchestrator");
+        for player in self.players.clone() {
+            if player.in_game_id == InGameID::Orchestrator {
+                if self.players.len() < 2 {
+                    errormessage =
+                        "Unable to start game because there are not enough players".to_string();
+                    break;
+                };
+                if self.situation_card.is_none() {
+                    errormessage =
+                        "Unable to start game because a situation card is not chosen".to_string();
+                    break;
+                }
+                match self.assign_random_situation_card_to_players() {
+                    Ok(_) => (),
+                    Err(e) => {
+                        errormessage = e;
+                        break;
+                    }
+                }
+                match self.update_objective_status() {
+                    Ok(_) => (),
+                    Err(e) => {
+                        errormessage = e;
+                        break;
+                    }
+                }
+                can_start_game = true;
+                self.is_lobby = false;
+                break;
+            }
+        }
+        match can_start_game {
+            true => {
+                self.players.iter_mut().for_each(|player| {
+                    player.remaining_moves = Self::get_starting_player_movement_value()
+                });
+                Ok(())
+            }
+            false => Err(errormessage),
+        }
     }
 }
 
@@ -641,14 +694,24 @@ impl NodeMap {
         self.edges.entry(node2.id).or_default().push(relationship);
     }
 }
+
+impl CostTuple {
+    pub const fn new(neighbourhood: Neighbourhood, traffic: Traffic) -> Self {
+        Self {
+            neighbourhood,
+            traffic,
+        }
+    }
+}
+
 impl SituationCard {
     #[must_use]
     pub const fn new(
-        card_id: u8,
+        card_id: SituationCardID,
         title: String,
         description: String,
         goal: String,
-        costs: Vec<(Neighbourhood, Traffic)>,
+        costs: Vec<CostTuple>,
         objective_cards: Vec<PlayerObjectiveCard>,
     ) -> Self {
         Self {
@@ -666,6 +729,18 @@ impl SituationCardList {
     #[must_use]
     pub const fn new(situation_cards: Vec<SituationCard>) -> Self {
         Self { situation_cards }
+    }
+
+    pub fn get_default_situation_card_by_id(id: SituationCardID) -> Result<SituationCard, String> {
+        let situation_cards = crate::situation_card_list::situation_card_list_wrapper();
+        match situation_cards
+            .situation_cards
+            .iter()
+            .find(|card| card.card_id == id)
+        {
+            Some(card) => Ok(card.clone()),
+            None => Err(format!("There was no code with the ID: {}", id)),
+        }
     }
 }
 
