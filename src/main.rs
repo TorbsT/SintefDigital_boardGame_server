@@ -548,7 +548,7 @@ mod tests {
     #[actix_web::test]
     async fn test_get_situation_card() {
         let mut gamestate = GameState::new("Test".to_string(), 42);
-        assert!(gamestate.situation_card == None);
+        assert!(gamestate.situation_card.is_none());
         let situation_card = SituationCard::new(
             0,
             "Situation Test Scenario".to_string(),
@@ -562,9 +562,10 @@ mod tests {
                 (Neighbourhood::CityCentre, Traffic::LevelFive),
                 (Neighbourhood::Airport, Traffic::LevelThree),
             ],
+            Vec::new()
         );
         gamestate.update_situation_card(situation_card);
-        assert!(gamestate.situation_card != None);
+        assert!(gamestate.situation_card.is_some());
     }
     #[actix_web::test]
     async fn test_get_situation_card_list() {

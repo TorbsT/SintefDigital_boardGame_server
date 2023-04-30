@@ -75,14 +75,32 @@ impl GameController {
         let mut can_start_game = false;
         let mut errormessage =
             String::from("Unable to start game because lobby does not have an orchestrator");
-        for player in &gamestate.players {
+        for player in gamestate.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if gamestate.players.len() < 2 {
                     errormessage =
                         "Unable to start game because there are not enough players".to_string();
                     break;
                 };
-
+                if gamestate.situation_card.is_none() {
+                    errormessage =
+                        "Unable to start game because a situation card is not chosen".to_string();
+                    break;
+                }
+                match gamestate.assign_random_situation_card_to_players() {
+                    Ok(_) => (),
+                    Err(e) => {
+                        errormessage = e;
+                        break;
+                    }
+                }
+                match gamestate.update_objective_status() {
+                    Ok(_) => (),
+                    Err(e) => {
+                        errormessage = e;
+                        break;
+                    }
+                }
                 can_start_game = true;
                 gamestate.is_lobby = false;
                 break;
@@ -93,8 +111,7 @@ impl GameController {
                 gamestate.players.iter_mut().for_each(|player| {
                     player.remaining_moves = GameState::get_starting_player_movement_value()
                 });
-                gamestate.assign_random_situation_card_to_players();
-                return Ok(gamestate.clone());
+                Ok(gamestate.clone())
             }
             false => Err(errormessage),
         }
@@ -231,7 +248,7 @@ impl GameController {
     }
 
     fn remove_empty_games(&mut self) {
-        self.games.retain(|game| game.players.len() > 0);
+        self.games.retain(|game| !game.players.is_empty());
     }
 
     fn remove_inactive_ids(&mut self) {
@@ -429,9 +446,15 @@ impl GameController {
             return Err("There was no node related to the movement!".to_string());
         };
         match game.move_player_with_id(input.player_id, related_node_id) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("Failed to move player because: {e}")),
+            Ok(_) => (),
+            Err(e) => return Err(format!("Failed to move player because: {e}")),
         }
+
+        match game.update_objective_status() {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        Ok(())
     }
 
     fn handle_district_restriction(input: PlayerInput, game: &mut GameState) -> Result<(), String> {

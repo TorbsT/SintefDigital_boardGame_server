@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, mem};
 
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 //// =============== Types ===============
@@ -163,6 +164,8 @@ pub struct PlayerObjectiveCard {
     pub pick_up_node_id: NodeID,
     pub drop_off_node_id: NodeID,
     pub special_vehicle_types: Vec<VehicleType>,
+    pub picked_package_up: bool,
+    pub dropped_package_off: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -337,12 +340,54 @@ impl GameState {
         START_MOVEMENT_AMOUNT
     }
 
-    pub fn assign_random_situation_card_to_players(&mut self) {
-        todo!()
+    pub fn assign_random_situation_card_to_players(&mut self) -> Result<(), String> {
+        let Some(situation_card) = self.situation_card.clone() else {
+            return Err("The game does not have a situation card and can therefore not assign objective cards to the players!".to_string());
+        };
+        let mut objective_cards = situation_card.objective_cards;
+        let mut rng = rand::thread_rng();
+        for mut player in self.players.iter_mut() {
+            if player.in_game_id == InGameID::Orchestrator {
+                continue;
+            }
+            if objective_cards.is_empty() {
+                return Err(
+                    "There were not enough objective cards for all the players!".to_string()
+                );
+            }
+            let index = rng.gen_range(0..objective_cards.len());
+            let objective_card = objective_cards.remove(index);
+            player.objective_card = Some(objective_card);
+        }
+        Ok(())
     }
 
     pub fn update_situation_card(&mut self, new_situation_card: SituationCard) {
         self.situation_card = Some(new_situation_card);
+    }
+
+    pub fn update_objective_status(&mut self) -> Result<(), String> {
+        for player in self.players.iter_mut() {
+            if player.in_game_id == InGameID::Orchestrator {
+                continue;
+            }
+            let Some(player_position_id) = player.position_node_id else {
+                return Err("The player did not have a position on the gameboard!".to_string());
+            };
+            let Some(mut objective_card) = player.objective_card.clone() else {
+                return Err("The player did not have an objective card!".to_string());
+            };
+            if player_position_id == objective_card.pick_up_node_id {
+                objective_card.picked_package_up = true;
+            }
+            if player_position_id == objective_card.drop_off_node_id
+                && objective_card.picked_package_up
+            {
+                objective_card.dropped_package_off = true;
+            }
+            mem::swap(&mut player.objective_card, &mut Some(objective_card));
+        }
+        Ok(())
     }
 }
 
@@ -401,7 +446,11 @@ impl Node {
 
 #[allow(clippy::unwrap_used)]
 impl NeighbourRelationship {
-    pub fn new(to: NodeID, neighbourhood: Neighbourhood, movement_cost: MovementCost) -> Self {
+    pub const fn new(
+        to: NodeID,
+        neighbourhood: Neighbourhood,
+        movement_cost: MovementCost,
+    ) -> Self {
         Self {
             to,
             neighbourhood,
@@ -585,13 +634,10 @@ impl NodeMap {
         let mut relationship = NeighbourRelationship::new(node2.id, neighbourhood, cost);
         self.edges
             .entry(node1.id)
-            .or_insert(Vec::new())
+            .or_default()
             .push(relationship.clone());
         relationship.to = node1.id;
-        self.edges
-            .entry(node2.id)
-            .or_insert(Vec::new())
-            .push(relationship);
+        self.edges.entry(node2.id).or_default().push(relationship);
     }
 }
 impl SituationCard {
@@ -634,6 +680,8 @@ impl PlayerObjectiveCard {
             pick_up_node_id,
             drop_off_node_id,
             special_vehicle_types,
+            picked_package_up: false,
+            dropped_package_off: false,
         }
     }
 }
