@@ -357,6 +357,7 @@ impl GameState {
             }
             let index = rng.gen_range(0..objective_cards.len());
             let objective_card = objective_cards.remove(index);
+            player.position_node_id = Some(objective_card.start_node_id);
             player.objective_card = Some(objective_card);
         }
         Ok(())
