@@ -761,3 +761,15 @@ impl PlayerObjectiveCard {
         }
     }
 }
+
+impl Traffic {
+    pub const fn get_movement_cost(&self) -> MovementCost {
+        match self {
+            Self::LevelOne => 0,
+            Self::LevelTwo => 0,
+            Self::LevelThree => 1,
+            Self::LevelFour => 2,
+            Self::LevelFive => 4,
+        }
+    }
+}
