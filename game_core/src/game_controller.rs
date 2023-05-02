@@ -25,7 +25,6 @@ pub struct GameController {
 }
 
 impl GameController {
-    //TODO: Make sure that a player cannot change how many remaining moves they have
 
     pub fn new(
         logger: Arc<RwLock<dyn Logger + Send + Sync>>,
@@ -402,6 +401,10 @@ impl GameController {
                 match SituationCardList::get_default_situation_card_by_id(id) {
                     Ok(card) => {
                         game.situation_card = Some(card);
+                        match game.update_node_map_with_situation_card() {
+                            Ok(_) => (),
+                            Err(e) => return Err(e),
+                        }
                         Ok(())
                     }
                     Err(e) => Err(e),

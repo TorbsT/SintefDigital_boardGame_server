@@ -234,7 +234,7 @@ impl GameState {
         Ok(())
     }
 
-    pub fn move_player_with_id( //TODO: Thomas fix this bug
+    pub fn move_player_with_id(
         &mut self,
         player_id: PlayerID,
         to_node_id: NodeID,
@@ -443,6 +443,16 @@ impl GameState {
             false => Err(errormessage),
         }
     }
+
+    pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
+        match &self.situation_card {
+            Some(card) => {
+                self.map.update_neighbourhood_cost(card.clone());
+                Ok(())
+            },
+            None => Err("Error: No situation card was assigned to the game, and therefore can not update nodemap costs".to_string()),
+        }
+    }
 }
 
 impl InGameID {
@@ -519,6 +529,12 @@ impl NodeMap {
             nodes: Vec::new(),
             edges: HashMap::new(),
             neighbourhood_cost: HashMap::new(),
+        }
+    }
+
+    pub fn update_neighbourhood_cost(&mut self, situation_card: SituationCard) {
+        for i in situation_card.costs {
+            self.neighbourhood_cost.insert(i.neighbourhood, i.traffic.get_movement_cost());
         }
     }
 
