@@ -95,9 +95,15 @@ impl GameController {
             }
         };
 
+        let mut related_game_clone = related_game.clone();
+        match Self::apply_game_actions(&mut related_game_clone) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+
         if let Some(error) = self
             .rule_checker
-            .is_input_valid(related_game, &player_input)
+            .is_input_valid(&related_game_clone, &player_input)
         {
             if let Ok(mut logger) = self.logger.write() {
                 logger.log(LogData::new(
