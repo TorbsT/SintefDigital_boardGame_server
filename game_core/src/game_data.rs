@@ -234,7 +234,7 @@ impl GameState {
         Ok(())
     }
 
-    pub fn move_player_with_id( //TODO: Remove district cost from remaining movement
+    pub fn move_player_with_id( //TODO: Thomas fix this bug
         &mut self,
         player_id: PlayerID,
         to_node_id: NodeID,
@@ -278,7 +278,7 @@ impl GameState {
                     }
                 }
             } else {
-                player.remaining_moves -= neighbour_relationship.movement_cost;
+                player.remaining_moves -= 1;
             }
             player.position_node_id = Some(to_node_id);
             return Ok(());
