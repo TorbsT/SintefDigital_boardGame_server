@@ -449,7 +449,7 @@ impl GameController {
         };
 
         if max_amount
-            >= game
+            <= game
                 .district_modifiers
                 .iter()
                 .filter(|m| {
