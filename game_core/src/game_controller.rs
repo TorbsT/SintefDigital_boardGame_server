@@ -9,7 +9,8 @@ use logging::logger::{LogData, LogLevel, Logger};
 use crate::{
     game_data::{
         GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
-        MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT, MAX_TOLL_MODIFIER_COUNT,
+        SituationCardList, MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT,
+        MAX_TOLL_MODIFIER_COUNT,
     },
     rule_checker::RuleChecker,
 };
@@ -38,7 +39,8 @@ impl GameController {
         }
     }
 
-    pub fn get_created_games(&self) -> Vec<GameState> {
+    pub fn get_created_games(&mut self) -> Vec<GameState> {
+        self.remove_empty_games();
         self.games.clone()
     }
 
@@ -71,6 +73,7 @@ impl GameController {
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
+        self.remove_empty_games();
         self.remove_inactive_ids();
 
         if !self
@@ -146,7 +149,8 @@ impl GameController {
             if game.players.iter().any(|p| p.unique_id == player_id) {
                 game.remove_player_with_id(player_id);
             }
-        })
+        });
+        self.remove_empty_games();
     }
 
     pub fn join_game(&mut self, game_id: i32, player: Player) -> Result<GameState, String> {
@@ -194,12 +198,22 @@ impl GameController {
             }
         }
         self.remove_inactive_ids();
+        self.remove_empty_games();
         Ok(())
+    }
+
+    fn remove_empty_games(&mut self) {
+        self.games.retain(|game| !game.players.is_empty());
     }
 
     fn remove_inactive_ids(&mut self) {
         self.unique_ids
             .retain(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT);
+        let remaining_ids = self.unique_ids.clone();
+        self.games.iter_mut().for_each(|game| {
+            game.players
+                .retain(|player| remaining_ids.iter().any(|(id, _)| &player.unique_id == id));
+        });
     }
 
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
@@ -371,13 +385,21 @@ impl GameController {
                     Err(e) => Err(e),
                 }
             }
-            PlayerInputType::StartGame => {
-                game.is_lobby = false;
-                Ok(())
-            }
+            PlayerInputType::StartGame => match game.start_game() {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
+            },
             PlayerInputType::AssignSituationCard => {
-                game.situation_card = input.situation_card;
-                Ok(())
+                let Some(id) = input.situation_card_id else {
+                    return Err("There was no situation card id in the input, maybe deserialization problem?".to_string());
+                };
+                match SituationCardList::get_default_situation_card_by_id(id) {
+                    Ok(card) => {
+                        game.situation_card = Some(card);
+                        Ok(())
+                    }
+                    Err(e) => Err(e),
+                }
             }
         }
     }
@@ -387,9 +409,15 @@ impl GameController {
             return Err("There was no node related to the movement!".to_string());
         };
         match game.move_player_with_id(input.player_id, related_node_id) {
-            Ok(_) => Ok(()),
-            Err(e) => Err(format!("Failed to move player because: {e}")),
+            Ok(_) => (),
+            Err(e) => return Err(format!("Failed to move player because: {e}")),
         }
+
+        match game.update_objective_status() {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        Ok(())
     }
 
     fn handle_district_restriction(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
