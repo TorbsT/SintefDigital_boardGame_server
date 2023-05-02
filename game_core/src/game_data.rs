@@ -333,6 +333,9 @@ impl GameState {
             .any(|p| p.in_game_id == next_player_turn)
         {
             next_player_turn = next_player_turn.next();
+            if next_player_turn == InGameID::Orchestrator {
+                self.reset_player_movement_values();
+            }
             if counter >= 1000 {
                 next_player_turn = InGameID::Orchestrator;
                 break;
@@ -435,9 +438,7 @@ impl GameState {
         }
         match can_start_game {
             true => {
-                self.players.iter_mut().for_each(|player| {
-                    player.remaining_moves = Self::get_starting_player_movement_value()
-                });
+                self.reset_player_movement_values();
                 Ok(())
             }
             false => Err(errormessage),
@@ -452,6 +453,12 @@ impl GameState {
             },
             None => Err("Error: No situation card was assigned to the game, and therefore can not update nodemap costs".to_string()),
         }
+    }
+
+    pub fn reset_player_movement_values(&mut self) {
+        self.players.iter_mut().for_each(|player| {
+            player.remaining_moves = Self::get_starting_player_movement_value()
+        });
     }
 }
 
