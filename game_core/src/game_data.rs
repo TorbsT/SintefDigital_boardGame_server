@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem};
+use std::{cmp, collections::HashMap, mem};
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -534,7 +534,8 @@ impl NodeMap {
 
     pub fn update_neighbourhood_cost(&mut self, situation_card: SituationCard) {
         for i in situation_card.costs {
-            self.neighbourhood_cost.insert(i.neighbourhood, i.traffic.get_movement_cost());
+            self.neighbourhood_cost
+                .insert(i.neighbourhood, i.traffic.get_movement_cost());
         }
     }
 
@@ -682,7 +683,10 @@ impl NodeMap {
         let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
-        Ok(neighbourhood_cost + neighbour_relationship.movement_cost)
+        Ok(cmp::max(
+            *neighbourhood_cost,
+            neighbour_relationship.movement_cost,
+        ))
     }
 
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
