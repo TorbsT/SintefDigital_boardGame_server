@@ -456,9 +456,9 @@ impl GameState {
     }
 
     pub fn reset_player_movement_values(&mut self) {
-        self.players.iter_mut().for_each(|player| {
-            player.remaining_moves = Self::get_starting_player_movement_value()
-        });
+        self.players
+            .iter_mut()
+            .for_each(|player| player.remaining_moves = Self::get_starting_player_movement_value());
     }
 }
 

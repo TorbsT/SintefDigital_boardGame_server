@@ -25,7 +25,6 @@ pub struct GameController {
 }
 
 impl GameController {
-
     pub fn new(
         logger: Arc<RwLock<dyn Logger + Send + Sync>>,
         rule_checker: Box<dyn RuleChecker + Send + Sync>,
@@ -453,7 +452,10 @@ impl GameController {
             >= game
                 .district_modifiers
                 .iter()
-                .filter(|m| m.modifier == district_modifier.modifier)
+                .filter(|m| {
+                    m.modifier == district_modifier.modifier
+                        && m.district == district_modifier.district
+                })
                 .count()
         {
             return Err(format!("Cannot add more modifiers of type {:?} because there are already {} modifiers of that type!", district_modifier.modifier, max_amount));
