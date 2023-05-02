@@ -683,6 +683,10 @@ impl NodeMap {
         let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
+        println!(
+            "First time in district: {:?}",
+            neighbour_relationship.neighbourhood
+        );
         Ok(cmp::max(
             *neighbourhood_cost,
             neighbour_relationship.movement_cost,
