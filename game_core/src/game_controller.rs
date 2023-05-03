@@ -352,6 +352,7 @@ impl GameController {
         } else if input.input_type == PlayerInputType::ChangeRole
             || input.input_type == PlayerInputType::StartGame
             || input.input_type == PlayerInputType::AssignSituationCard
+            || input.input_type == PlayerInputType::LeaveGame
         {
             match Self::apply_input(input, game) {
                 Ok(_) => return Ok(()),
@@ -407,6 +408,10 @@ impl GameController {
                     }
                     Err(e) => Err(e),
                 }
+            }
+            PlayerInputType::LeaveGame => {
+                game.remove_player_with_id(input.player_id);
+                Ok(())
             }
         }
     }

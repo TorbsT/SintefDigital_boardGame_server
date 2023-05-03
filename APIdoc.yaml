@@ -228,6 +228,7 @@ components:
         - UndoAction
         - ModifyDistrict
         - StartGame
+        - LeaveGame
     VehicleType:
       type: string
       enum:

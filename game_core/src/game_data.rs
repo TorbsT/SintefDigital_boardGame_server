@@ -52,6 +52,7 @@ pub enum PlayerInputType {
     ModifyDistrict,
     StartGame,
     AssignSituationCard,
+    LeaveGame,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -322,6 +323,16 @@ impl GameState {
 
     pub fn remove_player_with_id(&mut self, player_id: i32) {
         self.players.retain(|player| player.unique_id != player_id);
+        if self
+            .players
+            .iter()
+            .all(|player| player.in_game_id != InGameID::Orchestrator)
+        {
+            if let Some(mut p) = self.players.first_mut() {
+                p.in_game_id = InGameID::Orchestrator;
+                p.objective_card = None;
+            };
+        }
     }
 
     pub fn next_player_turn(&mut self) {
