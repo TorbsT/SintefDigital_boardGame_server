@@ -425,6 +425,12 @@ impl GameController {
                 }
                 game.add_park_and_ride(park_and_ride_mod.node_one, park_and_ride_mod.node_two)
             }
+            PlayerInputType::UseParkAndRide => {
+                let Some(destination_node_id) = input.related_node_id else {
+                    return Err("There was no destination node id when wanting to use park and ride!".to_string());
+                };
+                game.use_park_and_ride_to_deliver_package(input.player_id, destination_node_id)
+            },
         }
     }
 

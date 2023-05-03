@@ -54,6 +54,7 @@ pub enum PlayerInputType {
     AssignSituationCard,
     LeaveGame,
     ModifyParkAndRide,
+    UseParkAndRide,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -595,6 +596,34 @@ impl GameState {
         });
         Ok(())
     }
+
+    pub fn use_park_and_ride_to_deliver_package(&mut self, player_id: PlayerID, destination_node_id: NodeID) -> Result<(), String> {
+        let Some(player) = self.players.iter_mut().find(|p| p.unique_id == player_id) else {
+            return Err(format!("There is no player with the id {} in this game!", player_id));
+        };
+
+        let Some(mut objective_card) = player.objective_card.clone() else {
+            return Err("There is no objective card in this game and therefore the player can not use the park and ride!".to_string());
+        };
+
+        if !objective_card.picked_package_up {
+            return Err("The player has not picked up the package yet and can therefore not use the park and ride!".to_string());
+        }
+        let Some(current_player_position_id) = player.position_node_id else {
+            return Err("The player has no current position and can therefore not use the park and ride!".to_string());
+        };
+        let movement_cost = match self.map.cost_to_use_park_and_ride_to_deliver(current_player_position_id, destination_node_id) {
+            Ok(cost) => cost,
+            Err(e) => return Err(e),
+        };
+        player.remaining_moves -= movement_cost;
+
+        objective_card.dropped_package_off = true;
+
+        mem::swap(&mut player.objective_card, &mut Some(objective_card));
+
+        Ok(())
+    }
 }
 
 impl InGameID {
@@ -967,6 +996,45 @@ impl NodeMap {
                     Err(e) => err_string = e,
                 }
                 Err(format!("{} and secondly {}", e, err_string))
+            }
+        }
+    }
+
+    pub fn cost_to_use_park_and_ride_to_deliver(&self, current_pos_id: NodeID, destination_node_id: NodeID) -> Result<MovementCost, String> {
+        match self.nodes.iter().find(|node| node.id == current_pos_id) {
+            Some(node) => {
+                if !node.is_parking_spot {
+                    return Err(format!("The node you are at (node-id: {}) is not a park and ride spot! It's therefore not possible to get a park & ride cost estimate!", current_pos_id));
+                }
+            },
+            None => return Err(format!("The node with id {} does not exist on the map. And can therefore not get a park & ride cost estimate!", current_pos_id)),
+        }
+
+        let mut park_and_ride_nodes = Vec::new();
+        self.recursively_get_park_and_ride_node_ids_with_cost(current_pos_id, 0, &mut park_and_ride_nodes, &mut Vec::new());
+
+        let (_, cost) = match park_and_ride_nodes.iter().find(|(id, _)| *id == destination_node_id) {
+            Some((id, cost)) => (id, cost),
+            None => return Err(format!("The destination node id {} is not a park & ride spot connected to the current park & ride spot! It's therefore not possible to get a park & ride cost estimate!", destination_node_id)),
+        };
+
+        Ok(*cost)
+    }
+
+    fn recursively_get_park_and_ride_node_ids_with_cost(&self, node_id_to_check: NodeID, previous_cost: MovementCost, park_and_ride_nodes: &mut Vec<(NodeID, MovementCost)>, checked_nodes: &mut Vec<NodeID>) {
+        if checked_nodes.contains(&node_id_to_check) {
+            return;
+        }
+        checked_nodes.push(node_id_to_check);
+
+        let Some(neighbour_relationships) = self.edges.get(&node_id_to_check) else {
+            return;
+        };
+
+        for neighbour_relationship in neighbour_relationships {
+            if neighbour_relationship.is_park_and_ride {
+                park_and_ride_nodes.push((neighbour_relationship.to, previous_cost + neighbour_relationship.movement_cost));
+                self.recursively_get_park_and_ride_node_ids_with_cost(neighbour_relationship.to, previous_cost + neighbour_relationship.movement_cost, park_and_ride_nodes, checked_nodes);
             }
         }
     }
