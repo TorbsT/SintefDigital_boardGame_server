@@ -182,6 +182,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         return ValidationResponse::Invalid("Error: There is no neighbouring node with the ID given".to_string());
     };
 
+    let mut district_has_modifier = false;
     for dm in district_modifiers {
         if dm.district != neighbour_relationship.neighbourhood || dm.modifier != DistrictModifierType::Access {
             continue;
@@ -189,11 +190,15 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         let Some(vehicle_type) = dm.vehicle_type else {
             return ValidationResponse::Invalid("Error: There was no vehicle for access modifier".to_string());
         };
+        district_has_modifier = true;
         if player_objective_card.special_vehicle_types.contains(&vehicle_type) {
             return ValidationResponse::Valid;
         }
     }
 
+    if !district_has_modifier {
+        return ValidationResponse::Valid;
+    }
     ValidationResponse::Invalid("Invalid move: Player does not have required vehicle type to access this district".to_string())
 
 }
