@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{GameState, InGameID, PlayerInput, PlayerInputType},
+    game_data::{GameState, InGameID, PlayerInput, PlayerInputType, DistrictModifierType},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -60,7 +60,7 @@ impl GameRuleChecker {
         }
     }
 
-    fn get_rules() -> Vec<Rule> {
+    fn get_rules() -> Vec<Rule> { //TODO: Thomas this is the one
         let game_started = Rule {
             related_inputs: vec![
                 PlayerInputType::Movement,
@@ -93,6 +93,10 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_enough_moves),
         };
+        let can_enter_district = Rule {
+            related_inputs: vec![PlayerInputType::Movement],
+            rule_fn: Box::new(can_enter_district),
+        };
 
         let rules = vec![
             game_started,
@@ -101,6 +105,7 @@ impl GameRuleChecker {
             player_has_position,
             next_to_node,
             enough_moves,
+            can_enter_district,
         ];
         rules
     }
@@ -146,6 +151,40 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
     }
 
     ValidationResponse::Valid
+}
+
+fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player_result = game.get_player_with_unique_id(player_input.player_id);
+    let player = match player_result {
+        Ok(p) => p,
+        Err(e) => return ValidationResponse::Invalid(e.to_string()),
+    };
+
+    let district_modifiers = match &player_input.district_modifier {
+        Some(dm) => dm,
+        None => return ValidationResponse::Valid,
+    };
+
+    if district_modifiers.modifier != DistrictModifierType::Access {
+        return ValidationResponse::Valid
+    }
+
+    let access_modifier = match district_modifiers.vehicle_type {
+        Some(am) => am,
+        None => return ValidationResponse::Invalid("Error: Restriction is of access modifier type but does not specify vehicle".to_string()),
+    };
+
+    let player_objective_card = match player.objective_card {
+        Some(objective_card) => objective_card,
+        None => return ValidationResponse::Invalid("Error: Player does not have an objective card".to_string()),
+    };
+    
+    if player_objective_card.special_vehicle_types.contains(&access_modifier) {
+        return ValidationResponse::Valid;
+    }
+
+    ValidationResponse::Invalid("Invalid move: Player does not have required vehicle type to access this district".to_string())
+
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
