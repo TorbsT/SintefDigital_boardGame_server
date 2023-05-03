@@ -160,27 +160,38 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         Err(e) => return ValidationResponse::Invalid(e.to_string()),
     };
 
-    let district_modifiers = match &player_input.district_modifier {
-        Some(dm) => dm,
-        None => return ValidationResponse::Valid,
-    };
-
-    if district_modifiers.modifier != DistrictModifierType::Access {
-        return ValidationResponse::Valid
-    }
-
-    let access_modifier = match district_modifiers.vehicle_type {
-        Some(am) => am,
-        None => return ValidationResponse::Invalid("Error: Restriction is of access modifier type but does not specify vehicle".to_string()),
-    };
+    let district_modifiers = &game.district_modifiers;
 
     let player_objective_card = match player.objective_card {
         Some(objective_card) => objective_card,
         None => return ValidationResponse::Invalid("Error: Player does not have an objective card".to_string()),
     };
-    
-    if player_objective_card.special_vehicle_types.contains(&access_modifier) {
-        return ValidationResponse::Valid;
+
+    let neighbours = match player.position_node_id {
+        Some(pos) => match game.map.get_neighbour_relationships_of_node_with_id(pos) {
+            Some(vec) => vec,
+            None => return ValidationResponse::Invalid(format!("Error: Node with ID {} does not exist", pos)),
+        },
+        None => return ValidationResponse::Invalid("Error: Player does not have a valid position and can therefore not move".to_string()),
+    };
+
+    let Some(to_node_id) = player_input.related_node_id else {
+        return ValidationResponse::Invalid("Error: Related node ID does not exist in player input and has to be set for player movement".to_string());
+    };
+    let Some(neighbour_relationship) = neighbours.iter().find(|neighbour| neighbour.to == to_node_id) else {
+        return ValidationResponse::Invalid("Error: There is no neighbouring node with the ID given".to_string());
+    };
+
+    for dm in district_modifiers {
+        if dm.district != neighbour_relationship.neighbourhood || dm.modifier != DistrictModifierType::Access {
+            continue;
+        }
+        let Some(vehicle_type) = dm.vehicle_type else {
+            return ValidationResponse::Invalid("Error: There was no vehicle for access modifier".to_string());
+        };
+        if player_objective_card.special_vehicle_types.contains(&vehicle_type) {
+            return ValidationResponse::Valid;
+        }
     }
 
     ValidationResponse::Invalid("Invalid move: Player does not have required vehicle type to access this district".to_string())
