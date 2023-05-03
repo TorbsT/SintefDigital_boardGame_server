@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{GameState, InGameID, PlayerInput, PlayerInputType},
+    game_data::{GameState, InGameID, PlayerInput, PlayerInputType, DistrictModifierType},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -93,6 +93,10 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_enough_moves),
         };
+        let can_enter_district = Rule {
+            related_inputs: vec![PlayerInputType::Movement],
+            rule_fn: Box::new(can_enter_district),
+        };
 
         let rules = vec![
             game_started,
@@ -101,6 +105,7 @@ impl GameRuleChecker {
             player_has_position,
             next_to_node,
             enough_moves,
+            can_enter_district,
         ];
         rules
     }
@@ -146,6 +151,51 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
     }
 
     ValidationResponse::Valid
+}
+
+fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player_result = game.get_player_with_unique_id(player_input.player_id);
+    let player = match player_result {
+        Ok(p) => p,
+        Err(e) => return ValidationResponse::Invalid(e.to_string()),
+    };
+
+    let district_modifiers = &game.district_modifiers;
+
+    let player_objective_card = match player.objective_card {
+        Some(objective_card) => objective_card,
+        None => return ValidationResponse::Invalid("Error: Player does not have an objective card".to_string()),
+    };
+
+    let neighbours = match player.position_node_id {
+        Some(pos) => match game.map.get_neighbour_relationships_of_node_with_id(pos) {
+            Some(vec) => vec,
+            None => return ValidationResponse::Invalid(format!("Error: Node with ID {} does not exist", pos)),
+        },
+        None => return ValidationResponse::Invalid("Error: Player does not have a valid position and can therefore not move".to_string()),
+    };
+
+    let Some(to_node_id) = player_input.related_node_id else {
+        return ValidationResponse::Invalid("Error: Related node ID does not exist in player input and has to be set for player movement".to_string());
+    };
+    let Some(neighbour_relationship) = neighbours.iter().find(|neighbour| neighbour.to == to_node_id) else {
+        return ValidationResponse::Invalid("Error: There is no neighbouring node with the ID given".to_string());
+    };
+
+    for dm in district_modifiers {
+        if dm.district != neighbour_relationship.neighbourhood || dm.modifier != DistrictModifierType::Access {
+            continue;
+        }
+        let Some(vehicle_type) = dm.vehicle_type else {
+            return ValidationResponse::Invalid("Error: There was no vehicle for access modifier".to_string());
+        };
+        if player_objective_card.special_vehicle_types.contains(&vehicle_type) {
+            return ValidationResponse::Valid;
+        }
+    }
+
+    ValidationResponse::Invalid("Invalid move: Player does not have required vehicle type to access this district".to_string())
+
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
