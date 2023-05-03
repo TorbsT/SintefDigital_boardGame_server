@@ -9,8 +9,7 @@ use logging::logger::{LogData, LogLevel, Logger};
 use crate::{
     game_data::{
         GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
-        SituationCardList, MAX_ACCESS_MODIFIER_COUNT, MAX_PRIORITY_MODIFIER_COUNT,
-        MAX_TOLL_MODIFIER_COUNT,
+        SituationCardList,
     },
     rule_checker::RuleChecker,
 };
@@ -433,35 +432,8 @@ impl GameController {
             return Err("There was no district in the input modifier even though it was marked as a district input".to_string());
         };
         if district_modifier.delete {
-            let mut distr_mod = district_modifier;
-            distr_mod.delete = false;
-            let Some(mod_pos) = game.district_modifiers.iter().position(|d_m| d_m == &distr_mod) else {
-                return Err("There is no modifier like the given one in the game!".to_string());
-            };
-            game.district_modifiers.remove(mod_pos);
-            return Ok(());
+            return game.remove_district_modifier(district_modifier);
         }
-
-        let max_amount: usize = match district_modifier.modifier {
-            crate::game_data::DistrictModifierType::Access => MAX_ACCESS_MODIFIER_COUNT,
-            crate::game_data::DistrictModifierType::Priority => MAX_PRIORITY_MODIFIER_COUNT,
-            crate::game_data::DistrictModifierType::Toll => MAX_TOLL_MODIFIER_COUNT,
-        };
-
-        if max_amount
-            <= game
-                .district_modifiers
-                .iter()
-                .filter(|m| {
-                    m.modifier == district_modifier.modifier
-                        && m.district == district_modifier.district
-                })
-                .count()
-        {
-            return Err(format!("Cannot add more modifiers of type {:?} because there are already {} modifiers of that type!", district_modifier.modifier, max_amount));
-        }
-
-        game.district_modifiers.push(district_modifier);
-        Ok(())
+        game.add_district_modifier(district_modifier)
     }
 }
