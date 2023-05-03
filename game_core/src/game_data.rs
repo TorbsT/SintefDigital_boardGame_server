@@ -1,4 +1,4 @@
-use std::{collections::HashMap, mem};
+use std::{cmp, collections::HashMap, mem};
 
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -333,6 +333,9 @@ impl GameState {
             .any(|p| p.in_game_id == next_player_turn)
         {
             next_player_turn = next_player_turn.next();
+            if next_player_turn == InGameID::Orchestrator {
+                self.reset_player_movement_values();
+            }
             if counter >= 1000 {
                 next_player_turn = InGameID::Orchestrator;
                 break;
@@ -435,13 +438,27 @@ impl GameState {
         }
         match can_start_game {
             true => {
-                self.players.iter_mut().for_each(|player| {
-                    player.remaining_moves = Self::get_starting_player_movement_value()
-                });
+                self.reset_player_movement_values();
                 Ok(())
             }
             false => Err(errormessage),
         }
+    }
+
+    pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
+        match &self.situation_card {
+            Some(card) => {
+                self.map.update_neighbourhood_cost(card.clone());
+                Ok(())
+            },
+            None => Err("Error: No situation card was assigned to the game, and therefore can not update nodemap costs".to_string()),
+        }
+    }
+
+    pub fn reset_player_movement_values(&mut self) {
+        self.players
+            .iter_mut()
+            .for_each(|player| player.remaining_moves = Self::get_starting_player_movement_value());
     }
 }
 
@@ -522,6 +539,13 @@ impl NodeMap {
         }
     }
 
+    pub fn update_neighbourhood_cost(&mut self, situation_card: SituationCard) {
+        for i in situation_card.costs {
+            self.neighbourhood_cost
+                .insert(i.neighbourhood, i.traffic.get_movement_cost());
+        }
+    }
+
     #[must_use]
     pub fn new_default() -> Self {
         let mut map = Self::new();
@@ -586,42 +610,42 @@ impl NodeMap {
         map.nodes.push(node27.clone());
         map.nodes.push(node28.clone());
 
-        map.add_relationship(node0.clone(), node1.clone(), Neighbourhood::IndustryPark, 0);
-        map.add_relationship(node0, node2.clone(), Neighbourhood::IndustryPark, 0);
-        map.add_relationship(node1, node2.clone(), Neighbourhood::IndustryPark, 0);
-        map.add_relationship(node2, node3.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node3.clone(), node4.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node3, node9.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node4.clone(), node5, Neighbourhood::Port, 0);
-        map.add_relationship(node4, node6.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node6.clone(), node13.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node6, node7.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node7, node8, Neighbourhood::Suburbs, 0);
-        map.add_relationship(node9.clone(), node10.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node9, node18.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node10.clone(), node11.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node10, node15.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node11.clone(), node12.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node11, node16.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node12, node13.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node13.clone(), node14.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node13, node20.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node14, node21.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node15, node16.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node16, node19.clone(), Neighbourhood::CityCentre, 0);
-        map.add_relationship(node17, node18.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node18.clone(), node19.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node18, node23.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node19, node20.clone(), Neighbourhood::RingRoad, 0);
-        map.add_relationship(node20.clone(), node26.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node20, node27.clone(), Neighbourhood::Airport, 0);
-        map.add_relationship(node21, node27.clone(), Neighbourhood::Airport, 0);
-        map.add_relationship(node22, node23.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node23, node24.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node24, node25.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node25, node26.clone(), Neighbourhood::Suburbs, 0);
-        map.add_relationship(node26, node27.clone(), Neighbourhood::Airport, 0);
-        map.add_relationship(node27, node28, Neighbourhood::Airport, 0);
+        map.add_relationship(node0.clone(), node1.clone(), Neighbourhood::IndustryPark, 1);
+        map.add_relationship(node0, node2.clone(), Neighbourhood::IndustryPark, 1);
+        map.add_relationship(node1, node2.clone(), Neighbourhood::IndustryPark, 1);
+        map.add_relationship(node2, node3.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node3.clone(), node4.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node3, node9.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node4.clone(), node5, Neighbourhood::Port, 1);
+        map.add_relationship(node4, node6.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node6.clone(), node13.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node6, node7.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node7, node8, Neighbourhood::Suburbs, 1);
+        map.add_relationship(node9.clone(), node10.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node9, node18.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node10.clone(), node11.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node10, node15.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node11.clone(), node12.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node11, node16.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node12, node13.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node13.clone(), node14.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node13, node20.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node14, node21.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node15, node16.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node16, node19.clone(), Neighbourhood::CityCentre, 1);
+        map.add_relationship(node17, node18.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node18.clone(), node19.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node18, node23.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node19, node20.clone(), Neighbourhood::RingRoad, 1);
+        map.add_relationship(node20.clone(), node26.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node20, node27.clone(), Neighbourhood::Airport, 1);
+        map.add_relationship(node21, node27.clone(), Neighbourhood::Airport, 1);
+        map.add_relationship(node22, node23.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node23, node24.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node24, node25.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node25, node26.clone(), Neighbourhood::Suburbs, 1);
+        map.add_relationship(node26, node27.clone(), Neighbourhood::Airport, 1);
+        map.add_relationship(node27, node28, Neighbourhood::Airport, 1);
 
         let mut neighbourhood = Neighbourhood::first();
         map.change_neighbourhood_cost(neighbourhood, 1);
@@ -666,7 +690,14 @@ impl NodeMap {
         let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
-        Ok(neighbourhood_cost + neighbour_relationship.movement_cost)
+        println!(
+            "First time in district: {:?}",
+            neighbour_relationship.neighbourhood
+        );
+        Ok(cmp::max(
+            *neighbourhood_cost,
+            neighbour_relationship.movement_cost,
+        ))
     }
 
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
@@ -758,6 +789,18 @@ impl PlayerObjectiveCard {
             special_vehicle_types,
             picked_package_up: false,
             dropped_package_off: false,
+        }
+    }
+}
+
+impl Traffic {
+    pub const fn get_movement_cost(&self) -> MovementCost {
+        match self {
+            Self::LevelOne => 0,
+            Self::LevelTwo => 0,
+            Self::LevelThree => 1,
+            Self::LevelFour => 2,
+            Self::LevelFive => 4,
         }
     }
 }

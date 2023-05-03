@@ -140,7 +140,7 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
     if let Ok(p) = game_clone.get_player_with_unique_id(player_input.player_id) {
         if p.remaining_moves < 0 {
             return ValidationResponse::Invalid(
-                "The player does not have enough remaining moves!".to_string(),
+                format!("The player does not have enough remaining moves! The player would have {} remaining moves!", p.remaining_moves),
             );
         }
     }
