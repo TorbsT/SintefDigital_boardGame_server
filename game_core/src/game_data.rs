@@ -460,6 +460,85 @@ impl GameState {
             .iter_mut()
             .for_each(|player| player.remaining_moves = Self::get_starting_player_movement_value());
     }
+
+    pub fn add_district_modifier(
+        &mut self,
+        district_modifier: DistrictModifier,
+    ) -> Result<(), String> {
+        let max_amount: usize = match district_modifier.modifier {
+            DistrictModifierType::Access => MAX_ACCESS_MODIFIER_COUNT,
+            DistrictModifierType::Priority => MAX_PRIORITY_MODIFIER_COUNT,
+            DistrictModifierType::Toll => MAX_TOLL_MODIFIER_COUNT,
+        };
+
+        if max_amount
+            <= self
+                .district_modifiers
+                .iter()
+                .filter(|m| {
+                    m.modifier == district_modifier.modifier
+                        && m.district == district_modifier.district
+                })
+                .count()
+        {
+            return Err(format!("Cannot add more modifiers of type {:?} because there are already {} modifiers of that type!", district_modifier.modifier, max_amount));
+        }
+
+        self.district_modifiers.push(district_modifier);
+        self.update_traffic_levels()
+    }
+
+    pub fn remove_district_modifier(
+        &mut self,
+        district_modifier: DistrictModifier,
+    ) -> Result<(), String> {
+        let mut distr_mod = district_modifier;
+        distr_mod.delete = false;
+        let Some(mod_pos) = self.district_modifiers.iter().position(|d_m| d_m == &distr_mod) else {
+            return Err("There is no modifier like the given one in the game!".to_string());
+        };
+        self.district_modifiers.remove(mod_pos);
+        self.update_traffic_levels()
+    }
+
+    fn update_traffic_levels(&mut self) -> Result<(), String> {
+        let Some(mut situation_card) = self.situation_card.clone() else {
+            return Err("There is no situation card in this game and it's therefore not possible to update the traffic levels!".to_string());
+        };
+
+        let mut new_cost_tuples = Vec::new();
+
+        for cost_tuple in situation_card.costs {
+            let mut new_cost_tuple = cost_tuple.clone();
+            let mut is_access_modifier_used = false;
+            for modifier in self.district_modifiers.clone() {
+                if modifier.district != cost_tuple.neighbourhood
+                    || modifier.modifier != DistrictModifierType::Access
+                {
+                    continue;
+                }
+
+                let Some(vehicle_type) = modifier.vehicle_type else {
+                    return Err("There was no vehicle type associated with the access modifier and can therefore not update the traffic levels!".to_string());
+                };
+
+                if !is_access_modifier_used {
+                    new_cost_tuple.traffic = Traffic::LevelOne;
+                    is_access_modifier_used = true;
+                }
+
+                for _ in 0..vehicle_type.times_to_increase_traffic_when_access() {
+                    new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
+                }
+            }
+            new_cost_tuples.push(new_cost_tuple);
+        }
+
+        situation_card.costs = new_cost_tuples;
+        self.situation_card = Some(situation_card);
+
+        Ok(())
+    }
 }
 
 impl InGameID {
@@ -801,6 +880,29 @@ impl Traffic {
             Self::LevelThree => 1,
             Self::LevelFour => 2,
             Self::LevelFive => 4,
+        }
+    }
+
+    pub const fn increased(&self) -> Self {
+        match self {
+            Self::LevelOne => Self::LevelTwo,
+            Self::LevelTwo => Self::LevelThree,
+            Self::LevelThree => Self::LevelFour,
+            Self::LevelFour => Self::LevelFive,
+            Self::LevelFive => Self::LevelFive,
+        }
+    }
+}
+
+impl VehicleType {
+    pub const fn times_to_increase_traffic_when_access(&self) -> usize {
+        match self {
+            Self::Electric => 2,
+            Self::Buss => 0,
+            Self::Emergency => 0,
+            Self::Industrial => 0,
+            Self::Normal => 0,
+            Self::Geolocation => 0,
         }
     }
 }
