@@ -328,13 +328,10 @@ impl GameState {
             .iter()
             .all(|player| player.in_game_id != InGameID::Orchestrator)
         {
-            match self.players.first_mut() {
-                Some(p) => {
-                    p.in_game_id = InGameID::Orchestrator;
-                    p.objective_card = None;
-                }
-                None => (),
-            }
+            if let Some(mut p) = self.players.first_mut() {
+                p.in_game_id = InGameID::Orchestrator;
+                p.objective_card = None;
+            };
         }
     }
 
