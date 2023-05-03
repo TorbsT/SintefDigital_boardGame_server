@@ -60,7 +60,7 @@ impl GameRuleChecker {
         }
     }
 
-    fn get_rules() -> Vec<Rule> { //TODO: Thomas this is the one
+    fn get_rules() -> Vec<Rule> {
         let game_started = Rule {
             related_inputs: vec![
                 PlayerInputType::Movement,
