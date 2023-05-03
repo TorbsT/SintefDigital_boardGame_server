@@ -897,7 +897,7 @@ impl Traffic {
 impl VehicleType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
-            Self::Electric => 1,
+            Self::Electric => 2,
             Self::Buss => 0,
             Self::Emergency => 0,
             Self::Industrial => 0,
