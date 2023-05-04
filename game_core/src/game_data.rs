@@ -403,8 +403,17 @@ impl GameState {
             if player_position_id == objective_card.pick_up_node_id {
                 objective_card.picked_package_up = true;
             }
-            if player_position_id == objective_card.drop_off_node_id
-                && objective_card.picked_package_up
+            let player_node =  match self.map.get_node_by_id(player_position_id as NodeID) {
+                Ok(n) => n,
+                Err(_) => return Err("Player node can not be determined while attempting to drop package!".to_string()),
+            };
+            let package_node = match self.map.get_node_by_id(objective_card.drop_off_node_id as NodeID) {
+                Ok(n) => n,
+                Err(_) => return Err("Destination node can not be determined while attempting to drop package!".to_string()),
+            };
+            let drop_package_condition_one = player_position_id == objective_card.drop_off_node_id && objective_card.picked_package_up;
+            let drop_package_condition_two = player_node.is_connected_to_rail && objective_card.picked_package_up && package_node.is_connected_to_rail;
+            if drop_package_condition_one || drop_package_condition_two
             {
                 objective_card.dropped_package_off = true;
             }
