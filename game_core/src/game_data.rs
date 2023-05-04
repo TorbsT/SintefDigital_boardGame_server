@@ -53,6 +53,7 @@ pub enum PlayerInputType {
     StartGame,
     AssignSituationCard,
     LeaveGame,
+    DropPackageAtTrainStation,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -403,17 +404,35 @@ impl GameState {
             if player_position_id == objective_card.pick_up_node_id {
                 objective_card.picked_package_up = true;
             }
+            if player_position_id == objective_card.drop_off_node_id
+            && objective_card.picked_package_up
+            {
+                objective_card.dropped_package_off = true;
+            }
+            mem::swap(&mut player.objective_card, &mut Some(objective_card));
+        }
+        Ok(())
+    }
+
+    pub fn drop_package_at_train_station(&mut self) -> Result<(), String> {
+        for player in self.players.iter_mut() {
+            let Some(player_position_id) = player.position_node_id else {
+                return Err("The player did not have a position on the gameboard!".to_string());
+            };
+            let Some(mut objective_card) = player.objective_card.clone() else {
+                return Err("The player did not have an objective card!".to_string());
+            };
             let player_node =  match self.map.get_node_by_id(player_position_id as NodeID) {
-                Ok(n) => n,
+                    Ok(n) => n,
                 Err(_) => return Err("Player node can not be determined while attempting to drop package!".to_string()),
             };
             let package_node = match self.map.get_node_by_id(objective_card.drop_off_node_id as NodeID) {
                 Ok(n) => n,
                 Err(_) => return Err("Destination node can not be determined while attempting to drop package!".to_string()),
             };
-            let drop_package_condition_one = player_position_id == objective_card.drop_off_node_id && objective_card.picked_package_up;
-            let drop_package_condition_two = player_node.is_connected_to_rail && objective_card.picked_package_up && package_node.is_connected_to_rail;
-            if drop_package_condition_one || drop_package_condition_two
+            if player_node.is_connected_to_rail
+            && objective_card.picked_package_up
+            && package_node.is_connected_to_rail
             {
                 objective_card.dropped_package_off = true;
             }

@@ -413,6 +413,9 @@ impl GameController {
                 game.remove_player_with_id(input.player_id);
                 Ok(())
             }
+            PlayerInputType::DropPackageAtTrainStation => {
+                game.drop_package_at_train_station()
+            },
         }
     }
 
