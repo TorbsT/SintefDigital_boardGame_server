@@ -270,14 +270,28 @@ impl GameState {
                     Err(e) => return Err(e),
                 };
 
-                for modifier in self.district_modifiers.iter() {
-                    if modifier.district != neighbour_relationship.neighbourhood {
-                        continue;
-                    }
-                    if let Some(movement_value) = modifier.associated_movement_value {
-                        player.remaining_moves += movement_value;
+                let mut bonus_moves = 0;
+
+                if let Some(obj_card) = player.objective_card.clone() {
+                    for modifier in self.district_modifiers.iter() {
+                        if modifier.district != neighbour_relationship.neighbourhood {
+                            continue;
+                        }
+
+                        let Some(vehicle_type) = modifier.vehicle_type else {
+                            continue;
+                        };
+
+                        if !obj_card.special_vehicle_types.contains(&vehicle_type) {
+                            continue;
+                        }
+
+                        if let Some(movement_value) = modifier.associated_movement_value {
+                            bonus_moves = cmp::max(bonus_moves, movement_value);
+                        }
                     }
                 }
+                player.remaining_moves += bonus_moves;
             } else {
                 player.remaining_moves -= neighbour_relationship.movement_cost;
             }
