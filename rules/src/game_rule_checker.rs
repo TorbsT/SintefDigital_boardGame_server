@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{GameState, InGameID, PlayerInput, PlayerInputType, DistrictModifierType},
+    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -164,15 +164,29 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
 
     let player_objective_card = match player.objective_card {
         Some(objective_card) => objective_card,
-        None => return ValidationResponse::Invalid("Error: Player does not have an objective card".to_string()),
+        None => {
+            return ValidationResponse::Invalid(
+                "Error: Player does not have an objective card".to_string(),
+            )
+        }
     };
 
     let neighbours = match player.position_node_id {
         Some(pos) => match game.map.get_neighbour_relationships_of_node_with_id(pos) {
             Some(vec) => vec,
-            None => return ValidationResponse::Invalid(format!("Error: Node with ID {} does not exist", pos)),
+            None => {
+                return ValidationResponse::Invalid(format!(
+                    "Error: Node with ID {} does not exist",
+                    pos
+                ))
+            }
         },
-        None => return ValidationResponse::Invalid("Error: Player does not have a valid position and can therefore not move".to_string()),
+        None => {
+            return ValidationResponse::Invalid(
+                "Error: Player does not have a valid position and can therefore not move"
+                    .to_string(),
+            )
+        }
     };
 
     let Some(to_node_id) = player_input.related_node_id else {
@@ -184,14 +198,19 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
 
     let mut district_has_modifier = false;
     for dm in district_modifiers {
-        if dm.district != neighbour_relationship.neighbourhood || dm.modifier != DistrictModifierType::Access {
+        if dm.district != neighbour_relationship.neighbourhood
+            || dm.modifier != DistrictModifierType::Access
+        {
             continue;
         }
         let Some(vehicle_type) = dm.vehicle_type else {
             return ValidationResponse::Invalid("Error: There was no vehicle for access modifier".to_string());
         };
         district_has_modifier = true;
-        if player_objective_card.special_vehicle_types.contains(&vehicle_type) {
+        if player_objective_card
+            .special_vehicle_types
+            .contains(&vehicle_type)
+        {
             return ValidationResponse::Valid;
         }
     }
@@ -199,8 +218,10 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
     if !district_has_modifier {
         return ValidationResponse::Valid;
     }
-    ValidationResponse::Invalid("Invalid move: Player does not have required vehicle type to access this district".to_string())
-
+    ValidationResponse::Invalid(
+        "Invalid move: Player does not have required vehicle type to access this district"
+            .to_string(),
+    )
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
@@ -252,7 +273,7 @@ fn next_node_is_neighbour(
 }
 
 fn is_players_turn(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    if game.is_lobby {
+    if game.is_lobby || player_input.input_type == PlayerInputType::LeaveGame {
         return ValidationResponse::Valid;
     }
 
