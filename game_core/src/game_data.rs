@@ -270,6 +270,8 @@ impl GameState {
                     Err(e) => return Err(e),
                 };
 
+                let mut bonus_moves = 0;
+
                 if let Some(obj_card) = player.objective_card.clone() {
                     for modifier in self.district_modifiers.iter() {
                         if modifier.district != neighbour_relationship.neighbourhood {
@@ -285,10 +287,11 @@ impl GameState {
                         }
 
                         if let Some(movement_value) = modifier.associated_movement_value {
-                            player.remaining_moves += movement_value;
+                            bonus_moves = cmp::max(bonus_moves, movement_value);
                         }
                     }
                 }
+                player.remaining_moves += bonus_moves;
             } else {
                 player.remaining_moves -= neighbour_relationship.movement_cost;
             }
