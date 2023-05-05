@@ -53,6 +53,7 @@ pub enum PlayerInputType {
     StartGame,
     AssignSituationCard,
     LeaveGame,
+    DropPackageAtTrainStation,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -115,6 +116,7 @@ pub struct Player {
 pub struct Node {
     pub id: NodeID,
     pub name: String,
+    pub is_connected_to_rail: bool,
     // #[serde(skip)]
     // pub neighbours: Vec<(NodeID, NeighbourRelationship)>,
 }
@@ -417,7 +419,34 @@ impl GameState {
                 objective_card.picked_package_up = true;
             }
             if player_position_id == objective_card.drop_off_node_id
-                && objective_card.picked_package_up
+            && objective_card.picked_package_up
+            {
+                objective_card.dropped_package_off = true;
+            }
+            mem::swap(&mut player.objective_card, &mut Some(objective_card));
+        }
+        Ok(())
+    }
+
+    pub fn drop_package_at_train_station(&mut self) -> Result<(), String> {
+        for player in self.players.iter_mut() {
+            let Some(player_position_id) = player.position_node_id else {
+                return Err("The player did not have a position on the gameboard!".to_string());
+            };
+            let Some(mut objective_card) = player.objective_card.clone() else {
+                return Err("The player did not have an objective card!".to_string());
+            };
+            let player_node =  match self.map.get_node_by_id(player_position_id as NodeID) {
+                    Ok(n) => n,
+                Err(_) => return Err("Player node can not be determined while attempting to drop package!".to_string()),
+            };
+            let package_node = match self.map.get_node_by_id(objective_card.drop_off_node_id as NodeID) {
+                Ok(n) => n,
+                Err(_) => return Err("Destination node can not be determined while attempting to drop package!".to_string()),
+            };
+            if player_node.is_connected_to_rail
+            && objective_card.picked_package_up
+            && package_node.is_connected_to_rail
             {
                 objective_card.dropped_package_off = true;
             }
@@ -615,7 +644,12 @@ impl Player {
 impl Node {
     #[must_use]
     pub const fn new(id: NodeID, name: String) -> Self {
-        Self { id, name }
+        let is_connected_to_rail = false;
+        Self { id, name, is_connected_to_rail }
+    }
+
+    pub fn toggle_rail_connection(&mut self) {
+        self.is_connected_to_rail = !self.is_connected_to_rail;
     }
 }
 
@@ -656,7 +690,8 @@ impl NodeMap {
 
         let node0: Node = Node::new(0, String::from("Factory"));
         let node1: Node = Node::new(1, String::from("Refinery"));
-        let node2: Node = Node::new(2, String::from("Industry Park"));
+        let mut node2: Node = Node::new(2, String::from("Industry Park"));
+        node2.toggle_rail_connection();
         let node3: Node = Node::new(3, String::from("I1"));
         let node4: Node = Node::new(4, String::from("I2"));
         let node5: Node = Node::new(5, String::from("Port"));
@@ -664,7 +699,8 @@ impl NodeMap {
         let node7: Node = Node::new(7, String::from("Beach"));
         let node8: Node = Node::new(8, String::from("Northside"));
         let node9: Node = Node::new(9, String::from("I4"));
-        let node10: Node = Node::new(10, String::from("Central Station"));
+        let mut node10: Node = Node::new(10, String::from("Central Station"));
+        node10.toggle_rail_connection();
         let node11: Node = Node::new(11, String::from("City Square"));
         let node12: Node = Node::new(12, String::from("Concert Hall"));
         let node13: Node = Node::new(13, String::from("Eastside Mart"));
@@ -678,10 +714,12 @@ impl NodeMap {
         let node21: Node = Node::new(21, String::from("I8"));
         let node22: Node = Node::new(22, String::from("West Town"));
         let node23: Node = Node::new(23, String::from("Lakeside"));
-        let node24: Node = Node::new(24, String::from("Warehouses"));
+        let mut node24: Node = Node::new(24, String::from("Warehouses"));
+        node24.toggle_rail_connection();
         let node25: Node = Node::new(25, String::from("I9"));
         let node26: Node = Node::new(26, String::from("I10"));
-        let node27: Node = Node::new(27, String::from("Terminal 1"));
+        let mut node27: Node = Node::new(27, String::from("Terminal 1"));
+        node27.toggle_rail_connection();
         let node28: Node = Node::new(28, String::from("Terminal 2"));
 
         map.nodes.push(node0.clone());
