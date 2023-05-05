@@ -415,7 +415,25 @@ impl GameController {
             }
             PlayerInputType::DropPackageAtTrainStation => {
                 game.drop_package_at_train_station()
-            },
+            }
+            PlayerInputType::ModifyParkAndRide => {
+                let Some(park_and_ride_mod) = input.park_and_ride_modifier else {
+                    return Err("There was no park and ride modifier when wanting to modify park and ride!".to_string());
+                };
+                if park_and_ride_mod.delete {
+                    return game.remove_park_and_ride(
+                        park_and_ride_mod.node_one,
+                        park_and_ride_mod.node_two,
+                    );
+                }
+                game.add_park_and_ride(park_and_ride_mod.node_one, park_and_ride_mod.node_two)
+            }
+            PlayerInputType::UseParkAndRide => {
+                let Some(destination_node_id) = input.related_node_id else {
+                    return Err("There was no destination node id when wanting to use park and ride!".to_string());
+                };
+                game.use_park_and_ride_to_deliver_package(input.player_id, destination_node_id)
+            }
         }
     }
 

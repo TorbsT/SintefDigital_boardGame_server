@@ -230,6 +230,8 @@ components:
         - StartGame
         - LeaveGame
         - DropPackageAtTrainStation
+        - ModifyParkAndRide
+        - UseParkAndRide
     VehicleType:
       type: string
       enum:
@@ -266,6 +268,10 @@ components:
             $ref: "#/components/schemas/DistrictModifier"
         situation_card:
           $ref: "#/components/schemas/SituationCard"
+        park_and_ride_nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParkAndRideEdge"
     Player:
       type: object
       properties:
@@ -319,6 +325,9 @@ components:
           nullable: true
         situation_card_id:
           type: integer
+          nullable: true
+        park_and_ride_modifier:
+          $ref: "#/components/schemas/ParkAndRideEdge"
           nullable: true
     LobbyList:
       type: object
@@ -392,4 +401,13 @@ components:
         picked_package_up:
           type: boolean
         dropped_package_off:
+          type: boolean
+    ParkAndRideEdge:
+      type: object
+      properties:
+        node_one:
+          type: integer
+        node_two:
+          type: integer
+        delete:
           type: boolean
