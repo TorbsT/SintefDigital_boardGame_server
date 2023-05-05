@@ -30,3 +30,6 @@ Rust has great documentation, a friendly compiler with useful error messages, an
 
 ## ⚠ Disclaimer about caching
 As the client server runs on WebGL, caching can become an issue as it runs an older snapshot of the game which does not have the latest features. In order to circumvent this problem, a reload requesting all files will be necessary after an update (typically achieved with the CTRL+R hotkey in your web browser).
+
+## The API documentation
+The API is documented using [Swagger](https://swagger.io). In order to read the documentation in its original format, you have to use the [Swagger Editor](https://swagger.io/tools/swagger-editor/). While on the website, just click on **Try Swagger Editor** and paste the contents of the APIdoc.yaml file
