@@ -79,7 +79,7 @@ impl GameRuleChecker {
                 PlayerInputType::StartGame,
                 PlayerInputType::ModifyParkAndRide,
                 PlayerInputType::ModifyDistrict,
-            ],
+            ],ModifyEdgeRestrictions
             rule_fn: Box::new(is_orchestrator),
         };
         let player_has_position = Rule {
@@ -102,7 +102,7 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_enough_moves),
         };
-        let move_to_node = Rule {
+        let move_to_node = Rule {ModifyEdgeRestrictions
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(can_move_to_node),
         };
@@ -337,7 +337,7 @@ fn is_park_and_ride_action_valid(
     game: &GameState,
     player_input: &PlayerInput,
 ) -> ValidationResponse<String> {
-    let Some(park_and_ride_mod) = player_input.park_and_ride_modifier.clone() else {
+    let Some(park_and_ride_mod) = player_input.edge_modifier.clone() else {
         return ValidationResponse::Invalid("There was no park_and_ride modifier on the park and ride player input, and can therefore not check the input further!".to_string());
     };
 

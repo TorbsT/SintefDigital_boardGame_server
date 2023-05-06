@@ -3,6 +3,8 @@ use std::{cmp, collections::HashMap, mem};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
+use crate::situation_card_list::situation_card_list;
+
 //// =============== Types ===============
 pub type NodeID = u8;
 pub type PlayerID = i32;
@@ -13,6 +15,7 @@ pub type MovementValue = MovementCost;
 pub type MovesRemaining = MovementCost;
 pub type Money = i32;
 pub type SituationCardID = u8;
+pub type VehicleType = RestrictionType;
 
 //// =============== Constants ===============
 const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
@@ -53,7 +56,7 @@ pub enum PlayerInputType {
     StartGame,
     AssignSituationCard,
     LeaveGame,
-    ModifyParkAndRide,
+    ModifyEdgeRestrictions,
     SetPlayerTrainBool,
     SetPlayerBusBool,
 }
@@ -73,7 +76,7 @@ pub enum RestrictionType {
     ParkAndRide,
     Electric,
     Emergency,
-    Industrial,
+    Hazard,
     Destination,
     Heavy,
 }
@@ -101,7 +104,7 @@ pub struct GameState {
     #[serde(skip)]
     pub map: NodeMap,
     pub situation_card: Option<SituationCard>,
-    pub park_and_ride_nodes: Vec<EdgeRestriction>,
+    pub edge_restrictions: Vec<EdgeRestriction>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -138,8 +141,9 @@ pub struct NeighbourRelationship {
     pub to: NodeID,
     pub neighbourhood: Neighbourhood,
     pub movement_cost: MovementCost,
-    pub is_park_and_ride: bool,
+    pub blocked: bool,
     pub is_connected_through_rail: bool,
+    pub restriction: Option<RestrictionType>,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -164,7 +168,7 @@ pub struct PlayerInput {
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
     pub situation_card_id: Option<SituationCardID>,
-    pub park_and_ride_modifier: Option<EdgeRestriction>,
+    pub edge_modifier: Option<EdgeRestriction>,
     pub related_bool: Option<bool>,
 }
 
@@ -225,7 +229,7 @@ impl GameState {
             accessed_districts: Vec::new(),
             map: NodeMap::new_default(),
             situation_card: None,
-            park_and_ride_nodes: Vec::new(),
+            edge_restrictions: Vec::new(),
         }
     }
 
@@ -299,6 +303,9 @@ impl GameState {
             let Some(neighbour_relationship) = neighbours.iter().find(|relationship| relationship.to == to_node_id) else {
                 return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
             }; // TODO This check should be done in rule checker!
+            if neighbour_relationship.blocked {
+                return Err(format!("The road from id {} to id {} has blocked traffic going in that direciton", current_node_id, to_node_id));
+            }
 
             if player.is_train {
                 // TODO: This check should be done in the rule checker!
@@ -313,11 +320,16 @@ impl GameState {
             }
 
             if player.is_bus {
-                if neighbour_relationship.is_park_and_ride {
-                    Self::move_player_to_node(player, to_node_id, 1);
-                    return Ok(());
+                let Some(edge_restriction) = neighbour_relationship.restriction else {
+                    return Err(format!("The node (with id {}) you are trying to go to does not have a restriction and you can therefore not move there as a bus!", to_node_id));
+                };
+
+                if edge_restriction != RestrictionType::ParkAndRide {
+                    return Err(format!("The node (with id {}) you are trying to go to is not a part of the park & ride roads and you can therefore not move there as a bus!", to_node_id));
                 }
-                return Err(format!("The node (with id {}) you are trying to go to is not a part of the park & ride roads and you can therefore not move there as a bus!", to_node_id));
+                
+                Self::move_player_to_node(player, to_node_id, 1);
+                return Ok(());
             }
 
             if !self
@@ -444,7 +456,7 @@ impl GameState {
         START_MOVEMENT_AMOUNT
     }
 
-    pub fn assign_random_situation_card_to_players(&mut self) -> Result<(), String> {
+    pub fn assign_random_objective_card_to_players(&mut self) -> Result<(), String> {
         let Some(situation_card) = self.situation_card.clone() else {
             return Err("The game does not have a situation card and can therefore not assign objective cards to the players!".to_string());
         };
@@ -511,7 +523,7 @@ impl GameState {
                         "Unable to start game because a situation card is not chosen".to_string();
                     break;
                 }
-                match self.assign_random_situation_card_to_players() {
+                match self.assign_random_objective_card_to_players() {
                     Ok(_) => (),
                     Err(e) => {
                         errormessage = e;
@@ -543,6 +555,23 @@ impl GameState {
         match &self.situation_card {
             Some(card) => {
                 self.map.update_neighbourhood_cost(card.clone());
+                match card.card_id {
+                    0 => {
+                        return Err("Error: Situation card with ID 0 does not exist".to_string());
+                    },
+                    1 => {},
+                    2 => {},
+                    3 => {},
+                    4 => {
+                        return self.map.make_edge_one_way(19, 20)
+                    },
+                    5 => {
+                        return Err("The chosen card (5) is supposed not to have trains enabled. This is not yet implemented and can therefore not be chosen!".to_string());
+                    },
+                    6..=u8::MAX => {
+                        return Err("Error: Situation card with IDs 6 and up do not exist".to_string());
+                    },
+                }
                 Ok(())
             },
             None => Err("Error: No situation card was assigned to the game, and therefore can not update nodemap costs".to_string()),
@@ -602,9 +631,16 @@ impl GameState {
 
         let mut new_cost_tuples = Vec::new();
 
-        for cost_tuple in situation_card.costs {
+        let situation_cards = situation_card_list();
+        let Some(original_card) = situation_cards.iter().find(|c| c.card_id == situation_card.card_id) else {
+            return Err("The situation card in the game has an ID was not found in the list of situation cards!".to_string());
+        };
+        let original_costs = original_card.costs.clone();
+
+        for cost_tuple in original_costs {
             let mut new_cost_tuple = cost_tuple.clone();
             let mut is_access_modifier_used = false;
+            let mut times_to_increase_when_access = -1;
             for modifier in self.district_modifiers.clone() {
                 if modifier.district != cost_tuple.neighbourhood
                     || modifier.modifier != DistrictModifierType::Access
@@ -621,10 +657,13 @@ impl GameState {
                     is_access_modifier_used = true;
                 }
 
-                for _ in 0..vehicle_type.times_to_increase_traffic_when_access() {
-                    new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
-                }
+                times_to_increase_when_access += vehicle_type.times_to_increase_traffic_when_access() as i32;
             }
+
+            for _ in 0..cmp::max(0, times_to_increase_when_access) {
+                new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
+            }
+
             new_cost_tuples.push(new_cost_tuple);
         }
 
@@ -634,35 +673,33 @@ impl GameState {
         Ok(())
     }
 
-    pub fn add_park_and_ride(
+    pub fn add_edge_restriction(
         &mut self,
-        node_id_one: NodeID,
-        node_id_two: NodeID,
+        edge_restriction: &EdgeRestriction,
     ) -> Result<(), String> {
-        match self.map.add_park_and_ride_to_edge(node_id_one, node_id_two) {
+        match self.map.add_restrictions_to_edge(&edge_restriction) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
-        self.park_and_ride_nodes
-            .push(EdgeRestriction::new(node_id_one, node_id_two));
+        self.edge_restrictions
+            .push(edge_restriction.clone());
         Ok(())
     }
 
-    pub fn remove_park_and_ride(
+    pub fn remove_restriction_from_edge(
         &mut self,
-        node_id_one: NodeID,
-        node_id_two: NodeID,
+        edge_restriction: &EdgeRestriction,
     ) -> Result<(), String> {
         match self
             .map
-            .remove_park_and_ride_from_edge(node_id_one, node_id_two)
+            .remove_restriction_from_edge(edge_restriction)
         {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
-        self.park_and_ride_nodes.retain(|nodes| {
-            !((nodes.node_one == node_id_one && nodes.node_two == node_id_two)
-                || (nodes.node_one == node_id_two && nodes.node_two == node_id_one))
+        self.edge_restrictions.retain(|nodes| {
+            !((nodes.node_one == edge_restriction.node_one && nodes.node_two == edge_restriction.node_two)
+                || (nodes.node_one == edge_restriction.node_two && nodes.node_two == edge_restriction.node_one))
         });
         Ok(())
     }
@@ -749,11 +786,12 @@ impl Node {
 }
 
 impl EdgeRestriction {
-    pub const fn new(node_id_one: NodeID, node_id_two: NodeID) -> Self {
+    pub const fn new(node_id_one: NodeID, node_id_two: NodeID, edge_restriction: RestrictionType) -> Self {
         Self {
             node_one: node_id_one,
             node_two: node_id_two,
             delete: false,
+            edge_restriction,
         }
     }
 }
@@ -766,12 +804,14 @@ impl NeighbourRelationship {
         movement_cost: MovementCost,
         is_connected_through_rail: bool,
     ) -> Self {
+        let blocked = false;
         Self {
             to,
             neighbourhood,
             movement_cost,
-            is_park_and_ride: false,
+            blocked,
             is_connected_through_rail,
+            restriction: None,
         }
     }
 }
@@ -989,20 +1029,45 @@ impl NodeMap {
         self.edges.entry(node2.id).or_default().push(relationship);
     }
 
-    pub fn add_park_and_ride_to_edge(
-        &mut self,
-        node_id_1: NodeID,
-        node_id_2: NodeID,
+    fn make_edge_one_way(
+        &mut self, 
+        from_node_id: NodeID, 
+        to_node_id: NodeID
     ) -> Result<(), String> {
-        match self.add_park_and_ride_to_relationship(node_id_1, node_id_2) {
+        match self.are_nodes_neighbours(from_node_id, to_node_id) {
+            Ok(n) => {
+                if !n {
+                    return Err(format!("The node {} is not neighbours with node {} and can therefore not be made a one way road!", from_node_id, to_node_id));
+                }
+            },
+            Err(e) => return Err(e),
+        };
+        let Some(neighbours) = self.edges.get_mut(&to_node_id) else {
+            return Err(format!("There is no node with id {} that has any neighbours! Therefore, it's not possible to make road one way!", from_node_id));
+        };
+
+        for mut neighbour in neighbours {
+            if neighbour.to != from_node_id {
+                continue;
+            }
+            neighbour.blocked = true;
+                    }
+
+        Ok(())
+    }
+    pub fn add_restrictions_to_edge(
+        &mut self,
+        edge_restriction: &EdgeRestriction,
+    ) -> Result<(), String> {
+        match self.add_restriction_to_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
-        match self.add_park_and_ride_to_relationship(node_id_2, node_id_1) {
+        match self.add_restriction_to_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction) {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
-                match self.remove_park_and_ride_in_relationship(node_id_1, node_id_2) {
+                match self.remove_restriction_from_relationship(edge_restriction.node_one, edge_restriction.node_two) {
                     Ok(_) => (),
                     Err(e) => err_string = e,
                 }
@@ -1011,27 +1076,11 @@ impl NodeMap {
         }
     }
 
-    fn add_park_and_ride_to_relationship(
+    fn add_restriction_to_relationship(
         &mut self,
         from_node_id: NodeID,
         to_node_id: NodeID,
-    ) -> Result<(), String> {
-        self.set_park_and_ride_state_in_relationship(from_node_id, to_node_id, true)
-    }
-
-    fn remove_park_and_ride_in_relationship(
-        &mut self,
-        from_node_id: NodeID,
-        to_node_id: NodeID,
-    ) -> Result<(), String> {
-        self.set_park_and_ride_state_in_relationship(from_node_id, to_node_id, false)
-    }
-
-    fn set_park_and_ride_state_in_relationship(
-        &mut self,
-        from_node_id: NodeID,
-        to_node_id: NodeID,
-        is_park_and_ride: bool,
+        restriction_type: RestrictionType,
     ) -> Result<(), String> {
         match self.are_nodes_neighbours(from_node_id, to_node_id) {
             Ok(n) => {
@@ -1049,26 +1098,50 @@ impl NodeMap {
             if neighbour.to != to_node_id {
                 continue;
             }
-            neighbour.is_park_and_ride = is_park_and_ride;
+            neighbour.restriction = Some(restriction_type);
         }
-
         Ok(())
     }
 
-    fn remove_park_and_ride_from_edge(
+    fn remove_restriction_from_relationship(
         &mut self,
-        node_id_1: u8,
-        node_id_2: u8,
+        from_node_id: NodeID,
+        to_node_id: NodeID,
     ) -> Result<(), String> {
-        match self.remove_park_and_ride_in_relationship(node_id_1, node_id_2) {
+        match self.are_nodes_neighbours(from_node_id, to_node_id) {
+            Ok(n) => {
+                if !n {
+                    return Err(format!("The node {} is not neighbours with node {} and can therefore not put park and ride between them!", from_node_id, to_node_id));
+                }
+            }
+            Err(e) => return Err(e),
+        }
+        let Some(neighbours) = self.edges.get_mut(&from_node_id) else {
+            return Err(format!("There is no node with id {} that has any neighbours! Therefore we cannot place park and ride!", from_node_id));
+        };
+
+        for mut neighbour in neighbours {
+            if neighbour.to != to_node_id {
+                continue;
+            }
+            neighbour.restriction = None;
+        }
+        Ok(())
+    }
+
+    fn remove_restriction_from_edge(
+        &mut self,
+        edge_restriction: &EdgeRestriction,
+    ) -> Result<(), String> {
+        match self.remove_restriction_from_relationship(edge_restriction.node_one, edge_restriction.node_two) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
-        match self.remove_park_and_ride_in_relationship(node_id_2, node_id_1) {
+        match self.remove_restriction_from_relationship(edge_restriction.node_two, edge_restriction.node_one) {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
-                match self.add_park_and_ride_to_edge(node_id_1, node_id_2) {
+                match self.add_restrictions_to_edge(edge_restriction) {
                     Ok(_) => (),
                     Err(e) => err_string = e,
                 }
@@ -1170,12 +1243,12 @@ impl Traffic {
 impl RestrictionType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
-            Self::Electric => 2,
-            Self::Buss => 0,
-            Self::Emergency => 0,
-            Self::Industrial => 0,
-            Self::Normal => 0,
-            Self::Geolocation => 0,
+            RestrictionType::ParkAndRide => 0,
+            RestrictionType::Electric => 2,
+            RestrictionType::Emergency => 0,
+            RestrictionType::Hazard => 1,
+            RestrictionType::Destination => 1,
+            RestrictionType::Heavy => 1,
         }
     }
 }
