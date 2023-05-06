@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, NeighbourRelationship, RestrictionType, NodeID, Player, Neighbourhood},
+    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, NeighbourRelationship, RestrictionType, NodeID},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -247,7 +247,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
             .special_vehicle_types
             .contains(&vehicle_type)
             || (vehicle_type == RestrictionType::Destination
-            && player_has_objective_in_district(game.clone(), player.clone(), dm.district))
+            && GameState::player_has_objective_in_district(&game.map, &player, dm.district))
         {
             return ValidationResponse::Valid;
         }
@@ -260,29 +260,6 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         "Invalid move: Player does not have required vehicle type to access this district"
             .to_string(),
     )
-}
-
-fn player_has_objective_in_district(game: GameState, player: Player, district: Neighbourhood) -> bool {
-    let Some(objectivecard) = player.objective_card else {
-        return false;
-    };
-    let Some(player_pickup_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(objectivecard.pick_up_node_id) else {
-        return false;
-    };
-    let Some(player_drop_off_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(objectivecard.drop_off_node_id) else {
-        return false;
-    };
-    node_is_in_district(player_pickup_node_neighbours, district) || node_is_in_district(player_drop_off_node_neighbours, district)
-}
-
-fn node_is_in_district (neighbour_list: Vec<NeighbourRelationship>, district: Neighbourhood) -> bool {
-    let mut node_is_in_district = false;
-    neighbour_list.into_iter().for_each(|edge|{
-        if edge.neighbourhood == district {
-            node_is_in_district = true;
-        }
-    });
-    node_is_in_district
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
@@ -497,7 +474,7 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
 
         if !(objective_card.special_vehicle_types.contains(&restriction)
         || (restriction == RestrictionType::Destination
-        && player_has_objective_in_district(game.clone(), player.clone(), neighbour_relationship.neighbourhood))) {
+        && GameState::player_has_objective_in_district(&game.map, &player, neighbour_relationship.neighbourhood))) {
             return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
         }
 
