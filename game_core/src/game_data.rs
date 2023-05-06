@@ -501,7 +501,7 @@ impl GameState {
             }
             counter += 1;
         }
-
+        self.accessed_districts.clear();
         self.current_players_turn = next_player_turn;
     }
 
