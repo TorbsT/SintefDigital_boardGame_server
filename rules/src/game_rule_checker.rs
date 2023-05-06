@@ -105,10 +105,6 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::ModifyParkAndRide],
             rule_fn: Box::new(is_park_and_ride_action_valid),
         };
-        let can_use_park_and_ride = Rule {
-            related_inputs: vec![PlayerInputType::UseParkAndRide],
-            rule_fn: Box::new(park_and_ride_usage),
-        };
 
         let rules = vec![
             game_started,
@@ -119,7 +115,6 @@ impl GameRuleChecker {
             enough_moves,
             move_to_node,
             can_modify_park_and_ride,
-            can_use_park_and_ride
         ];
         rules
     }
@@ -431,27 +426,6 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     }
 
     ValidationResponse::Valid
-}
-
-fn park_and_ride_usage(
-    game: &GameState,
-    player_input: &PlayerInput,
-) -> ValidationResponse<String> {
-    let player = get_player_or_return_invalid_response!(game, player_input);
-
-    let Some(objective_card) = player.objective_card else {
-        return ValidationResponse::Invalid("The player does not have an objective card and can therefore not use park and ride!".to_string());
-    };
-
-    let destination_node_id = objective_card.drop_off_node_id;
-
-    let mut game_clone = game.clone();
-    match game_clone.use_park_and_ride_to_deliver_package(player_input.player_id, destination_node_id) {
-        Ok(_) => (),
-        Err(e) => return ValidationResponse::Invalid(e),
-    }
-
-    has_non_negative_amount_of_moves_left(&game_clone, player_input)
 }
 
 // TODO: Check if a player is on the destination node before letting them pressing next turn
