@@ -198,7 +198,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
 
     let district_modifiers = &game.district_modifiers;
 
-    let player_objective_card = match player.objective_card {
+    let player_objective_card = match &player.objective_card {
         Some(objective_card) => objective_card,
         None => {
             return ValidationResponse::Invalid(
@@ -246,6 +246,8 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         if player_objective_card
             .special_vehicle_types
             .contains(&vehicle_type)
+            || (vehicle_type == RestrictionType::Destination
+            && GameState::player_has_objective_in_district(&game.map, &player, dm.district))
         {
             return ValidationResponse::Valid;
         }
@@ -466,11 +468,13 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     };
 
     if let Some(restriction) = neighbour_relationship.restriction {
-        let Some(objective_card) = player.objective_card else {
+        let Some(objective_card) = &player.objective_card else {
             return ValidationResponse::Invalid(format!("The player {} does not have an objective card and we can therefore not check if the player has access to the given zone!", player.name));
         };
 
-        if !objective_card.special_vehicle_types.contains(&restriction) {
+        if !(objective_card.special_vehicle_types.contains(&restriction)
+        || (restriction == RestrictionType::Destination
+        && GameState::player_has_objective_in_district(&game.map, &player, neighbour_relationship.neighbourhood))) {
             return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
         }
 

@@ -287,6 +287,16 @@ impl GameState {
         Ok(())
     }
 
+    fn node_is_in_district (neighbour_list: Vec<NeighbourRelationship>, district: Neighbourhood) -> bool {
+        let mut node_is_in_district = false;
+        neighbour_list.into_iter().for_each(|edge|{
+            if edge.neighbourhood == district {
+                node_is_in_district = true;
+            }
+        });
+        node_is_in_district
+    }
+
     pub fn move_player_with_id(
         &mut self,
         player_id: PlayerID,
@@ -368,6 +378,18 @@ impl GameState {
 
                 if let Some(obj_card) = player.objective_card.clone() {
                     for modifier in self.district_modifiers.iter() {
+                        let player_has_objective_in_district = Self::player_has_objective_in_district(&self.map, player, modifier.district);
+
+                        let Some(restriction_vehicle_type) = modifier.vehicle_type else {
+                            return Err("The vehicle type can not be determined, and bonus moves can not be applied".to_string());
+                        };
+
+                        if restriction_vehicle_type == RestrictionType::Destination && player_has_objective_in_district {
+                            if let Some(movement_value) = modifier.associated_movement_value {
+                                bonus_moves = cmp::max(bonus_moves, movement_value);
+                            }
+                        }
+
                         if modifier.district != neighbour_relationship.neighbourhood {
                             continue;
                         }
@@ -393,6 +415,19 @@ impl GameState {
             return Ok(());
         }
         Err("There were no players in this game that match the player to update".to_string())
+    }
+
+    pub fn player_has_objective_in_district(map: &NodeMap, player: &Player, district: Neighbourhood) -> bool {
+        let Some(objectivecard) = &player.objective_card else {
+            return false;
+        };
+        let Some(player_pickup_node_neighbours) = map.get_neighbour_relationships_of_node_with_id(objectivecard.pick_up_node_id) else {
+            return false;
+        };
+        let Some(player_drop_off_node_neighbours) = map.get_neighbour_relationships_of_node_with_id(objectivecard.drop_off_node_id) else {
+            return false;
+        };
+        Self::node_is_in_district(player_pickup_node_neighbours, district) || Self::node_is_in_district(player_drop_off_node_neighbours, district)
     }
 
     fn move_player_to_node(player: &mut Player, to_node_id: NodeID, cost: MovementCost) {
