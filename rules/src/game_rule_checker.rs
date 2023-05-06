@@ -262,7 +262,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
     )
 }
 
-pub fn player_has_objective_in_district(game: GameState, player: Player, district: Neighbourhood) -> bool {
+fn player_has_objective_in_district(game: GameState, player: Player, district: Neighbourhood) -> bool {
     let Some(objectivecard) = player.objective_card else {
         return false;
     };
@@ -275,7 +275,7 @@ pub fn player_has_objective_in_district(game: GameState, player: Player, distric
     node_is_in_district(player_pickup_node_neighbours, district) || node_is_in_district(player_drop_off_node_neighbours, district)
 }
 
-pub fn node_is_in_district (neighbour_list: Vec<NeighbourRelationship>, district: Neighbourhood) -> bool {
+fn node_is_in_district (neighbour_list: Vec<NeighbourRelationship>, district: Neighbourhood) -> bool {
     let mut node_is_in_district = false;
     neighbour_list.into_iter().for_each(|edge|{
         if edge.neighbourhood == district {
