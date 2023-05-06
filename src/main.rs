@@ -306,7 +306,6 @@ mod tests {
         }
     }
 
-    #[allow(unused_macros)]
     macro_rules! change_role {
         ($app:expr, $game:expr, $player:expr, $role:expr) => {
             {
