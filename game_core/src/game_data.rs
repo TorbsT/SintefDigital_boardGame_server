@@ -124,6 +124,7 @@ pub struct NeighbourRelationship {
     pub to: NodeID,
     pub neighbourhood: Neighbourhood,
     pub movement_cost: MovementCost,
+    pub blocked: bool,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -256,6 +257,9 @@ impl GameState {
             let Some(neighbour_relationship) = neighbours.iter().find(|relationship| relationship.to == to_node_id) else {
                 return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
             };
+            if neighbour_relationship.blocked {
+                return Err(format!("The road from id {} to id {} has blocked traffic going in that direciton", current_node_id, to_node_id));
+            }
             if !self
                 .accessed_districts
                 .contains(&neighbour_relationship.neighbourhood)
@@ -474,6 +478,23 @@ impl GameState {
         match &self.situation_card {
             Some(card) => {
                 self.map.update_neighbourhood_cost(card.clone());
+                match card.card_id {
+                    0 => {
+                        return Err("Error: Situation card with ID 0 does not exist".to_string());
+                    },
+                    1 => {},
+                    2 => {},
+                    3 => {},
+                    4 => {
+                        return self.map.make_edge_one_way(19, 20)
+                    },
+                    5 => {
+                        todo!("Make it so trains are blocked")
+                    },
+                    6..=u8::MAX => {
+                        return Err("Error: Situation card with IDs 6 and up do not exist".to_string());
+                    },
+                }
                 Ok(())
             },
             None => Err("Error: No situation card was assigned to the game, and therefore can not update nodemap costs".to_string()),
@@ -626,10 +647,12 @@ impl NeighbourRelationship {
         neighbourhood: Neighbourhood,
         movement_cost: MovementCost,
     ) -> Self {
+        let blocked = false;
         Self {
             to,
             neighbourhood,
             movement_cost,
+            blocked,
         }
     }
 }
@@ -827,6 +850,33 @@ impl NodeMap {
             .push(relationship.clone());
         relationship.to = node1.id;
         self.edges.entry(node2.id).or_default().push(relationship);
+    }
+
+    fn make_edge_one_way(
+        &mut self, 
+        from_node_id: NodeID, 
+        to_node_id: NodeID
+    ) -> Result<(), String> {
+        match self.are_nodes_neighbours(from_node_id, to_node_id) {
+            Ok(n) => {
+                if !n {
+                    return Err(format!("The node {} is not neighbours with node {} and can therefore not be made a one way road!", from_node_id, to_node_id));
+                }
+            },
+            Err(e) => return Err(e),
+        };
+        let Some(neighbours) = self.edges.get_mut(&to_node_id) else {
+            return Err(format!("There is no node with id {} that has any neighbours! Therefore, it's not possible to make road one way!", from_node_id));
+        };
+
+        for mut neighbour in neighbours {
+            if neighbour.to != from_node_id {
+                continue;
+            }
+            neighbour.blocked = true;
+        }
+
+        Ok(())
     }
 }
 
