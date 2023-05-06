@@ -489,7 +489,7 @@ impl GameState {
                         return self.map.make_edge_one_way(19, 20)
                     },
                     5 => {
-                        todo!("Make it so trains are blocked")
+                        return Err("The chosen card (5) is supposed not to have trains enabled. This is not yet implemented and can therefore not be chosen!".to_string());
                     },
                     6..=u8::MAX => {
                         return Err("Error: Situation card with IDs 6 and up do not exist".to_string());
