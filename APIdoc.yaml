@@ -237,10 +237,10 @@ components:
       type: string
       enum:
         - Electric
-        - Buss
+        - Bus
         - Emergency
-        - Industrial
-        - Normal
+        - Hazard
+        - Heavy
         - Geolocation
     DistrictModifierType:
       type: string

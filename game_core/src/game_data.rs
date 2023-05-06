@@ -3,6 +3,8 @@ use std::{cmp, collections::HashMap, mem};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
+use crate::situation_card_list::situation_card_list;
+
 //// =============== Types ===============
 pub type NodeID = u8;
 pub type PlayerID = i32;
@@ -71,11 +73,11 @@ pub enum Neighbourhood {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum VehicleType {
     Electric,
-    Buss,
+    Bus,
     Emergency,
-    Industrial,
-    Normal,
-    Geolocation,
+    Hazard,
+    Heavy,
+    Geolocation, //TODO: This has to be implemented
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -447,7 +449,7 @@ impl GameState {
         START_MOVEMENT_AMOUNT
     }
 
-    pub fn assign_random_situation_card_to_players(&mut self) -> Result<(), String> {
+    pub fn assign_random_objective_card_to_players(&mut self) -> Result<(), String> {
         let Some(situation_card) = self.situation_card.clone() else {
             return Err("The game does not have a situation card and can therefore not assign objective cards to the players!".to_string());
         };
@@ -514,7 +516,7 @@ impl GameState {
                         "Unable to start game because a situation card is not chosen".to_string();
                     break;
                 }
-                match self.assign_random_situation_card_to_players() {
+                match self.assign_random_objective_card_to_players() {
                     Ok(_) => (),
                     Err(e) => {
                         errormessage = e;
@@ -622,9 +624,16 @@ impl GameState {
 
         let mut new_cost_tuples = Vec::new();
 
-        for cost_tuple in situation_card.costs {
+        let situation_cards = situation_card_list();
+        let Some(original_card) = situation_cards.iter().find(|c| c.card_id == situation_card.card_id) else {
+            return Err("The situation card in the game has an ID was not found in the list of situation cards!".to_string());
+        };
+        let original_costs = original_card.costs.clone();
+
+        for cost_tuple in original_costs {
             let mut new_cost_tuple = cost_tuple.clone();
             let mut is_access_modifier_used = false;
+            let mut times_to_increase_when_access = -1;
             for modifier in self.district_modifiers.clone() {
                 if modifier.district != cost_tuple.neighbourhood
                     || modifier.modifier != DistrictModifierType::Access
@@ -641,10 +650,13 @@ impl GameState {
                     is_access_modifier_used = true;
                 }
 
-                for _ in 0..vehicle_type.times_to_increase_traffic_when_access() {
-                    new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
-                }
+                times_to_increase_when_access += vehicle_type.times_to_increase_traffic_when_access() as i32;
             }
+
+            for _ in 0..cmp::max(0, times_to_increase_when_access) {
+                new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
+            }
+
             new_cost_tuples.push(new_cost_tuple);
         }
 
@@ -1218,11 +1230,11 @@ impl VehicleType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
             Self::Electric => 2,
-            Self::Buss => 0,
+            Self::Bus => 1,
             Self::Emergency => 0,
-            Self::Industrial => 0,
-            Self::Normal => 0,
-            Self::Geolocation => 0,
+            Self::Hazard => 1,
+            Self::Heavy => 1,
+            Self::Geolocation => 1,
         }
     }
 }
