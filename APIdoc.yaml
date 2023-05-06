@@ -281,7 +281,7 @@ components:
         node_two:
           type: integer
         edge_restriction:
-          $ref: "#components/schemas/RestrictionType"
+          $ref: "#/components/schemas/RestrictionType"
         delete:
           type: boolean
     Player:
