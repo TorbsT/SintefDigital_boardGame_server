@@ -108,7 +108,7 @@ pub struct GameState {
 pub struct EdgeRestriction {
     pub node_one: NodeID,
     pub node_two: NodeID,
-    pub edge_restriction: EdgeRestrictionType,
+    pub edge_restriction: RestrictionType,
     pub delete: bool,
 }
 
@@ -172,7 +172,7 @@ pub struct PlayerInput {
 pub struct DistrictModifier {
     pub district: Neighbourhood,
     pub modifier: DistrictModifierType,
-    pub vehicle_type: Option<VehicleType>,
+    pub vehicle_type: Option<RestrictionType>,
     pub associated_movement_value: Option<MovementValue>,
     pub associated_money_value: Option<Money>,
     pub delete: bool,
@@ -183,7 +183,7 @@ pub struct PlayerObjectiveCard {
     pub start_node_id: NodeID,
     pub pick_up_node_id: NodeID,
     pub drop_off_node_id: NodeID,
-    pub special_vehicle_types: Vec<VehicleType>,
+    pub special_vehicle_types: Vec<RestrictionType>,
     pub picked_package_up: bool,
     pub dropped_package_off: bool,
 }
@@ -1167,7 +1167,7 @@ impl Traffic {
     }
 }
 
-impl VehicleType {
+impl RestrictionType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
             Self::Electric => 2,
