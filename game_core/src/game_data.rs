@@ -1251,12 +1251,12 @@ impl Traffic {
 impl RestrictionType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
-            RestrictionType::ParkAndRide => 0,
-            RestrictionType::Electric => 2,
-            RestrictionType::Emergency => 0,
-            RestrictionType::Hazard => 1,
-            RestrictionType::Destination => 1,
-            RestrictionType::Heavy => 1,
+            Self::ParkAndRide => 0,
+            Self::Electric => 2,
+            Self::Emergency => 0,
+            Self::Hazard => 1,
+            Self::Destination => 1,
+            Self::Heavy => 1,
         }
     }
 }
