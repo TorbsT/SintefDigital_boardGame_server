@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{GameState, InGameID, PlayerInput, PlayerInputType, DistrictModifierType},
+    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -70,20 +70,29 @@ impl GameRuleChecker {
             ],
             rule_fn: Box::new(has_game_started),
         };
-
         let players_turn = Rule {
             related_inputs: vec![PlayerInputType::All],
             rule_fn: Box::new(is_players_turn),
         };
-
         let orchestrator_check = Rule {
-            related_inputs: vec![PlayerInputType::StartGame],
+            related_inputs: vec![
+                PlayerInputType::StartGame,
+                PlayerInputType::ModifyParkAndRide,
+                PlayerInputType::ModifyDistrict,
+            ],
             rule_fn: Box::new(is_orchestrator),
         };
-
         let player_has_position = Rule {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_position),
+        };
+        let toggle_bus = Rule {
+            related_inputs: vec![PlayerInputType::SetPlayerBusBool],
+            rule_fn: Box::new(can_toggle_bus),
+        };
+        let toggle_train = Rule {
+            related_inputs: vec![PlayerInputType::SetPlayerTrainBool],
+            rule_fn: Box::new(can_toggle_train),
         };
         let next_to_node = Rule {
             related_inputs: vec![PlayerInputType::Movement],
@@ -93,9 +102,13 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_enough_moves),
         };
-        let can_enter_district = Rule {
+        let move_to_node = Rule {
             related_inputs: vec![PlayerInputType::Movement],
-            rule_fn: Box::new(can_enter_district),
+            rule_fn: Box::new(can_move_to_node),
+        };
+        let can_modify_park_and_ride = Rule {
+            related_inputs: vec![PlayerInputType::ModifyParkAndRide],
+            rule_fn: Box::new(is_park_and_ride_action_valid),
         };
 
         let rules = vec![
@@ -103,12 +116,36 @@ impl GameRuleChecker {
             players_turn,
             orchestrator_check,
             player_has_position,
+            toggle_bus,
+            toggle_train,
             next_to_node,
             enough_moves,
-            can_enter_district,
+            move_to_node,
+            can_modify_park_and_ride,
         ];
         rules
     }
+}
+
+// ================== MACROS ====================
+macro_rules! get_player_or_return_invalid_response {
+    ($game:expr, $player_input:expr) => {{
+        let player_result = $game.get_player_with_unique_id($player_input.player_id);
+        let player = match player_result {
+            Ok(p) => p,
+            Err(e) => return ValidationResponse::Invalid(e.to_string()),
+        };
+        player.clone()
+    }};
+}
+
+macro_rules! get_player_position_id_or_return_invalid_response {
+    ($player:expr) => {{
+        match $player.position_node_id {
+            Some(id) => id,
+            None => return ValidationResponse::Invalid("The player does not have a position and can therefore not check if it's a valid action!".to_string()),
+        }
+    }};
 }
 
 // ==================== RULES ====================
@@ -121,11 +158,7 @@ fn has_game_started(game: &GameState, _player_input: &PlayerInput) -> Validation
 }
 
 fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    let player_result = game.get_player_with_unique_id(player_input.player_id);
-    let player = match player_result {
-        Ok(p) => p,
-        Err(e) => return ValidationResponse::Invalid(e.to_string()),
-    };
+    let player = get_player_or_return_invalid_response!(game, player_input);
 
     if player.remaining_moves == 0 {
         return ValidationResponse::Invalid("The player has no remaining moves!".to_string());
@@ -142,37 +175,54 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
         Err(e) => return ValidationResponse::Invalid(e),
     }
 
-    if let Ok(p) = game_clone.get_player_with_unique_id(player_input.player_id) {
-        if p.remaining_moves < 0 {
-            return ValidationResponse::Invalid(
-                format!("The player does not have enough remaining moves! The player would have {} remaining moves!", p.remaining_moves),
-            );
-        }
+    has_non_negative_amount_of_moves_left(game, player_input)
+}
+
+fn has_non_negative_amount_of_moves_left(
+    game: &GameState,
+    player_input: &PlayerInput,
+) -> ValidationResponse<String> {
+    let player = get_player_or_return_invalid_response!(game, player_input);
+
+    if player.remaining_moves < 0 {
+        return ValidationResponse::Invalid(
+            format!("The player does not have enough remaining moves! The player would have {} remaining moves!", player.remaining_moves),
+        );
     }
 
     ValidationResponse::Valid
 }
 
 fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    let player_result = game.get_player_with_unique_id(player_input.player_id);
-    let player = match player_result {
-        Ok(p) => p,
-        Err(e) => return ValidationResponse::Invalid(e.to_string()),
-    };
+    let player = get_player_or_return_invalid_response!(game, player_input);
 
     let district_modifiers = &game.district_modifiers;
 
     let player_objective_card = match player.objective_card {
         Some(objective_card) => objective_card,
-        None => return ValidationResponse::Invalid("Error: Player does not have an objective card".to_string()),
+        None => {
+            return ValidationResponse::Invalid(
+                "Error: Player does not have an objective card".to_string(),
+            )
+        }
     };
 
     let neighbours = match player.position_node_id {
         Some(pos) => match game.map.get_neighbour_relationships_of_node_with_id(pos) {
             Some(vec) => vec,
-            None => return ValidationResponse::Invalid(format!("Error: Node with ID {} does not exist", pos)),
+            None => {
+                return ValidationResponse::Invalid(format!(
+                    "Error: Node with ID {} does not exist",
+                    pos
+                ))
+            }
         },
-        None => return ValidationResponse::Invalid("Error: Player does not have a valid position and can therefore not move".to_string()),
+        None => {
+            return ValidationResponse::Invalid(
+                "Error: Player does not have a valid position and can therefore not move"
+                    .to_string(),
+            )
+        }
     };
 
     let Some(to_node_id) = player_input.related_node_id else {
@@ -184,14 +234,19 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
 
     let mut district_has_modifier = false;
     for dm in district_modifiers {
-        if dm.district != neighbour_relationship.neighbourhood || dm.modifier != DistrictModifierType::Access {
+        if dm.district != neighbour_relationship.neighbourhood
+            || dm.modifier != DistrictModifierType::Access
+        {
             continue;
         }
         let Some(vehicle_type) = dm.vehicle_type else {
             return ValidationResponse::Invalid("Error: There was no vehicle for access modifier".to_string());
         };
         district_has_modifier = true;
-        if player_objective_card.special_vehicle_types.contains(&vehicle_type) {
+        if player_objective_card
+            .special_vehicle_types
+            .contains(&vehicle_type)
+        {
             return ValidationResponse::Valid;
         }
     }
@@ -199,8 +254,10 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
     if !district_has_modifier {
         return ValidationResponse::Valid;
     }
-    ValidationResponse::Invalid("Invalid move: Player does not have required vehicle type to access this district".to_string())
-
+    ValidationResponse::Invalid(
+        "Invalid move: Player does not have required vehicle type to access this district"
+            .to_string(),
+    )
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
@@ -256,10 +313,7 @@ fn is_players_turn(game: &GameState, player_input: &PlayerInput) -> ValidationRe
         return ValidationResponse::Valid;
     }
 
-    let player = match game.get_player_with_unique_id(player_input.player_id) {
-        Ok(p) => p,
-        Err(e) => return ValidationResponse::Invalid(e.to_string()),
-    };
+    let player = get_player_or_return_invalid_response!(game, player_input);
 
     if game.current_players_turn != player.in_game_id {
         return ValidationResponse::Invalid("It's not the current players turn".to_string());
@@ -269,11 +323,7 @@ fn is_players_turn(game: &GameState, player_input: &PlayerInput) -> ValidationRe
 }
 
 fn is_orchestrator(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    let player = match game.get_player_with_unique_id(player_input.player_id) {
-        Ok(p) => p,
-        Err(e) => return ValidationResponse::Invalid(e.to_string()),
-    };
-
+    let player = get_player_or_return_invalid_response!(game, player_input);
     if player.in_game_id != InGameID::Orchestrator {
         return ValidationResponse::Invalid(
             "The player is not the orchestrator of the game!".to_string(),
@@ -283,4 +333,189 @@ fn is_orchestrator(game: &GameState, player_input: &PlayerInput) -> ValidationRe
     ValidationResponse::Valid
 }
 
+fn is_park_and_ride_action_valid(
+    game: &GameState,
+    player_input: &PlayerInput,
+) -> ValidationResponse<String> {
+    let Some(park_and_ride_mod) = player_input.park_and_ride_modifier.clone() else {
+        return ValidationResponse::Invalid("There was no park_and_ride modifier on the park and ride player input, and can therefore not check the input further!".to_string());
+    };
+
+    let Some(neighbours_one) = game.map.get_neighbour_relationships_of_node_with_id(park_and_ride_mod.node_one) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", park_and_ride_mod.node_one));
+    };
+
+    let Some(neighbours_two) = game.map.get_neighbour_relationships_of_node_with_id(park_and_ride_mod.node_two) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", park_and_ride_mod.node_one));
+    };
+
+    if park_and_ride_mod.delete {
+        if neighbours_one
+            .iter()
+            .filter(|neighbour| neighbour.is_park_and_ride)
+            .count()
+            < 2
+            || neighbours_two
+                .iter()
+                .filter(|neighbour| neighbour.is_park_and_ride)
+                .count()
+                < 2
+        {
+            return ValidationResponse::Valid;
+        }
+        return ValidationResponse::Invalid("It's not possible to delete a park & ride edge that is connected to more than one other park & ride edge!".to_string());
+    }
+
+    let node_one = match game.map.get_node_by_id(park_and_ride_mod.node_one) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " and can therefore not check wether the park & ride can be placed here!",
+            )
+        }
+    };
+
+    let node_two = match game.map.get_node_by_id(park_and_ride_mod.node_two) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " and can therefore not check wether the park & ride can be placed here!",
+            )
+        }
+    };
+
+    if node_one.is_parking_spot || node_two.is_parking_spot {
+        return ValidationResponse::Valid;
+    }
+
+    if neighbours_one
+        .iter()
+        .filter(|neighbour| neighbour.is_park_and_ride)
+        .count()
+        > 0
+        || neighbours_two
+            .iter()
+            .filter(|neighbour| neighbour.is_park_and_ride)
+            .count()
+            > 0
+    {
+        return ValidationResponse::Valid;
+    }
+
+    ValidationResponse::Invalid(format!("Cannot place park & ride on the edge between node with ids {} and {} because there is no adjacent parking spots or park and ride edges!", park_and_ride_mod.node_one, park_and_ride_mod.node_two))
+}
+
+fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player = get_player_or_return_invalid_response!(game, player_input);
+    
+    let player_pos = get_player_position_id_or_return_invalid_response!(player);
+
+    let Some(to_node_id) = player_input.related_node_id else {
+        return ValidationResponse::Invalid("There is no related node to the movement input. There needs to be a node if a players should move!".to_string());
+    };
+
+    let Some(neighbours) = game.map.get_neighbour_relationships_of_node_with_id(player_pos) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", player_pos));
+    };
+
+    if player.is_bus {
+        if neighbours
+            .iter()
+            .any(|neighbour| neighbour.is_park_and_ride && neighbour.to == to_node_id)
+        {
+            return ValidationResponse::Valid;
+        }
+        return ValidationResponse::Invalid(
+            format!("The player cannot move here because the node (with id {}) is not a neighbouring node connected with a park & ride edge!", to_node_id),
+        );
+    }
+
+    if player.is_train {
+        if neighbours
+            .iter()
+            .any(|neighbour| neighbour.is_connected_through_rail && neighbour.to == to_node_id)
+        {
+            return ValidationResponse::Valid;
+        }
+        return ValidationResponse::Invalid(
+            format!("The player cannot move here because the node (with id {}) is not a neighbouring node connected through the railway!", to_node_id),
+        );
+    }
+    
+    match can_enter_district(game, player_input) {
+        ValidationResponse::Valid => (),
+        ValidationResponse::Invalid(e) => return ValidationResponse::Invalid(e),
+    }
+
+    if neighbours
+        .iter()
+        .any(|neighbour| neighbour.is_park_and_ride && neighbour.to == to_node_id)
+    {
+        return ValidationResponse::Invalid(
+            "The player cannot move here because it's a park & ride edge!".to_string(),
+        );
+    }
+
+    ValidationResponse::Valid
+}
+
+fn can_toggle_bus(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player = get_player_or_return_invalid_response!(game, player_input);
+    
+    let Some(_) = player_input.related_bool else {
+        return ValidationResponse::Invalid("Could not check if you can toggle bus because the related bool was not set. It's needed for so that we can know if you want to stop being a bus or change to a bus!".to_string());
+    };
+    
+    if player.is_train {
+        return ValidationResponse::Invalid("You cannot toggle bus if you are a train!".to_string());
+    }
+
+    let player_pos = get_player_position_id_or_return_invalid_response!(player);
+    let node = match game.map.get_node_by_id(player_pos) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " and can therefore not check wether the player can toggle bus!",
+            )
+        }
+    };
+
+    if !node.is_parking_spot {
+        return ValidationResponse::Invalid(
+            "You cannot toggle bus if you are not on a parking spot!".to_string(),
+        );
+    }
+
+    ValidationResponse::Valid
+}
+
+fn can_toggle_train(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player = get_player_or_return_invalid_response!(game, player_input);
+    
+    let Some(_) = player_input.related_bool else {
+        return ValidationResponse::Invalid("Could not check if you can toggle train because the related bool was not set. It's needed for so that we can know if you want to stop being a train or change to a train!".to_string());
+    };
+    
+    if player.is_bus {
+        return ValidationResponse::Invalid("You cannot toggle train if you are a bus!".to_string());
+    }
+
+    let player_pos = get_player_position_id_or_return_invalid_response!(player);
+    let node = match game.map.get_node_by_id(player_pos) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " and can therefore not check wether the player can toggle train!",
+            )
+        }
+    };
+
+    if !node.is_connected_to_rail {
+        return ValidationResponse::Invalid(
+            "You cannot toggle train if you are not on a train station spot!".to_string(),
+        );
+    }
+
+    ValidationResponse::Valid
+}
 // TODO: Check if a player is on the destination node before letting them pressing next turn

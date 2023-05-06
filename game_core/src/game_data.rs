@@ -53,6 +53,9 @@ pub enum PlayerInputType {
     StartGame,
     AssignSituationCard,
     LeaveGame,
+    ModifyParkAndRide,
+    SetPlayerTrainBool,
+    SetPlayerBusBool,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -98,6 +101,14 @@ pub struct GameState {
     #[serde(skip)]
     pub map: NodeMap,
     pub situation_card: Option<SituationCard>,
+    pub park_and_ride_nodes: Vec<ParkAndRideEdge>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ParkAndRideEdge {
+    pub node_one: NodeID,
+    pub node_two: NodeID,
+    pub delete: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -109,14 +120,16 @@ pub struct Player {
     pub position_node_id: Option<NodeID>,
     pub remaining_moves: MovesRemaining,
     pub objective_card: Option<PlayerObjectiveCard>,
+    pub is_train: bool,
+    pub is_bus: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Node {
     pub id: NodeID,
     pub name: String,
-    // #[serde(skip)]
-    // pub neighbours: Vec<(NodeID, NeighbourRelationship)>,
+    pub is_connected_to_rail: bool,
+    pub is_parking_spot: bool,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -125,6 +138,8 @@ pub struct NeighbourRelationship {
     pub neighbourhood: Neighbourhood,
     pub movement_cost: MovementCost,
     pub blocked: bool,
+    pub is_park_and_ride: bool,
+    pub is_connected_through_rail: bool,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -149,6 +164,8 @@ pub struct PlayerInput {
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
     pub situation_card_id: Option<SituationCardID>,
+    pub park_and_ride_modifier: Option<ParkAndRideEdge>,
+    pub related_bool: Option<bool>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -194,6 +211,7 @@ pub struct SituationCardList {
 
 //// =============== Structs impls ===============
 impl GameState {
+    //TODO: Alle max checks, som f.eks. maks antall spillere i en lobby og maks antall restrictions burde flyttes til game_rule_checker
     #[must_use]
     pub fn new(name: String, game_id: GameID) -> Self {
         Self {
@@ -207,6 +225,25 @@ impl GameState {
             accessed_districts: Vec::new(),
             map: NodeMap::new_default(),
             situation_card: None,
+            park_and_ride_nodes: Vec::new(),
+        }
+    }
+
+    pub fn set_player_train_bool(&mut self, player_id: PlayerID, boolean: bool) {
+        for player in self.players.iter_mut() {
+            if player.unique_id != player_id {
+                continue;
+            }
+            player.is_train = boolean;
+        }
+    }
+
+    pub fn set_player_bus_bool(&mut self, player_id: PlayerID, boolean: bool) {
+        for player in self.players.iter_mut() {
+            if player.unique_id != player_id {
+                continue;
+            }
+            player.is_bus = boolean;
         }
     }
 
@@ -250,16 +287,42 @@ impl GameState {
                 return Err("The player is not at any node!".to_string());
             };
 
+            let to_node = match self.map.get_node_by_id(to_node_id) {
+                Ok(n) => n,
+                Err(e) => return Err(e),
+            };
+
             let Some(neighbours) = self.map.get_neighbour_relationships_of_node_with_id(current_node_id) else {
                 return Err(format!("There was no node with id {}!", current_node_id));
             };
 
             let Some(neighbour_relationship) = neighbours.iter().find(|relationship| relationship.to == to_node_id) else {
                 return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
-            };
+            }; // TODO This check should be done in rule checker!
             if neighbour_relationship.blocked {
                 return Err(format!("The road from id {} to id {} has blocked traffic going in that direciton", current_node_id, to_node_id));
             }
+
+            if player.is_train {
+                // TODO: This check should be done in the rule checker!
+                if to_node.is_connected_to_rail {
+                    if neighbour_relationship.is_connected_through_rail {
+                        Self::move_player_to_node(player, to_node_id, 1);
+                        return Ok(());
+                    }
+                    return Err(format!("The node you are trying to go to (with id {}) is not a neighbouring train station and you can therefore not move to it as a train!", to_node_id));
+                }
+                return Err(format!("The node you are trying to go to (with id {}) is not connected to a rail and can therefore not be moved to as a train!", to_node_id));
+            }
+
+            if player.is_bus {
+                if neighbour_relationship.is_park_and_ride {
+                    Self::move_player_to_node(player, to_node_id, 1);
+                    return Ok(());
+                }
+                return Err(format!("The node (with id {}) you are trying to go to is not a part of the park & ride roads and you can therefore not move there as a bus!", to_node_id));
+            }
+
             if !self
                 .accessed_districts
                 .contains(&neighbour_relationship.neighbourhood)
@@ -303,6 +366,11 @@ impl GameState {
             return Ok(());
         }
         Err("There were no players in this game that match the player to update".to_string())
+    }
+
+    fn move_player_to_node(player: &mut Player, to_node_id: NodeID, cost: MovementCost) {
+        player.remaining_moves -= cost;
+        player.position_node_id = Some(to_node_id);
     }
 
     pub fn update_game(&mut self, update: Self) {
@@ -421,7 +489,7 @@ impl GameState {
                 objective_card.picked_package_up = true;
             }
             if player_position_id == objective_card.drop_off_node_id
-                && objective_card.picked_package_up
+            && objective_card.picked_package_up
             {
                 objective_card.dropped_package_off = true;
             }
@@ -585,6 +653,39 @@ impl GameState {
 
         Ok(())
     }
+
+    pub fn add_park_and_ride(
+        &mut self,
+        node_id_one: NodeID,
+        node_id_two: NodeID,
+    ) -> Result<(), String> {
+        match self.map.add_park_and_ride_to_edge(node_id_one, node_id_two) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        self.park_and_ride_nodes
+            .push(ParkAndRideEdge::new(node_id_one, node_id_two));
+        Ok(())
+    }
+
+    pub fn remove_park_and_ride(
+        &mut self,
+        node_id_one: NodeID,
+        node_id_two: NodeID,
+    ) -> Result<(), String> {
+        match self
+            .map
+            .remove_park_and_ride_from_edge(node_id_one, node_id_two)
+        {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        self.park_and_ride_nodes.retain(|nodes| {
+            !((nodes.node_one == node_id_one && nodes.node_two == node_id_two)
+                || (nodes.node_one == node_id_two && nodes.node_two == node_id_one))
+        });
+        Ok(())
+    }
 }
 
 impl InGameID {
@@ -621,6 +722,8 @@ impl Neighbourhood {
 impl Player {
     #[must_use]
     pub const fn new(unique_id: PlayerID, name: String) -> Self {
+        let is_train = false;
+        let is_bus = false;
         Self {
             connected_game_id: None,
             in_game_id: InGameID::Undecided,
@@ -629,14 +732,49 @@ impl Player {
             position_node_id: None,
             remaining_moves: 0,
             objective_card: None,
+            is_train,
+            is_bus,
         }
     }
+    
+    pub fn transform_to_train(&mut self) {
+        self.is_train = true;
+    }
+
+    pub fn transform_to_bus(&mut self) {
+        self.is_bus = true;
+    }
+
+    pub fn transform_to_car(&mut self) {
+        self.is_train = false;
+        self.is_bus = false;
+    }
+
 }
 
 impl Node {
     #[must_use]
     pub const fn new(id: NodeID, name: String) -> Self {
-        Self { id, name }
+        Self {
+            id,
+            name,
+            is_parking_spot: false,
+            is_connected_to_rail: false,
+        }
+    }
+
+    pub fn toggle_rail_connection(&mut self) {
+        self.is_connected_to_rail = !self.is_connected_to_rail;
+    }
+}
+
+impl ParkAndRideEdge {
+    pub const fn new(node_id_one: NodeID, node_id_two: NodeID) -> Self {
+        Self {
+            node_one: node_id_one,
+            node_two: node_id_two,
+            delete: false,
+        }
     }
 }
 
@@ -646,6 +784,7 @@ impl NeighbourRelationship {
         to: NodeID,
         neighbourhood: Neighbourhood,
         movement_cost: MovementCost,
+        is_connected_through_rail: bool,
     ) -> Self {
         let blocked = false;
         Self {
@@ -653,6 +792,8 @@ impl NeighbourRelationship {
             neighbourhood,
             movement_cost,
             blocked,
+            is_park_and_ride: false,
+            is_connected_through_rail,
         }
     }
 }
@@ -679,33 +820,46 @@ impl NodeMap {
 
         let node0: Node = Node::new(0, String::from("Factory"));
         let node1: Node = Node::new(1, String::from("Refinery"));
-        let node2: Node = Node::new(2, String::from("Industry Park"));
+        let mut node2: Node = Node::new(2, String::from("Industry Park"));
         let node3: Node = Node::new(3, String::from("I1"));
         let node4: Node = Node::new(4, String::from("I2"));
         let node5: Node = Node::new(5, String::from("Port"));
         let node6: Node = Node::new(6, String::from("I3"));
         let node7: Node = Node::new(7, String::from("Beach"));
         let node8: Node = Node::new(8, String::from("Northside"));
-        let node9: Node = Node::new(9, String::from("I4"));
-        let node10: Node = Node::new(10, String::from("Central Station"));
+        let mut node9: Node = Node::new(9, String::from("I4"));
+        let mut node10: Node = Node::new(10, String::from("Central Station"));
         let node11: Node = Node::new(11, String::from("City Square"));
         let node12: Node = Node::new(12, String::from("Concert Hall"));
-        let node13: Node = Node::new(13, String::from("Eastside Mart"));
+        let mut node13: Node = Node::new(13, String::from("Eastside Mart"));
         let node14: Node = Node::new(14, String::from("East Town"));
         let node15: Node = Node::new(15, String::from("Food Court"));
         let node16: Node = Node::new(16, String::from("City Park"));
         let node17: Node = Node::new(17, String::from("Quarry"));
         let node18: Node = Node::new(18, String::from("I5"));
-        let node19: Node = Node::new(19, String::from("I6"));
+        let mut node19: Node = Node::new(19, String::from("I6"));
         let node20: Node = Node::new(20, String::from("I7"));
-        let node21: Node = Node::new(21, String::from("I8"));
+        let mut node21: Node = Node::new(21, String::from("I8"));
         let node22: Node = Node::new(22, String::from("West Town"));
         let node23: Node = Node::new(23, String::from("Lakeside"));
-        let node24: Node = Node::new(24, String::from("Warehouses"));
+        let mut node24: Node = Node::new(24, String::from("Warehouses"));
         let node25: Node = Node::new(25, String::from("I9"));
-        let node26: Node = Node::new(26, String::from("I10"));
-        let node27: Node = Node::new(27, String::from("Terminal 1"));
+        let mut node26: Node = Node::new(26, String::from("I10"));
+        let mut node27: Node = Node::new(27, String::from("Terminal 1"));
         let node28: Node = Node::new(28, String::from("Terminal 2"));
+
+        node2.toggle_rail_connection();
+        node10.toggle_rail_connection();
+        node24.toggle_rail_connection();
+        node27.toggle_rail_connection();
+
+        node2.is_parking_spot = true;
+        node9.is_parking_spot = true;
+        node13.is_parking_spot = true;
+        node19.is_parking_spot = true;
+        node21.is_parking_spot = true;
+        node26.is_parking_spot = true;
+        node27.is_parking_spot = true;
 
         map.nodes.push(node0.clone());
         map.nodes.push(node1.clone());
@@ -737,42 +891,46 @@ impl NodeMap {
         map.nodes.push(node27.clone());
         map.nodes.push(node28.clone());
 
-        map.add_relationship(node0.clone(), node1.clone(), Neighbourhood::IndustryPark, 1);
-        map.add_relationship(node0, node2.clone(), Neighbourhood::IndustryPark, 1);
-        map.add_relationship(node1, node2.clone(), Neighbourhood::IndustryPark, 1);
-        map.add_relationship(node2, node3.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node3.clone(), node4.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node3, node9.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node4.clone(), node5, Neighbourhood::Port, 1);
-        map.add_relationship(node4, node6.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node6.clone(), node13.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node6, node7.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node7, node8, Neighbourhood::Suburbs, 1);
-        map.add_relationship(node9.clone(), node10.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node9, node18.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node10.clone(), node11.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node10, node15.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node11.clone(), node12.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node11, node16.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node12, node13.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node13.clone(), node14.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node13, node20.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node14, node21.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node15, node16.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node16, node19.clone(), Neighbourhood::CityCentre, 1);
-        map.add_relationship(node17, node18.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node18.clone(), node19.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node18, node23.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node19, node20.clone(), Neighbourhood::RingRoad, 1);
-        map.add_relationship(node20.clone(), node26.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node20, node27.clone(), Neighbourhood::Airport, 1);
-        map.add_relationship(node21, node27.clone(), Neighbourhood::Airport, 1);
-        map.add_relationship(node22, node23.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node23, node24.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node24, node25.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node25, node26.clone(), Neighbourhood::Suburbs, 1);
-        map.add_relationship(node26, node27.clone(), Neighbourhood::Airport, 1);
-        map.add_relationship(node27, node28, Neighbourhood::Airport, 1);
+        map.add_relationship(node0.clone(), node1.clone(), Neighbourhood::IndustryPark, 1, false);
+        map.add_relationship(node0, node2.clone(), Neighbourhood::IndustryPark, 1, false);
+        map.add_relationship(node1, node2.clone(), Neighbourhood::IndustryPark, 1, false);
+        map.add_relationship(node2.clone(), node3.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node3.clone(), node4.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node3, node9.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node4.clone(), node5, Neighbourhood::Port, 1, false);
+        map.add_relationship(node4, node6.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node6.clone(), node13.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node6, node7.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node7, node8, Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node9.clone(), node10.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node9, node18.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node10.clone(), node11.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node10.clone(), node15.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node11.clone(), node12.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node11, node16.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node12, node13.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node13.clone(), node14.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node13, node20.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node14, node21.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node15, node16.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node16, node19.clone(), Neighbourhood::CityCentre, 1, false);
+        map.add_relationship(node17, node18.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node18.clone(), node19.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node18, node23.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node19, node20.clone(), Neighbourhood::RingRoad, 1, false);
+        map.add_relationship(node20.clone(), node26.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node20, node27.clone(), Neighbourhood::Airport, 1, false);
+        map.add_relationship(node21, node27.clone(), Neighbourhood::Airport, 1, false);
+        map.add_relationship(node22, node23.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node23, node24.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node24.clone(), node25.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node25, node26.clone(), Neighbourhood::Suburbs, 1, false);
+        map.add_relationship(node26, node27.clone(), Neighbourhood::Airport, 1, false);
+        map.add_relationship(node27.clone(), node28, Neighbourhood::Airport, 1, false);
+
+        map.add_relationship(node2, node10.clone(), Neighbourhood::IndustryPark, 1, true);
+        map.add_relationship(node10, node24.clone(), Neighbourhood::IndustryPark, 1, true);
+        map.add_relationship(node24, node27, Neighbourhood::IndustryPark, 1, true);
 
         let mut neighbourhood = Neighbourhood::first();
         map.change_neighbourhood_cost(neighbourhood, 1);
@@ -829,7 +987,7 @@ impl NodeMap {
 
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
         let Some(neighbours) = self.edges.get(&node_1) else {
-            return Err(format!("There is no node with id {} that has any neighbours!", node_1));
+            return Err(format!("There is no node with id {} that has any neighbour with id {}!", node_1, node_2));
         };
         Ok(neighbours
             .iter()
@@ -842,8 +1000,9 @@ impl NodeMap {
         node2: Node,
         neighbourhood: Neighbourhood,
         cost: MovementCost,
+        is_connected_through_rail: bool,
     ) {
-        let mut relationship = NeighbourRelationship::new(node2.id, neighbourhood, cost);
+        let mut relationship = NeighbourRelationship::new(node2.id, neighbourhood, cost, is_connected_through_rail);
         self.edges
             .entry(node1.id)
             .or_default()
@@ -874,9 +1033,95 @@ impl NodeMap {
                 continue;
             }
             neighbour.blocked = true;
-        }
+                    }
 
         Ok(())
+    }
+    pub fn add_park_and_ride_to_edge(
+        &mut self,
+        node_id_1: NodeID,
+        node_id_2: NodeID,
+    ) -> Result<(), String> {
+        match self.add_park_and_ride_to_relationship(node_id_1, node_id_2) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        match self.add_park_and_ride_to_relationship(node_id_2, node_id_1) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                let mut err_string = String::new();
+                match self.remove_park_and_ride_in_relationship(node_id_1, node_id_2) {
+                    Ok(_) => (),
+                    Err(e) => err_string = e,
+                }
+                Err(format!("{} and secondly {}", e, err_string))
+            }
+        }
+    }
+
+    fn add_park_and_ride_to_relationship(
+        &mut self,
+        from_node_id: NodeID,
+        to_node_id: NodeID,
+    ) -> Result<(), String> {
+        self.set_park_and_ride_state_in_relationship(from_node_id, to_node_id, true)
+    }
+
+    fn remove_park_and_ride_in_relationship(
+        &mut self,
+        from_node_id: NodeID,
+        to_node_id: NodeID,
+    ) -> Result<(), String> {
+        self.set_park_and_ride_state_in_relationship(from_node_id, to_node_id, false)
+    }
+
+    fn set_park_and_ride_state_in_relationship(
+        &mut self,
+        from_node_id: NodeID,
+        to_node_id: NodeID,
+        is_park_and_ride: bool,
+    ) -> Result<(), String> {
+        match self.are_nodes_neighbours(from_node_id, to_node_id) {
+            Ok(n) => {
+                if !n {
+                    return Err(format!("The node {} is not neighbours with node {} and can therefore not put park and ride between them!", from_node_id, to_node_id));
+                }
+            }
+            Err(e) => return Err(e),
+        }
+        let Some(neighbours) = self.edges.get_mut(&from_node_id) else {
+            return Err(format!("There is no node with id {} that has any neighbours! Therefore we cannot place park and ride!", from_node_id));
+        };
+
+        for mut neighbour in neighbours {
+            if neighbour.to != to_node_id {
+                continue;
+            }
+            neighbour.is_park_and_ride = is_park_and_ride;
+        }
+        Ok(())
+    }
+
+    fn remove_park_and_ride_from_edge(
+        &mut self,
+        node_id_1: u8,
+        node_id_2: u8,
+    ) -> Result<(), String> {
+        match self.remove_park_and_ride_in_relationship(node_id_1, node_id_2) {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+        match self.remove_park_and_ride_in_relationship(node_id_2, node_id_1) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                let mut err_string = String::new();
+                match self.add_park_and_ride_to_edge(node_id_1, node_id_2) {
+                    Ok(_) => (),
+                    Err(e) => err_string = e,
+                }
+                Err(format!("{} and secondly {}", e, err_string))
+            }
+        }
     }
 }
 
