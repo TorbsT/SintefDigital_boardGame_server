@@ -378,7 +378,11 @@ impl GameState {
                         let player_has_objective_in_district = Self::node_is_in_district(player_pickup_node_neighbours, modifier.district)
                         || Self::node_is_in_district(player_drop_off_node_neighbours, modifier.district);
 
-                        if obj_card.special_vehicle_types.contains(&RestrictionType::Destination) && player_has_objective_in_district {
+                        let Some(restriction_vehicle_type) = modifier.vehicle_type else {
+                            return Err("The vehicle type can not be determined, and bonus moves can not be applied".to_string());
+                        };
+
+                        if restriction_vehicle_type == RestrictionType::Destination && player_has_objective_in_district {
                             if let Some(movement_value) = modifier.associated_movement_value {
                                 bonus_moves = cmp::max(bonus_moves, movement_value);
                             }

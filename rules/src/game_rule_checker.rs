@@ -246,9 +246,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         if player_objective_card
             .special_vehicle_types
             .contains(&vehicle_type)
-            || (player_objective_card
-                .special_vehicle_types
-                .contains(&RestrictionType::Destination)
+            || (vehicle_type == RestrictionType::Destination
             && player_has_objective_in_district(game.clone(), player.clone(), dm.district))
         {
             return ValidationResponse::Valid;
@@ -498,9 +496,7 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         };
 
         if !(objective_card.special_vehicle_types.contains(&restriction)
-        || (objective_card
-            .special_vehicle_types
-            .contains(&RestrictionType::Destination)
+        || (restriction == RestrictionType::Destination
         && player_has_objective_in_district(game.clone(), player.clone(), neighbour_relationship.neighbourhood))) {
             return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
         }
