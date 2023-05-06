@@ -493,7 +493,7 @@ impl GameState {
         {
             next_player_turn = next_player_turn.next();
             if next_player_turn == InGameID::Orchestrator {
-                self.reset_player_movement_values();
+                self.is_lobby = true;
             }
             if counter >= 1000 {
                 next_player_turn = InGameID::Orchestrator;
