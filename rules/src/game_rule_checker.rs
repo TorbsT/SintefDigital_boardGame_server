@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, NeighbourRelationship, RestrictionType, NodeID},
+    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, NeighbourRelationship, RestrictionType, NodeID, Player, Neighbourhood},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -258,6 +258,31 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         "Invalid move: Player does not have required vehicle type to access this district"
             .to_string(),
     )
+}
+
+fn player_has_objective_in_district(game: GameState, player: Player, district: Neighbourhood) -> bool {
+    let Some(objectivecard) = player.objective_card else {
+        return false;
+    };
+    let Some(player_pickup_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(objectivecard.pick_up_node_id) else {
+        return false;
+    };
+    let Some(player_drop_off_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(objectivecard.drop_off_node_id) else {
+        return false;
+    };
+    let mut pick_up_node_is_in_district = false;
+    player_pickup_node_neighbours.clone().into_iter().for_each(|edge|{
+        if edge.neighbourhood == district {
+            pick_up_node_is_in_district = true;
+        }
+    });
+    let mut drop_off_node_is_in_district = false;
+    player_drop_off_node_neighbours.clone().into_iter().for_each(|edge|{
+        if edge.neighbourhood == district {
+            drop_off_node_is_in_district = true;
+        }
+    });
+    pick_up_node_is_in_district || drop_off_node_is_in_district
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
