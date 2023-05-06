@@ -198,7 +198,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
 
     let district_modifiers = &game.district_modifiers;
 
-    let player_objective_card = match player.objective_card {
+    let player_objective_card = match &player.objective_card {
         Some(objective_card) => objective_card,
         None => {
             return ValidationResponse::Invalid(
@@ -246,6 +246,10 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         if player_objective_card
             .special_vehicle_types
             .contains(&vehicle_type)
+            || (player_objective_card
+                .special_vehicle_types
+                .contains(&RestrictionType::Destination)
+            && player_has_objective_in_district(game.clone(), player.clone(), dm.district))
         {
             return ValidationResponse::Valid;
         }
