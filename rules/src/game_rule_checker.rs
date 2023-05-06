@@ -260,7 +260,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
     )
 }
 
-fn player_has_objective_in_district(game: GameState, player: Player, district: Neighbourhood) -> bool {
+pub fn player_has_objective_in_district(game: GameState, player: Player, district: Neighbourhood) -> bool {
     let Some(objectivecard) = player.objective_card else {
         return false;
     };
@@ -270,19 +270,17 @@ fn player_has_objective_in_district(game: GameState, player: Player, district: N
     let Some(player_drop_off_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(objectivecard.drop_off_node_id) else {
         return false;
     };
-    let mut pick_up_node_is_in_district = false;
-    player_pickup_node_neighbours.clone().into_iter().for_each(|edge|{
+    node_is_in_district(player_pickup_node_neighbours, district) || node_is_in_district(player_drop_off_node_neighbours, district)
+}
+
+pub fn node_is_in_district (neighbour_list: Vec<NeighbourRelationship>, district: Neighbourhood) -> bool {
+    let mut node_is_in_district = false;
+    neighbour_list.into_iter().for_each(|edge|{
         if edge.neighbourhood == district {
-            pick_up_node_is_in_district = true;
+            node_is_in_district = true;
         }
     });
-    let mut drop_off_node_is_in_district = false;
-    player_drop_off_node_neighbours.clone().into_iter().for_each(|edge|{
-        if edge.neighbourhood == district {
-            drop_off_node_is_in_district = true;
-        }
-    });
-    pick_up_node_is_in_district || drop_off_node_is_in_district
+    node_is_in_district
 }
 
 fn has_position(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
