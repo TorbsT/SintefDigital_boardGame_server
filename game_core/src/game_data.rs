@@ -73,11 +73,11 @@ pub enum Neighbourhood {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub enum VehicleType {
     Electric,
-    Buss,
+    Bus,
     Emergency,
-    Industrial,
-    Normal,
-    Geolocation,
+    Hazard,
+    Heavy,
+    Geolocation, //TODO: This has to be implemented
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -609,7 +609,7 @@ impl GameState {
             for _ in 0..cmp::max(0, times_to_increase_when_access) {
                 new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
             }
-            
+
             new_cost_tuples.push(new_cost_tuple);
         }
 
@@ -1199,10 +1199,10 @@ impl VehicleType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
             Self::Electric => 2,
-            Self::Buss => 1,
+            Self::Bus => 1,
             Self::Emergency => 0,
-            Self::Industrial => 1,
-            Self::Normal => 1,
+            Self::Hazard => 1,
+            Self::Heavy => 1,
             Self::Geolocation => 1,
         }
     }

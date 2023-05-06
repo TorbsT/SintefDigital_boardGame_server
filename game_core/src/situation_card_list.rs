@@ -67,9 +67,9 @@ pub fn situation_card_list() -> Vec<SituationCard> {
             ],
             vec![
                 PlayerObjectiveCard::new(4, 0, 10, vec![VehicleType::Emergency]),
-                PlayerObjectiveCard::new(9, 0, 17, vec![VehicleType::Industrial, VehicleType::Emergency]),
+                PlayerObjectiveCard::new(9, 0, 17, vec![VehicleType::Hazard, VehicleType::Emergency]),
                 PlayerObjectiveCard::new(15, 0, 15, vec![VehicleType::Emergency]),
-                PlayerObjectiveCard::new(5, 1, 17, vec![VehicleType::Industrial, VehicleType::Emergency]),
+                PlayerObjectiveCard::new(5, 1, 17, vec![VehicleType::Hazard, VehicleType::Emergency]),
                 PlayerObjectiveCard::new(24, 22, 10, Vec::new()),
                 PlayerObjectiveCard::new(5, 5, 23, Vec::new()),
             ]
