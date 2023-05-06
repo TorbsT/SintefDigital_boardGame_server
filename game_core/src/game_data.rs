@@ -392,7 +392,7 @@ impl GameState {
         START_MOVEMENT_AMOUNT
     }
 
-    pub fn assign_random_situation_card_to_players(&mut self) -> Result<(), String> {
+    pub fn assign_random_objective_card_to_players(&mut self) -> Result<(), String> {
         let Some(situation_card) = self.situation_card.clone() else {
             return Err("The game does not have a situation card and can therefore not assign objective cards to the players!".to_string());
         };
@@ -486,7 +486,7 @@ impl GameState {
                         "Unable to start game because a situation card is not chosen".to_string();
                     break;
                 }
-                match self.assign_random_situation_card_to_players() {
+                match self.assign_random_objective_card_to_players() {
                     Ok(_) => (),
                     Err(e) => {
                         errormessage = e;
