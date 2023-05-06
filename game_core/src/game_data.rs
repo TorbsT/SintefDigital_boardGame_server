@@ -299,11 +299,24 @@ impl GameState {
                 return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
             }; // TODO This check should be done in rule checker!
 
-            if player.is_train && to_node.is_connected_to_rail && neighbour_relationship.is_connected_through_rail {
+            if player.is_train {
                 // TODO: This check should be done in the rule checker!
-                player.remaining_moves -= neighbour_relationship.movement_cost;
-                player.position_node_id = Some(to_node_id);
-                return Ok(());
+                if to_node.is_connected_to_rail {
+                    if neighbour_relationship.is_connected_through_rail {
+                        Self::move_player_to_node(player, to_node_id, 1);
+                        return Ok(());
+                    }
+                    return Err(format!("The node you are trying to go to (with id {}) is not a neighbouring train station and you can therefore not move to it as a train!", to_node_id));
+                }
+                return Err(format!("The node you are trying to go to (with id {}) is not connected to a rail and can therefore not be moved to as a train!", to_node_id));
+            }
+
+            if player.is_bus {
+                if neighbour_relationship.is_park_and_ride {
+                    Self::move_player_to_node(player, to_node_id, 1);
+                    return Ok(());
+                }
+                return Err(format!("The node (with id {}) you are trying to go to is not a part of the park & ride roads and you can therefore not move there as a bus!", to_node_id));
             }
 
             if !self
@@ -349,6 +362,11 @@ impl GameState {
             return Ok(());
         }
         Err("There were no players in this game that match the player to update".to_string())
+    }
+
+    fn move_player_to_node(player: &mut Player, to_node_id: NodeID, cost: MovementCost) {
+        player.remaining_moves -= cost;
+        player.position_node_id = Some(to_node_id);
     }
 
     pub fn update_game(&mut self, update: Self) {

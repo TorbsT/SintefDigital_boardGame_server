@@ -1,4 +1,4 @@
-use std::ops::ControlFlow;
+use std::{ops::ControlFlow, os::windows::io::InvalidHandleError};
 
 use game_core::{
     game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType},
@@ -70,12 +70,10 @@ impl GameRuleChecker {
             ],
             rule_fn: Box::new(has_game_started),
         };
-
         let players_turn = Rule {
             related_inputs: vec![PlayerInputType::All],
             rule_fn: Box::new(is_players_turn),
         };
-
         let orchestrator_check = Rule {
             related_inputs: vec![
                 PlayerInputType::StartGame,
@@ -84,10 +82,17 @@ impl GameRuleChecker {
             ],
             rule_fn: Box::new(is_orchestrator),
         };
-
         let player_has_position = Rule {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_position),
+        };
+        let toggle_bus = Rule {
+            related_inputs: vec![PlayerInputType::SetPlayerBusBool],
+            rule_fn: Box::new(can_toggle_bus),
+        };
+        let toggle_train = Rule {
+            related_inputs: vec![PlayerInputType::SetPlayerTrainBool],
+            rule_fn: Box::new(can_toggle_train),
         };
         let next_to_node = Rule {
             related_inputs: vec![PlayerInputType::Movement],
@@ -111,6 +116,8 @@ impl GameRuleChecker {
             players_turn,
             orchestrator_check,
             player_has_position,
+            toggle_bus,
+            toggle_train,
             next_to_node,
             enough_moves,
             move_to_node,
@@ -399,13 +406,8 @@ fn is_park_and_ride_action_valid(
 }
 
 fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    match can_enter_district(game, player_input) {
-        ValidationResponse::Valid => (),
-        ValidationResponse::Invalid(e) => return ValidationResponse::Invalid(e),
-    }
-
     let player = get_player_or_return_invalid_response!(game, player_input);
-
+    
     let player_pos = get_player_position_id_or_return_invalid_response!(player);
 
     let Some(to_node_id) = player_input.related_node_id else {
@@ -415,6 +417,35 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     let Some(neighbours) = game.map.get_neighbour_relationships_of_node_with_id(player_pos) else {
         return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", player_pos));
     };
+
+    if player.is_bus {
+        if neighbours
+            .iter()
+            .any(|neighbour| neighbour.is_park_and_ride && neighbour.to == to_node_id)
+        {
+            return ValidationResponse::Valid;
+        }
+        return ValidationResponse::Invalid(
+            format!("The player cannot move here because the node (with id {}) is not a neighbouring node connected with a park & ride edge!", to_node_id),
+        );
+    }
+
+    if player.is_train {
+        if neighbours
+            .iter()
+            .any(|neighbour| neighbour.is_connected_through_rail && neighbour.to == to_node_id)
+        {
+            return ValidationResponse::Valid;
+        }
+        return ValidationResponse::Invalid(
+            format!("The player cannot move here because the node (with id {}) is not a neighbouring node connected through the railway!", to_node_id),
+        );
+    }
+    
+    match can_enter_district(game, player_input) {
+        ValidationResponse::Valid => (),
+        ValidationResponse::Invalid(e) => return ValidationResponse::Invalid(e),
+    }
 
     if neighbours
         .iter()
@@ -428,4 +459,63 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     ValidationResponse::Valid
 }
 
+fn can_toggle_bus(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player = get_player_or_return_invalid_response!(game, player_input);
+    
+    let Some(_) = player_input.related_bool else {
+        return ValidationResponse::Invalid("Could not check if you can toggle bus because the related bool was not set. It's needed for so that we can know if you want to stop being a bus or change to a bus!".to_string());
+    };
+    
+    if player.is_train {
+        return ValidationResponse::Invalid("You cannot toggle bus if you are a train!".to_string());
+    }
+
+    let player_pos = get_player_position_id_or_return_invalid_response!(player);
+    let node = match game.map.get_node_by_id(player_pos) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " and can therefore not check wether the player can toggle bus!",
+            )
+        }
+    };
+
+    if !node.is_parking_spot {
+        return ValidationResponse::Invalid(
+            "You cannot toggle bus if you are not on a parking spot!".to_string(),
+        );
+    }
+
+    ValidationResponse::Valid
+}
+
+fn can_toggle_train(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
+    let player = get_player_or_return_invalid_response!(game, player_input);
+    
+    let Some(_) = player_input.related_bool else {
+        return ValidationResponse::Invalid("Could not check if you can toggle train because the related bool was not set. It's needed for so that we can know if you want to stop being a train or change to a train!".to_string());
+    };
+    
+    if player.is_bus {
+        return ValidationResponse::Invalid("You cannot toggle train if you are a bus!".to_string());
+    }
+
+    let player_pos = get_player_position_id_or_return_invalid_response!(player);
+    let node = match game.map.get_node_by_id(player_pos) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " and can therefore not check wether the player can toggle train!",
+            )
+        }
+    };
+
+    if !node.is_connected_to_rail {
+        return ValidationResponse::Invalid(
+            "You cannot toggle train if you are not on a train station spot!".to_string(),
+        );
+    }
+
+    ValidationResponse::Valid
+}
 // TODO: Check if a player is on the destination node before letting them pressing next turn
