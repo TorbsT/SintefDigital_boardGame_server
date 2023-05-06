@@ -332,6 +332,14 @@ impl GameState {
                 return Ok(());
             }
 
+            if let Some(restriction) = neighbour_relationship.restriction {
+                if restriction == RestrictionType::ParkAndRide {
+                    return Err(format!("The node (with id {}) you are trying to go to is a part of the park & ride roads and you can therefore not move there unless you are a buss!", to_node_id));
+                }
+                Self::move_player_to_node(player, to_node_id, 1);
+                return Ok(());
+            }
+
             if !self
                 .accessed_districts
                 .contains(&neighbour_relationship.neighbourhood)
@@ -677,7 +685,7 @@ impl GameState {
         &mut self,
         edge_restriction: &EdgeRestriction,
     ) -> Result<(), String> {
-        match self.map.add_restrictions_to_edge(&edge_restriction) {
+        match self.map.set_restriction_on_edge(edge_restriction) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
@@ -1055,15 +1063,15 @@ impl NodeMap {
 
         Ok(())
     }
-    pub fn add_restrictions_to_edge(
+    pub fn set_restriction_on_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,
     ) -> Result<(), String> {
-        match self.add_restriction_to_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction) {
+        match self.set_restriction_on_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
-        match self.add_restriction_to_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction) {
+        match self.set_restriction_on_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction) {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
@@ -1076,7 +1084,7 @@ impl NodeMap {
         }
     }
 
-    fn add_restriction_to_relationship(
+    fn set_restriction_on_relationship(
         &mut self,
         from_node_id: NodeID,
         to_node_id: NodeID,
@@ -1141,7 +1149,7 @@ impl NodeMap {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
-                match self.add_restrictions_to_edge(edge_restriction) {
+                match self.set_restriction_on_edge(edge_restriction) {
                     Ok(_) => (),
                     Err(e) => err_string = e,
                 }

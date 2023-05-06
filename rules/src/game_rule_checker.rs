@@ -1,7 +1,7 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType},
+    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, Player, NeighbourRelationship, RestrictionType, NodeID},
     rule_checker::{ErrorData, RuleChecker},
 };
 
@@ -77,9 +77,9 @@ impl GameRuleChecker {
         let orchestrator_check = Rule {
             related_inputs: vec![
                 PlayerInputType::StartGame,
-                PlayerInputType::ModifyParkAndRide,
+                PlayerInputType::ModifyEdgeRestrictions,
                 PlayerInputType::ModifyDistrict,
-            ],ModifyEdgeRestrictions
+            ],
             rule_fn: Box::new(is_orchestrator),
         };
         let player_has_position = Rule {
@@ -102,13 +102,13 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(has_enough_moves),
         };
-        let move_to_node = Rule {ModifyEdgeRestrictions
+        let move_to_node = Rule {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(can_move_to_node),
         };
-        let can_modify_park_and_ride = Rule {
-            related_inputs: vec![PlayerInputType::ModifyParkAndRide],
-            rule_fn: Box::new(is_park_and_ride_action_valid),
+        let can_modify_edge_restriction = Rule {
+            related_inputs: vec![PlayerInputType::ModifyEdgeRestrictions],
+            rule_fn: Box::new(is_edge_modification_action_valid),
         };
 
         let rules = vec![
@@ -121,7 +121,7 @@ impl GameRuleChecker {
             next_to_node,
             enough_moves,
             move_to_node,
-            can_modify_park_and_ride,
+            can_modify_edge_restriction,
         ];
         rules
     }
@@ -333,31 +333,50 @@ fn is_orchestrator(game: &GameState, player_input: &PlayerInput) -> ValidationRe
     ValidationResponse::Valid
 }
 
-fn is_park_and_ride_action_valid(
+fn is_edge_modification_action_valid(
     game: &GameState,
     player_input: &PlayerInput,
 ) -> ValidationResponse<String> {
-    let Some(park_and_ride_mod) = player_input.edge_modifier.clone() else {
-        return ValidationResponse::Invalid("There was no park_and_ride modifier on the park and ride player input, and can therefore not check the input further!".to_string());
+    let Some(edge_mod) = player_input.edge_modifier.clone() else {
+        return ValidationResponse::Invalid("There was no modifier on the edge modifier player input, and can therefore not check the input further!".to_string());
     };
 
-    let Some(neighbours_one) = game.map.get_neighbour_relationships_of_node_with_id(park_and_ride_mod.node_one) else {
-        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", park_and_ride_mod.node_one));
+    let Some(neighbours_one) = game.map.get_neighbour_relationships_of_node_with_id(edge_mod.node_one) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have restrictions!", edge_mod.node_one));
     };
 
-    let Some(neighbours_two) = game.map.get_neighbour_relationships_of_node_with_id(park_and_ride_mod.node_two) else {
-        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", park_and_ride_mod.node_one));
+    let Some(neighbours_two) = game.map.get_neighbour_relationships_of_node_with_id(edge_mod.node_two) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have restrictions!", edge_mod.node_one));
     };
 
+    match edge_mod.edge_restriction {
+        game_core::game_data::RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two),
+        _ => default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two),
+    }
+
+}
+
+fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], node_two_id: NodeID) -> ValidationResponse<String> {
+    if neighbours_one.iter().any(|relationship| relationship.to == node_two_id && relationship.restriction == Some(edge_mod.edge_restriction)) {
+        if edge_mod.delete {
+            return ValidationResponse::Valid;
+        }
+        ValidationResponse::Invalid(format!("The edge restriction {:?} already exists on the edge between node {} and node {}!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two)) 
+    } else {
+        ValidationResponse::Invalid(format!("The edge restriction {:?} does not exist on the edge between node {} and node {}!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two))
+    }
+}
+
+fn can_modify_park_and_ride(game: &GameState, park_and_ride_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], neighbours_two: &[NeighbourRelationship]) -> ValidationResponse<String> {
     if park_and_ride_mod.delete {
         if neighbours_one
             .iter()
-            .filter(|neighbour| neighbour.is_park_and_ride)
+            .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
             .count()
             < 2
             || neighbours_two
                 .iter()
-                .filter(|neighbour| neighbour.is_park_and_ride)
+                .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
                 .count()
                 < 2
         {
@@ -390,12 +409,12 @@ fn is_park_and_ride_action_valid(
 
     if neighbours_one
         .iter()
-        .filter(|neighbour| neighbour.is_park_and_ride)
+        .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
         .count()
         > 0
         || neighbours_two
             .iter()
-            .filter(|neighbour| neighbour.is_park_and_ride)
+            .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
             .count()
             > 0
     {
@@ -421,7 +440,7 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     if player.is_bus {
         if neighbours
             .iter()
-            .any(|neighbour| neighbour.is_park_and_ride && neighbour.to == to_node_id)
+            .any(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide) && neighbour.to == to_node_id)
         {
             return ValidationResponse::Valid;
         }
@@ -442,6 +461,22 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         );
     }
     
+    let Some(neighbour_relationship) = neighbours.iter().find(|neighbour| neighbour.to == to_node_id) else {
+        return ValidationResponse::Invalid(format!("The node {} is not a neighbour of the node {} and can therefore not be moved to!", to_node_id, player_pos));
+    };
+
+    if let Some(restriction) = neighbour_relationship.restriction {
+        let Some(objective_card) = player.objective_card else {
+            return ValidationResponse::Invalid(format!("The player {} does not have an objective card and we can therefore not check if the player has access to the given zone!", player.name));
+        };
+
+        if !objective_card.special_vehicle_types.contains(&restriction) {
+            return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
+        }
+
+        return ValidationResponse::Valid;
+    }
+
     match can_enter_district(game, player_input) {
         ValidationResponse::Valid => (),
         ValidationResponse::Invalid(e) => return ValidationResponse::Invalid(e),
@@ -449,7 +484,7 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
 
     if neighbours
         .iter()
-        .any(|neighbour| neighbour.is_park_and_ride && neighbour.to == to_node_id)
+        .any(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide) && neighbour.to == to_node_id)
     {
         return ValidationResponse::Invalid(
             "The player cannot move here because it's a park & ride edge!".to_string(),
