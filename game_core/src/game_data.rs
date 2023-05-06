@@ -586,6 +586,7 @@ impl GameState {
         for cost_tuple in original_costs {
             let mut new_cost_tuple = cost_tuple.clone();
             let mut is_access_modifier_used = false;
+            let mut times_to_increase_when_access = -1;
             for modifier in self.district_modifiers.clone() {
                 if modifier.district != cost_tuple.neighbourhood
                     || modifier.modifier != DistrictModifierType::Access
@@ -602,10 +603,13 @@ impl GameState {
                     is_access_modifier_used = true;
                 }
 
-                for _ in 0..vehicle_type.times_to_increase_traffic_when_access() {
-                    new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
-                }
+                times_to_increase_when_access += vehicle_type.times_to_increase_traffic_when_access() as i32;
             }
+
+            for _ in 0..cmp::max(0, times_to_increase_when_access) {
+                new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
+            }
+            
             new_cost_tuples.push(new_cost_tuple);
         }
 
@@ -1195,11 +1199,11 @@ impl VehicleType {
     pub const fn times_to_increase_traffic_when_access(&self) -> usize {
         match self {
             Self::Electric => 2,
-            Self::Buss => 0,
+            Self::Buss => 1,
             Self::Emergency => 0,
-            Self::Industrial => 0,
-            Self::Normal => 0,
-            Self::Geolocation => 0,
+            Self::Industrial => 1,
+            Self::Normal => 1,
+            Self::Geolocation => 1,
         }
     }
 }
