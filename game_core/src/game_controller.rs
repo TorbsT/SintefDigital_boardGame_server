@@ -413,6 +413,32 @@ impl GameController {
                 game.remove_player_with_id(input.player_id);
                 Ok(())
             }
+            PlayerInputType::ModifyParkAndRide => {
+                let Some(park_and_ride_mod) = input.park_and_ride_modifier else {
+                    return Err("There was no park and ride modifier when wanting to modify park and ride!".to_string());
+                };
+                if park_and_ride_mod.delete {
+                    return game.remove_park_and_ride(
+                        park_and_ride_mod.node_one,
+                        park_and_ride_mod.node_two,
+                    );
+                }
+                game.add_park_and_ride(park_and_ride_mod.node_one, park_and_ride_mod.node_two)
+            }
+            PlayerInputType::SetPlayerTrainBool => {
+                let Some(boolean) = input.related_bool else {
+                    return Err("There was no bool to set the train bool with!".to_string());
+                };
+                game.set_player_train_bool(input.player_id, boolean);
+                Ok(())
+            },
+            PlayerInputType::SetPlayerBusBool => {
+                let Some(boolean) = input.related_bool else {
+                    return Err("There was no bool to set the bus bool with!".to_string());
+                };
+                game.set_player_bus_bool(input.player_id, boolean);
+                Ok(())
+            },
         }
     }
 
