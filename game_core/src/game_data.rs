@@ -790,7 +790,6 @@ impl ParkAndRideEdge {
     }
 }
 
-#[allow(clippy::unwrap_used)]
 impl NeighbourRelationship {
     pub const fn new(
         to: NodeID,
