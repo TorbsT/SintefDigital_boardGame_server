@@ -3,6 +3,8 @@ use std::{cmp, collections::HashMap, mem};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
+use crate::situation_card_list::situation_card_list;
+
 //// =============== Types ===============
 pub type NodeID = u8;
 pub type PlayerID = i32;
@@ -575,7 +577,13 @@ impl GameState {
 
         let mut new_cost_tuples = Vec::new();
 
-        for cost_tuple in situation_card.costs {
+        let situation_cards = situation_card_list();
+        let Some(original_card) = situation_cards.iter().find(|c| c.card_id == situation_card.card_id) else {
+            return Err("The situation card in the game has an ID was not found in the list of situation cards!".to_string());
+        };
+        let original_costs = original_card.costs.clone();
+
+        for cost_tuple in original_costs {
             let mut new_cost_tuple = cost_tuple.clone();
             let mut is_access_modifier_used = false;
             for modifier in self.district_modifiers.clone() {
