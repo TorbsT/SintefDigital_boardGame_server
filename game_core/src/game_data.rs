@@ -277,6 +277,16 @@ impl GameState {
         Ok(())
     }
 
+    fn node_is_in_district (neighbour_list: Vec<NeighbourRelationship>, district: Neighbourhood) -> bool {
+        let mut node_is_in_district = false;
+        neighbour_list.into_iter().for_each(|edge|{
+            if edge.neighbourhood == district {
+                node_is_in_district = true;
+            }
+        });
+        node_is_in_district
+    }
+
     pub fn move_player_with_id(
         &mut self,
         player_id: PlayerID,
@@ -358,6 +368,22 @@ impl GameState {
 
                 if let Some(obj_card) = player.objective_card.clone() {
                     for modifier in self.district_modifiers.iter() {
+
+                        let Some(player_pickup_node_neighbours) = self.map.get_neighbour_relationships_of_node_with_id(obj_card.pick_up_node_id) else {
+                            return Err("Player pick up node can not be determined, and can therefore not apply any bonus moves".to_string());
+                        };
+                        let Some(player_drop_off_node_neighbours) = self.map.get_neighbour_relationships_of_node_with_id(obj_card.drop_off_node_id) else {
+                            return Err("Player drop off node can not be determined, and can therefore not apply any bonus moves".to_string());
+                        };
+                        let player_has_objective_in_district = Self::node_is_in_district(player_pickup_node_neighbours, modifier.district)
+                        || Self::node_is_in_district(player_drop_off_node_neighbours, modifier.district);
+
+                        if obj_card.special_vehicle_types.contains(&RestrictionType::Destination) && player_has_objective_in_district {
+                            if let Some(movement_value) = modifier.associated_movement_value {
+                                bonus_moves = cmp::max(bonus_moves, movement_value);
+                            }
+                        }
+
                         if modifier.district != neighbour_relationship.neighbourhood {
                             continue;
                         }
