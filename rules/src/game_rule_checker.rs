@@ -257,8 +257,7 @@ fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> Validatio
         return ValidationResponse::Valid;
     }
     ValidationResponse::Invalid(
-        "Invalid move: Player does not have required vehicle type to access this district"
-            .to_string(),
+        format!("Invalid move: Player does not have required vehicle type to access this district. District modifiers: {:?}", district_modifiers),
     )
 }
 
