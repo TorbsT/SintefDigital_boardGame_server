@@ -69,13 +69,13 @@ pub enum Neighbourhood {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub enum VehicleType {
+pub enum RestrictionType {
+    ParkAndRide,
     Electric,
-    Buss,
     Emergency,
     Industrial,
-    Normal,
-    Geolocation,
+    Destination,
+    Heavy,
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -101,13 +101,14 @@ pub struct GameState {
     #[serde(skip)]
     pub map: NodeMap,
     pub situation_card: Option<SituationCard>,
-    pub park_and_ride_nodes: Vec<ParkAndRideEdge>,
+    pub park_and_ride_nodes: Vec<EdgeRestriction>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ParkAndRideEdge {
+pub struct EdgeRestriction {
     pub node_one: NodeID,
     pub node_two: NodeID,
+    pub edge_restriction: EdgeRestrictionType,
     pub delete: bool,
 }
 
@@ -163,7 +164,7 @@ pub struct PlayerInput {
     pub related_node_id: Option<NodeID>,
     pub district_modifier: Option<DistrictModifier>,
     pub situation_card_id: Option<SituationCardID>,
-    pub park_and_ride_modifier: Option<ParkAndRideEdge>,
+    pub park_and_ride_modifier: Option<EdgeRestriction>,
     pub related_bool: Option<bool>,
 }
 
@@ -643,7 +644,7 @@ impl GameState {
             Err(e) => return Err(e),
         }
         self.park_and_ride_nodes
-            .push(ParkAndRideEdge::new(node_id_one, node_id_two));
+            .push(EdgeRestriction::new(node_id_one, node_id_two));
         Ok(())
     }
 
@@ -747,7 +748,7 @@ impl Node {
     }
 }
 
-impl ParkAndRideEdge {
+impl EdgeRestriction {
     pub const fn new(node_id_one: NodeID, node_id_two: NodeID) -> Self {
         Self {
             node_one: node_id_one,
