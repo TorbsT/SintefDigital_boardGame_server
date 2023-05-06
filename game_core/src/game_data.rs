@@ -619,7 +619,14 @@ impl GameState {
                         return self.map.make_edge_one_way(19, 20)
                     },
                     5 => {
-                        return Err("The chosen card (5) is supposed not to have trains enabled. This is not yet implemented and can therefore not be chosen!".to_string());
+                        match self.map.toggle_rail_connection_on_node_with_id(24) {
+                            Ok(_) => (),
+                            Err(e) => return Err(e),
+                        };
+                        match self.map.toggle_rail_connection_on_node_with_id(27) {
+                            Ok(_) => (),
+                            Err(e) => return Err(e),
+                        }
                     },
                     6..=u8::MAX => {
                         return Err("Error: Situation card with IDs 6 and up do not exist".to_string());
@@ -1010,6 +1017,14 @@ impl NodeMap {
         }
 
         map
+    }
+
+    pub fn toggle_rail_connection_on_node_with_id(&mut self, node_id: NodeID) -> Result<(), String> {
+        let Some(node) = self.nodes.iter_mut().find(|node| node.id == node_id) else {
+            return Err(format!("There is no node with the given ID: {}", node_id));
+        };
+        node.toggle_rail_connection();
+        Ok(())
     }
 
     pub fn get_node_by_id(&self, position_node_id: NodeID) -> Result<Node, String> {
