@@ -221,7 +221,7 @@ components:
         - StartGame
         - AssignSituationCard
         - LeaveGame
-        - ModifyParkAndRide
+        - ModifyEdgeRestrictions
         - SetPlayerTrainBool
         - SetPlayerBusBool
     Neighbourhood:
@@ -233,15 +233,15 @@ components:
         - RingRoad
         - CityCentre
         - Airport
-    VehicleType:
+    RestrictionType:
       type: string
       enum:
+        - ParkAndRide
         - Electric
-        - Bus
         - Emergency
         - Hazard
+        - Destination
         - Heavy
-        - Geolocation
     DistrictModifierType:
       type: string
       enum:
@@ -269,17 +269,19 @@ components:
             $ref: "#/components/schemas/DistrictModifier"
         situation_card:
           $ref: "#/components/schemas/SituationCard"
-        park_and_ride_nodes:
+        edge_restrictions:
           type: array
           items:
-            $ref: "#/components/schemas/ParkAndRideEdge"
-    ParkAndRideEdge:
+            $ref: "#/components/schemas/EdgeRestriction"
+    EdgeRestriction:
       type: object
       properties:
         node_one:
           type: integer
         node_two:
           type: integer
+        edge_restriction:
+          $ref: "#/components/schemas/RestrictionType"
         delete:
           type: boolean
     Player:
@@ -345,7 +347,7 @@ components:
           type: integer
           nullable: true
         park_and_ride_modifier:
-          $ref: "#/components/schemas/ParkAndRideEdge"
+          $ref: "#/components/schemas/EdgeRestriction"
           nullable: true
         related_bool:
           type: boolean
@@ -358,7 +360,7 @@ components:
         modifier:
           $ref: "#/components/schemas/DistrictModifierType"
         vehicle_type:
-          $ref: "#/components/schemas/VehicleType"
+          $ref: "#/components/schemas/RestrictionType"
           nullable: true
         associated_movement_value:
           type: integer
@@ -378,7 +380,7 @@ components:
         special_vehicle_types:
           type: array
           items:
-            $ref: "#/components/schemas/VehicleType"
+            $ref: "#/components/schemas/RestrictionType"
         picked_package_up:
           type: boolean
         dropped_package_off:

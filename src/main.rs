@@ -397,7 +397,7 @@ mod tests {
         player = game_state.players.into_iter().find(|p| p.unique_id == player.unique_id).unwrap();
         assert!(player.clone().position_node_id.unwrap() == start_node.id);
 
-        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_role: None, related_node_id: Some(neighbour_info.to), situation_card_id: None, park_and_ride_modifier: None, related_bool: None};
+        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::Movement, related_role: None, related_node_id: Some(neighbour_info.to), situation_card_id: None, edge_modifier: None, related_bool: None};
 
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
@@ -500,7 +500,7 @@ mod tests {
         
         player = lobby.players.iter().find(|p| p.unique_id == player.unique_id).unwrap().clone();
         
-        let player_input = PlayerInput{district_modifier: None, player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None, situation_card_id: None, park_and_ride_modifier: None, related_bool: None};
+        let player_input = PlayerInput{district_modifier: None, player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None, situation_card_id: None, edge_modifier: None, related_bool: None};
 
         let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
         let mut input_resp = app.call(input_req).await.unwrap();
@@ -512,7 +512,7 @@ mod tests {
         let player2 = make_player!(app, "Player Two");
         lobby = join_lobby!(app, lobby, player2);
         
-        let player2_input = PlayerInput{district_modifier: None, player_id: player2.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None, situation_card_id: None, park_and_ride_modifier: None, related_bool: None};
+        let player2_input = PlayerInput{district_modifier: None, player_id: player2.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None, situation_card_id: None, edge_modifier: None, related_bool: None};
         input_req = test::TestRequest::post().uri("/games/input").set_json(&player2_input).to_request();
         input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
@@ -532,7 +532,7 @@ mod tests {
         let lobby = make_new_lobby_with_player!(app, player, "L1");
         assert!(player.unique_id != 0);
 
-        let mut player_input = PlayerInput{district_modifier: None, player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None, situation_card_id: None, park_and_ride_modifier: None, related_bool: None};
+        let mut player_input = PlayerInput{district_modifier: None, player_id: player.unique_id, game_id: lobby.id, input_type: PlayerInputType::ChangeRole, related_role: Some(InGameID::Orchestrator), related_node_id: None, situation_card_id: None, edge_modifier: None, related_bool: None};
         
         let mut input_req = test::TestRequest::post().uri("/games/input").set_json(&player_input).to_request();
         let mut input_resp = app.call(input_req).await.unwrap();
@@ -597,7 +597,7 @@ mod tests {
         let situation_card_list = situation_card_list_wrapper();
         let situation_card_id = Some(situation_card_list.situation_cards.get(0).cloned().unwrap().card_id);
 
-        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::AssignSituationCard, related_role: None, related_node_id: None, situation_card_id, park_and_ride_modifier: None, related_bool: None};
+        let input = PlayerInput {district_modifier: None, player_id: player.unique_id, game_id: player.connected_game_id.unwrap(), input_type: PlayerInputType::AssignSituationCard, related_role: None, related_node_id: None, situation_card_id, edge_modifier: None, related_bool: None};
         let input_req = test::TestRequest::post().uri("/games/input").set_json(&input).to_request();
         let input_resp = app.call(input_req).await.unwrap();
         assert_eq!(input_resp.status(), StatusCode::OK);
