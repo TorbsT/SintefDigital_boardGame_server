@@ -790,13 +790,14 @@ impl NeighbourRelationship {
         to: NodeID,
         neighbourhood: Neighbourhood,
         movement_cost: MovementCost,
+        is_connected_through_rail: bool,
     ) -> Self {
         Self {
             to,
             neighbourhood,
             movement_cost,
             is_park_and_ride: false,
-            is_connected_through_rail: false,
+            is_connected_through_rail,
         }
     }
 }
@@ -1005,7 +1006,7 @@ impl NodeMap {
         cost: MovementCost,
         is_connected_through_rail: bool,
     ) {
-        let mut relationship = NeighbourRelationship::new(node2.id, neighbourhood, cost);
+        let mut relationship = NeighbourRelationship::new(node2.id, neighbourhood, cost, is_connected_through_rail);
         self.edges
             .entry(node1.id)
             .or_default()
