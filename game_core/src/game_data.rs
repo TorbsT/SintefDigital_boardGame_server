@@ -23,6 +23,7 @@ pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
 pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
 pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
 pub const START_MOVEMENT_AMOUNT: MovementValue = 8;
+pub const HEAVY_VEHICLE_INCLUSIVE_THRESHOLD: u32 = 5;
 
 //// =============== Enums ===============
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -86,6 +87,12 @@ pub enum DistrictModifierType {
     Access,
     Priority,
     Toll,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub enum TypeEntitiesToTransport {
+    People,
+    Packages,
 }
 
 //// =============== Structs ===============
@@ -184,12 +191,15 @@ pub struct DistrictModifier {
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct PlayerObjectiveCard {
+    pub name: String,
     pub start_node_id: NodeID,
     pub pick_up_node_id: NodeID,
     pub drop_off_node_id: NodeID,
     pub special_vehicle_types: Vec<RestrictionType>,
     pub picked_package_up: bool,
     pub dropped_package_off: bool,
+    pub type_of_entities_to_transport: TypeEntitiesToTransport,
+    pub amount_of_entities: u32,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -1209,11 +1219,20 @@ impl SituationCardList {
 
 impl PlayerObjectiveCard {
     pub fn new(
+        name: String,
         start_node_id: NodeID,
         pick_up_node_id: NodeID,
         drop_off_node_id: NodeID,
-        special_vehicle_types: Vec<VehicleType>,
+        vehicle_types: Vec<VehicleType>,
+        type_of_entities_to_transport: TypeEntitiesToTransport,
+        amount_of_entities: u32,
     ) -> Self {
+        let mut special_vehicle_types = vehicle_types;
+
+        if amount_of_entities >= HEAVY_VEHICLE_INCLUSIVE_THRESHOLD {
+            special_vehicle_types.push(VehicleType::Heavy);
+        }
+
         Self {
             start_node_id,
             pick_up_node_id,
@@ -1221,6 +1240,9 @@ impl PlayerObjectiveCard {
             special_vehicle_types,
             picked_package_up: false,
             dropped_package_off: false,
+            name,
+            amount_of_entities,
+            type_of_entities_to_transport,
         }
     }
 }

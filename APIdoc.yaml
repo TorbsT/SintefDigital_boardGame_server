@@ -248,6 +248,11 @@ components:
         - Access
         - Priority
         - Toll
+    TypeEntitiesToTransport:
+      type: string
+      enum:
+        - People
+        - Packages
     GameState:
       type: object
       properties:
@@ -371,6 +376,8 @@ components:
     PlayerObjectiveCard:
       type: object
       properties:
+        name:
+          type: string
         start_node_id:
           type: integer
         pick_up_node_id:
@@ -385,6 +392,10 @@ components:
           type: boolean
         dropped_package_off:
           type: boolean
+        type_of_entities_to_transport:
+          $ref: "#/components/schemas/TypeEntitiesToTransport"
+        amount_of_entities:
+          type: integer
     CostTuple:
       type: object
       properties:

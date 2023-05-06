@@ -1,6 +1,6 @@
 use game_data::{SituationCard, SituationCardList};
 
-use crate::game_data::{self, CostTuple, Neighbourhood, PlayerObjectiveCard, Traffic, VehicleType};
+use crate::game_data::{self, CostTuple, Neighbourhood, PlayerObjectiveCard, Traffic, VehicleType, TypeEntitiesToTransport};
 
 pub fn situation_card_list_wrapper() -> SituationCardList {
     SituationCardList::new(situation_card_list())
@@ -22,12 +22,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
-                PlayerObjectiveCard::new(13, 7, 15, Vec::new()),
-                PlayerObjectiveCard::new(8, 11, 27, vec![VehicleType::Electric]),
-                PlayerObjectiveCard::new(15, 23, 2, Vec::new()),
-                PlayerObjectiveCard::new(17, 22, 14, vec![VehicleType::Electric]),
-                PlayerObjectiveCard::new(5, 12, 28, Vec::new()),
-                PlayerObjectiveCard::new(11, 14, 24, Vec::new()),
+                PlayerObjectiveCard::new("Packages".to_string(), 13, 7, 15, Vec::new(), TypeEntitiesToTransport::Packages, 5),
+                PlayerObjectiveCard::new("Passengers".to_string(), 8, 11, 27, vec![VehicleType::Electric], TypeEntitiesToTransport::People, 3),
+                PlayerObjectiveCard::new("Passengers".to_string(), 15, 23, 2, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Passengers".to_string(), 17, 22, 14, vec![VehicleType::Electric], TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Passengers".to_string(), 5, 12, 28, Vec::new(), TypeEntitiesToTransport::People, 3),
+                PlayerObjectiveCard::new("Passengers".to_string(), 11, 14, 24, Vec::new(), TypeEntitiesToTransport::People, 3),
             ],
         ),
         SituationCard::new(
@@ -44,12 +44,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
-                PlayerObjectiveCard::new(8, 14, 12, Vec::new()),
-                PlayerObjectiveCard::new(14, 28, 12, Vec::new()),
-                PlayerObjectiveCard::new(24, 22, 12, Vec::new()),
-                PlayerObjectiveCard::new(22, 10, 12, vec![VehicleType::Electric]),
-                PlayerObjectiveCard::new(5, 13, 28, Vec::new()),
-                PlayerObjectiveCard::new(23, 10, 2, Vec::new()),
+                PlayerObjectiveCard::new("Passengers".to_string(), 8, 14, 12, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Passengers".to_string(), 14, 28, 12, Vec::new(), TypeEntitiesToTransport::People, 5),
+                PlayerObjectiveCard::new("Passengers".to_string(), 24, 22, 12, Vec::new(), TypeEntitiesToTransport::People, 5),
+                PlayerObjectiveCard::new("Passengers".to_string(), 22, 10, 12, vec![VehicleType::Electric], TypeEntitiesToTransport::People, 3),
+                PlayerObjectiveCard::new("Passengers".to_string(), 5, 13, 28, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Packages".to_string(), 23, 10, 2, Vec::new(), TypeEntitiesToTransport::Packages, 5),
             ]
         ),
         SituationCard::new(
@@ -66,12 +66,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
-                PlayerObjectiveCard::new(4, 0, 10, vec![VehicleType::Emergency]),
-                PlayerObjectiveCard::new(9, 0, 17, vec![VehicleType::Hazard, VehicleType::Emergency]),
-                PlayerObjectiveCard::new(15, 0, 15, vec![VehicleType::Emergency]),
-                PlayerObjectiveCard::new(5, 1, 17, vec![VehicleType::Hazard, VehicleType::Emergency]),
-                PlayerObjectiveCard::new(24, 22, 10, Vec::new()),
-                PlayerObjectiveCard::new(5, 5, 23, Vec::new()),
+                PlayerObjectiveCard::new("Evacuate".to_string(), 4, 0, 10, vec![VehicleType::Emergency], TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Dangerous goods".to_string(), 9, 0, 17, vec![VehicleType::Hazard, VehicleType::Emergency], TypeEntitiesToTransport::Packages, 4),
+                PlayerObjectiveCard::new("Ambulance".to_string(), 15, 0, 15, vec![VehicleType::Emergency], TypeEntitiesToTransport::People, 2),
+                PlayerObjectiveCard::new("Evacuate".to_string(), 5, 1, 17, vec![VehicleType::Hazard, VehicleType::Emergency], TypeEntitiesToTransport::Packages, 3),
+                PlayerObjectiveCard::new("Passengers".to_string(), 24, 22, 10, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Packages".to_string(), 5, 5, 23, Vec::new(), TypeEntitiesToTransport::Packages, 5),
             ]
         ),
         SituationCard::new(
@@ -88,12 +88,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 CostTuple::new(Neighbourhood::Airport, Traffic::LevelOne),
             ],
             vec![
-                PlayerObjectiveCard::new(15, 19, 14, vec![VehicleType::Emergency]),
-                PlayerObjectiveCard::new(14, 19, 14, vec![VehicleType::Emergency]),
-                PlayerObjectiveCard::new(16, 16, 28, Vec::new()),
-                PlayerObjectiveCard::new(17, 20, 28, vec![VehicleType::Electric]),
-                PlayerObjectiveCard::new(27, 27, 15, vec![VehicleType::Electric]),
-                PlayerObjectiveCard::new(23, 24, 7, Vec::new()),
+                PlayerObjectiveCard::new("Ambulance".to_string(), 15, 19, 14, vec![VehicleType::Emergency], TypeEntitiesToTransport::People, 1),
+                PlayerObjectiveCard::new("Car removal".to_string(), 14, 19, 14, vec![VehicleType::Emergency], TypeEntitiesToTransport::Packages, 1),
+                PlayerObjectiveCard::new("Passengers".to_string(), 16, 16, 28, Vec::new(), TypeEntitiesToTransport::People, 5),
+                PlayerObjectiveCard::new("Passengers".to_string(), 17, 20, 28, vec![VehicleType::Electric], TypeEntitiesToTransport::People, 3),
+                PlayerObjectiveCard::new("Passengers".to_string(), 27, 27, 15, vec![VehicleType::Electric], TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Packages".to_string(), 23, 24, 7, Vec::new(), TypeEntitiesToTransport::Packages, 5),
             ]
         ),
         SituationCard::new(
@@ -110,12 +110,12 @@ pub fn situation_card_list() -> Vec<SituationCard> {
                 CostTuple::new(Neighbourhood::Airport, Traffic::LevelFour),
             ],
             vec![
-                PlayerObjectiveCard::new(23, 10, 27, vec![VehicleType::Electric]),
-                PlayerObjectiveCard::new(0, 2, 27, Vec::new()),
-                PlayerObjectiveCard::new(5, 7, 28, Vec::new()),
-                PlayerObjectiveCard::new(16, 10, 28, Vec::new()),
-                PlayerObjectiveCard::new(14, 10, 27, Vec::new()),
-                PlayerObjectiveCard::new(23, 24, 8, Vec::new()),
+                PlayerObjectiveCard::new("Passengers".to_string(), 23, 10, 27, vec![VehicleType::Electric], TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Passengers".to_string(), 0, 2, 27, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Passengers".to_string(), 5, 7, 28, Vec::new(), TypeEntitiesToTransport::People, 5),
+                PlayerObjectiveCard::new("Passengers".to_string(), 16, 10, 28, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Passengers".to_string(), 14, 10, 27, Vec::new(), TypeEntitiesToTransport::People, 4),
+                PlayerObjectiveCard::new("Packages".to_string(), 23, 24, 8, Vec::new(), TypeEntitiesToTransport::Packages, 5),
             ]
         ),
     ]
