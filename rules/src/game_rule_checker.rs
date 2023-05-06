@@ -493,7 +493,7 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     };
 
     if let Some(restriction) = neighbour_relationship.restriction {
-        let Some(objective_card) = player.objective_card else {
+        let Some(objective_card) = &player.objective_card else {
             return ValidationResponse::Invalid(format!("The player {} does not have an objective card and we can therefore not check if the player has access to the given zone!", player.name));
         };
 
@@ -501,7 +501,7 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         || (objective_card
             .special_vehicle_types
             .contains(&RestrictionType::Destination)
-        && player_has_objective_in_district(game.clone(), player.clone(), dm.district))) {
+        && player_has_objective_in_district(game.clone(), player.clone(), neighbour_relationship.neighbourhood))) {
             return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
         }
 
