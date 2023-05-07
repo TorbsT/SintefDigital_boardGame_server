@@ -88,7 +88,7 @@ async fn get_amount_of_created_player_ids(shared_data: web::Data<AppData>) -> im
 #[get("/games/game/{id}")]
 async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     
-    let game_controller = match shared_data.game_controller.lock() { 
+    let mut game_controller = match shared_data.game_controller.lock() { 
         Ok(controller) => controller,
         Err(_) => return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string()),
     };

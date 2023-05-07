@@ -179,13 +179,22 @@ impl GameController {
         Ok(related_game.clone())
     }
 
-    pub fn get_game_by_id(&self, game_id: GameID) -> Result<GameState, String> {
+    pub fn get_game_by_id(&mut self, game_id: GameID) -> Result<GameState, String> {
         let Some(game) = self.games.iter().find(|g| g.id == game_id) else {
             return Err(format!("There is no game with id {}!", game_id));
         };
         let mut game_clone = game.clone();
         match Self::apply_game_actions(&mut game_clone) {
-            Ok(_) => Ok(game_clone.clone()),
+            Ok(_) => {
+                if !game_clone.is_lobby {
+                    let current_players_turn = game_clone.current_players_turn;
+                    let players = game_clone.players.clone();
+                    let Some(player) = players.iter().find(|p| p.in_game_id == current_players_turn) else {
+                        return Err(format!("There is no player that has the current in game turn {:?}!", current_players_turn));
+                    };
+                    self.get_legal_nodes(&mut game_clone, player.unique_id);
+                }
+                Ok(game_clone.clone())},
             Err(e) => Err(e),
         }
     }
@@ -440,19 +449,27 @@ impl GameController {
 
         let player =  match game.get_player_with_unique_id(player_id) {
             Ok(player) => player,
-            Err(_) => return,
+            Err(_) => {
+                println!("Player with id {} not found!", player_id);
+                return;
+            },
         };
 
         let Some(current_player_node_id) = player.position_node_id else {
+            println!("Player with id {} has no position node id!", player_id);
             return;
         };
 
         let neighbouring_node_relationships = match game.map.get_neighbour_relationships_of_node_with_id(current_player_node_id) {
             Some(neighbours) => neighbours,
-            None => return,
+            None => {
+                println!("Player with id {} and position {} has no neighbours!", player_id, current_player_node_id);
+                return;
+            },
         };
 
         let Some(connected_game_id) = player.connected_game_id else {
+            println!("Player with id {} has no connected game id!", player_id);
             return;
         };
 
@@ -469,7 +486,7 @@ impl GameController {
                 related_bool: None
             };
             match self.rule_checker.is_input_valid(game, &input) {
-                Some(_) => (),
+                Some(e) => println!("Input was not valid because: {}", e),
                 None => legal_nodes.push(relationship.to),
             };
         }
