@@ -369,8 +369,12 @@ impl GameState {
 
                 if let Some(obj_card) = player.objective_card.clone() {
                     for modifier in self.district_modifiers.iter() {
-                        let player_has_objective_in_district = Self::player_has_objective_in_district(&self.map, player, modifier.district);
+                        if modifier.modifier == DistrictModifierType::Toll {
+                            continue; //TODO: Implement toll
+                        }
 
+                        let player_has_objective_in_district = Self::player_has_objective_in_district(&self.map, player, modifier.district);
+                        
                         let Some(restriction_vehicle_type) = modifier.vehicle_type else {
                             return Err("The vehicle type can not be determined, and bonus moves can not be applied".to_string());
                         };
