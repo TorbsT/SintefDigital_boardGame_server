@@ -422,13 +422,6 @@ impl GameController {
                 }
                 game.add_edge_restriction(&edge_mod)
             }
-            PlayerInputType::SetPlayerTrainBool => {
-                let Some(boolean) = input.related_bool else {
-                    return Err("There was no bool to set the train bool with!".to_string());
-                };
-                game.set_player_train_bool(input.player_id, boolean);
-                Ok(())
-            },
             PlayerInputType::SetPlayerBusBool => {
                 let Some(boolean) = input.related_bool else {
                     return Err("There was no bool to set the bus bool with!".to_string());

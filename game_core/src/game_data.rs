@@ -58,7 +58,6 @@ pub enum PlayerInputType {
     AssignSituationCard,
     LeaveGame,
     ModifyEdgeRestrictions,
-    SetPlayerTrainBool,
     SetPlayerBusBool,
 }
 
@@ -131,7 +130,6 @@ pub struct Player {
     pub position_node_id: Option<NodeID>,
     pub remaining_moves: MovesRemaining,
     pub objective_card: Option<PlayerObjectiveCard>,
-    pub is_train: bool,
     pub is_bus: bool,
 }
 
@@ -243,15 +241,6 @@ impl GameState {
         }
     }
 
-    pub fn set_player_train_bool(&mut self, player_id: PlayerID, boolean: bool) {
-        for player in self.players.iter_mut() {
-            if player.unique_id != player_id {
-                continue;
-            }
-            player.is_train = boolean;
-        }
-    }
-
     pub fn set_player_bus_bool(&mut self, player_id: PlayerID, boolean: bool) {
         for player in self.players.iter_mut() {
             if player.unique_id != player_id {
@@ -311,6 +300,11 @@ impl GameState {
                 return Err("The player is not at any node!".to_string());
             };
 
+            let current_node = match self.map.get_node_by_id(current_node_id) {
+                Ok(n) => n,
+                Err(e) => return Err(e),
+            };
+
             let to_node = match self.map.get_node_by_id(to_node_id) {
                 Ok(n) => n,
                 Err(e) => return Err(e),
@@ -327,16 +321,13 @@ impl GameState {
                 return Err(format!("The road from id {} to id {} has blocked traffic going in that direciton", current_node_id, to_node_id));
             }
 
-            if player.is_train {
-                // TODO: This check should be done in the rule checker!
-                if to_node.is_connected_to_rail {
-                    if neighbour_relationship.is_connected_through_rail {
-                        Self::move_player_to_node(player, to_node_id, 1);
-                        return Ok(());
-                    }
-                    return Err(format!("The node you are trying to go to (with id {}) is not a neighbouring train station and you can therefore not move to it as a train!", to_node_id));
+            // TODO: This check should be done in the rule checker!
+            if to_node.is_connected_to_rail && current_node.is_connected_to_rail {
+                if neighbour_relationship.is_connected_through_rail {
+                    Self::move_player_to_node(player, to_node_id, 1);
+                    return Ok(());
                 }
-                return Err(format!("The node you are trying to go to (with id {}) is not connected to a rail and can therefore not be moved to as a train!", to_node_id));
+                return Err(format!("The node you are trying to go to (with id {}) is not a neighbouring train station and you can therefore not move to it as a train!", to_node_id));
             }
 
             if player.is_bus {
@@ -799,7 +790,6 @@ impl Neighbourhood {
 impl Player {
     #[must_use]
     pub const fn new(unique_id: PlayerID, name: String) -> Self {
-        let is_train = false;
         let is_bus = false;
         Self {
             connected_game_id: None,
@@ -809,13 +799,8 @@ impl Player {
             position_node_id: None,
             remaining_moves: 0,
             objective_card: None,
-            is_train,
             is_bus,
         }
-    }
-    
-    pub fn transform_to_train(&mut self) {
-        self.is_train = true;
     }
 
     pub fn transform_to_bus(&mut self) {
@@ -823,7 +808,6 @@ impl Player {
     }
 
     pub fn transform_to_car(&mut self) {
-        self.is_train = false;
         self.is_bus = false;
     }
 

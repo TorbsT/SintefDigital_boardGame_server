@@ -222,7 +222,6 @@ components:
         - AssignSituationCard
         - LeaveGame
         - ModifyEdgeRestrictions
-        - SetPlayerTrainBool
         - SetPlayerBusBool
     Neighbourhood:
       type: string
@@ -308,8 +307,6 @@ components:
           type: integer
         objective_card:
           $ref: "#/components/schemas/PlayerObjectiveCard"
-        is_train:
-          type: boolean
         is_bus:
           type: boolean
     Node:
