@@ -429,6 +429,9 @@ impl GameController {
                 game.set_player_bus_bool(input.player_id, boolean);
                 Ok(())
             },
+            PlayerInputType::GetLegalNodes => {
+                game.get_legal_nodes(input.player_id)
+            },
         }
     }
 
