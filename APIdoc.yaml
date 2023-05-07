@@ -200,6 +200,7 @@ components:
         - PlayerThree
         - PlayerFour
         - PlayerFive
+        - PlayerSix
         - Orchestrator
     Traffic:
       type: string
