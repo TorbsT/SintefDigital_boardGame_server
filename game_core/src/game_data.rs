@@ -403,9 +403,8 @@ impl GameState {
                     }
                 }
                 player.remaining_moves += bonus_moves;
-            } else {
-                player.remaining_moves -= neighbour_relationship.movement_cost;
             }
+            player.remaining_moves -= neighbour_relationship.movement_cost;
             player.position_node_id = Some(to_node_id);
             return Ok(());
         }
