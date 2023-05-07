@@ -602,7 +602,7 @@ impl GameState {
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
         match &self.situation_card {
             Some(card) => {
-                self.map.update_neighbourhood_cost(&card);
+                self.map.update_neighbourhood_cost(card);
                 match card.card_id {
                     0 => {
                         return Err("Error: Situation card with ID 0 does not exist".to_string());
