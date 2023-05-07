@@ -128,14 +128,11 @@ impl GameController {
         let mut game_clone = related_game.clone();
         match Self::apply_game_actions(&mut game_clone) {
             Ok(_) => {
-                match self.get_legal_nodes(&mut game_clone, player_input.player_id) {
-                    Ok(_) => Ok(game_clone.clone()),
-                    Err(e) => Err(e),
-                }
+                self.get_legal_nodes(&mut game_clone, player_input.player_id);
+                Ok(game_clone.clone())
             },
             Err(e) => Err(e),
         }
-        // Ok(related_game.clone())
     }
 
     pub fn get_amount_of_created_player_ids(&self) -> i32 {
@@ -437,26 +434,26 @@ impl GameController {
         }
     }
 
-    fn get_legal_nodes(&mut self, game: &mut GameState, player_id: PlayerID) -> Result<(), String> {
+    fn get_legal_nodes(&mut self, game: &mut GameState, player_id: PlayerID) {
 
         let mut legal_nodes: Vec<NodeID> = Vec::new();
 
         let player =  match game.get_player_with_unique_id(player_id) {
             Ok(player) => player,
-            Err(e) => return Err(e.to_string()),
+            Err(_) => return,
         };
 
         let Some(current_player_node_id) = player.position_node_id else {
-            return Err("The legal nodes could not be fetched as the player is not on a node".to_string());
+            return;
         };
 
         let neighbouring_node_relationships = match game.map.get_neighbour_relationships_of_node_with_id(current_player_node_id) {
             Some(neighbours) => neighbours,
-            None => return Err(format!("No neighbouring nodes could be found from node with id {}", current_player_node_id)),
+            None => return,
         };
 
         let Some(connected_game_id) = player.connected_game_id else {
-            return Err("The game ID could not be resolved for the player, and legal moves can not be checked".to_string());
+            return;
         };
 
         for relationship in neighbouring_node_relationships {
@@ -477,7 +474,6 @@ impl GameController {
             };
         }
         game.legal_nodes = legal_nodes;
-        Ok(())
     }
 
     fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
