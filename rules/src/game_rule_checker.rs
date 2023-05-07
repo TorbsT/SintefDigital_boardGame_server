@@ -358,9 +358,8 @@ fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_on
             return ValidationResponse::Valid;
         }
         ValidationResponse::Invalid(format!("The edge restriction {:?} already exists on the edge between node {} and node {}!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two)) 
-    } else {
-        ValidationResponse::Invalid(format!("The edge restriction {:?} does not exist on the edge between node {} and node {}!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two))
-    }
+    } 
+    ValidationResponse::Valid
 }
 
 fn can_modify_park_and_ride(game: &GameState, park_and_ride_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], neighbours_two: &[NeighbourRelationship]) -> ValidationResponse<String> {
