@@ -399,8 +399,12 @@ impl GameState {
 
                 if let Some(obj_card) = player.objective_card.clone() {
                     for modifier in self.district_modifiers.iter() {
-                        let player_has_objective_in_district = Self::player_has_objective_in_district(&self.map, player, modifier.district);
+                        if modifier.modifier == DistrictModifierType::Toll {
+                            continue; //TODO: Implement toll
+                        }
 
+                        let player_has_objective_in_district = Self::player_has_objective_in_district(&self.map, player, modifier.district);
+                        
                         let Some(restriction_vehicle_type) = modifier.vehicle_type else {
                             return Err("The vehicle type can not be determined, and bonus moves can not be applied".to_string());
                         };
@@ -628,7 +632,7 @@ impl GameState {
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
         match &self.situation_card {
             Some(card) => {
-                self.map.update_neighbourhood_cost(card.clone());
+                self.map.update_neighbourhood_cost(card);
                 match card.card_id {
                     0 => {
                         return Err("Error: Situation card with ID 0 does not exist".to_string());
@@ -749,7 +753,9 @@ impl GameState {
         }
 
         situation_card.costs = new_cost_tuples;
+        self.map.update_neighbourhood_cost(&situation_card);
         self.situation_card = Some(situation_card);
+
 
         Ok(())
     }
@@ -898,8 +904,8 @@ impl NodeMap {
         }
     }
 
-    pub fn update_neighbourhood_cost(&mut self, situation_card: SituationCard) {
-        for i in situation_card.costs {
+    pub fn update_neighbourhood_cost(&mut self, situation_card: &SituationCard) {
+        for i in &situation_card.costs {
             self.neighbourhood_cost
                 .insert(i.neighbourhood, i.traffic.get_movement_cost());
         }
