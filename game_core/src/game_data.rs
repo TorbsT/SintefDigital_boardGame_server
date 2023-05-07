@@ -602,7 +602,7 @@ impl GameState {
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
         match &self.situation_card {
             Some(card) => {
-                self.map.update_neighbourhood_cost(card.clone());
+                self.map.update_neighbourhood_cost(card);
                 match card.card_id {
                     0 => {
                         return Err("Error: Situation card with ID 0 does not exist".to_string());
@@ -723,7 +723,9 @@ impl GameState {
         }
 
         situation_card.costs = new_cost_tuples;
+        self.map.update_neighbourhood_cost(&situation_card);
         self.situation_card = Some(situation_card);
+
 
         Ok(())
     }
@@ -872,8 +874,8 @@ impl NodeMap {
         }
     }
 
-    pub fn update_neighbourhood_cost(&mut self, situation_card: SituationCard) {
-        for i in situation_card.costs {
+    pub fn update_neighbourhood_cost(&mut self, situation_card: &SituationCard) {
+        for i in &situation_card.costs {
             self.neighbourhood_cost
                 .insert(i.neighbourhood, i.traffic.get_movement_cost());
         }
