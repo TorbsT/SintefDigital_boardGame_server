@@ -60,7 +60,6 @@ pub enum PlayerInputType {
     LeaveGame,
     ModifyEdgeRestrictions,
     SetPlayerBusBool,
-    GetLegalNodes,
 }
 
 #[derive(Debug, Copy, Clone, Eq, Hash, PartialEq, Serialize, Deserialize)]
@@ -288,33 +287,6 @@ impl GameState {
             }
         });
         node_is_in_district
-    }
-
-    pub fn get_legal_nodes(&mut self, player_id: PlayerID) -> Result<(), String> {
-
-        let mut legal_nodes: Vec<NodeID> = Vec::new();
-
-        let player =  match self.get_player_with_unique_id(player_id) {
-            Ok(player) => player,
-            Err(e) => return Err(e.to_string()),
-        };
-
-        let Some(current_player_node_id) = player.position_node_id else {
-            return Err("The legal nodes could not be fetched as the player is not on a node".to_string());
-        };
-
-        let neighbouring_node_relationships = match self.map.get_neighbour_relationships_of_node_with_id(current_player_node_id) {
-            Some(neighbours) => neighbours,
-            None => return Err(format!("No neighbouring nodes could be found from node with id {}", current_player_node_id)),
-        };
-
-        for relationship in neighbouring_node_relationships {
-            if player.remaining_moves >= relationship.movement_cost {
-                legal_nodes.push(relationship.to);
-            }
-        }
-        self.legal_nodes = legal_nodes;
-        Ok(())
     }
 
     pub fn move_player_with_id(

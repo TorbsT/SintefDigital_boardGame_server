@@ -9,7 +9,7 @@ use logging::logger::{LogData, LogLevel, Logger};
 use crate::{
     game_data::{
         GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
-        SituationCardList,
+        SituationCardList, NodeID,
     },
     rule_checker::RuleChecker,
 };
@@ -112,7 +112,7 @@ impl GameController {
             return Err(format!("The input was not valid! Because: {error}"));
         }
 
-        match Self::handle_input(player_input, related_game) {
+        match Self::handle_input(player_input.clone(), related_game) {
             Ok(_) => (),
             Err(e) => {
                 if let Ok(mut logger) = self.logger.write() {
@@ -127,7 +127,12 @@ impl GameController {
         };
         let mut game_clone = related_game.clone();
         match Self::apply_game_actions(&mut game_clone) {
-            Ok(_) => Ok(game_clone.clone()),
+            Ok(_) => {
+                match self.get_legal_nodes(&mut game_clone, player_input.player_id) {
+                    Ok(_) => Ok(game_clone.clone()),
+                    Err(e) => Err(e),
+                }
+            },
             Err(e) => Err(e),
         }
         // Ok(related_game.clone())
@@ -429,10 +434,50 @@ impl GameController {
                 game.set_player_bus_bool(input.player_id, boolean);
                 Ok(())
             },
-            PlayerInputType::GetLegalNodes => {
-                game.get_legal_nodes(input.player_id)
-            },
         }
+    }
+
+    fn get_legal_nodes(&mut self, game: &mut GameState, player_id: PlayerID) -> Result<(), String> {
+
+        let mut legal_nodes: Vec<NodeID> = Vec::new();
+
+        let player =  match game.get_player_with_unique_id(player_id) {
+            Ok(player) => player,
+            Err(e) => return Err(e.to_string()),
+        };
+
+        let Some(current_player_node_id) = player.position_node_id else {
+            return Err("The legal nodes could not be fetched as the player is not on a node".to_string());
+        };
+
+        let neighbouring_node_relationships = match game.map.get_neighbour_relationships_of_node_with_id(current_player_node_id) {
+            Some(neighbours) => neighbours,
+            None => return Err(format!("No neighbouring nodes could be found from node with id {}", current_player_node_id)),
+        };
+
+        let Some(connected_game_id) = player.connected_game_id else {
+            return Err("The game ID could not be resolved for the player, and legal moves can not be checked".to_string());
+        };
+
+        for relationship in neighbouring_node_relationships {
+            let input = PlayerInput {
+                district_modifier: None, 
+                player_id: player.unique_id, 
+                game_id: connected_game_id, 
+                input_type: PlayerInputType::Movement, 
+                related_role: None, 
+                related_node_id: Some(relationship.to), 
+                situation_card_id: None, 
+                edge_modifier: None, 
+                related_bool: None
+            };
+            match self.rule_checker.is_input_valid(game, &input) {
+                Some(_) => (),
+                None => legal_nodes.push(relationship.to),
+            };
+        }
+        game.legal_nodes = legal_nodes;
+        Ok(())
     }
 
     fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
