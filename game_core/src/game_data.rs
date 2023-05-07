@@ -18,7 +18,7 @@ pub type SituationCardID = u8;
 pub type VehicleType = RestrictionType;
 
 //// =============== Constants ===============
-const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
+const MAX_PLAYER_COUNT: usize = 7; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
 pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
 pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
 pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
