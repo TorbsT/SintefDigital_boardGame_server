@@ -170,7 +170,7 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
         Err(e) => return ValidationResponse::Invalid(e),
     }
 
-    has_non_negative_amount_of_moves_left(game, player_input)
+    has_non_negative_amount_of_moves_left(&game_clone, player_input)
 }
 
 fn has_non_negative_amount_of_moves_left(
@@ -470,6 +470,12 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         {
             return ValidationResponse::Valid;
         }
+        return ValidationResponse::Invalid(
+            format!("The player cannot move here because the node (with id {}) is not a neighbouring node connected through the railway!", to_node_id),
+        );
+    }
+
+    if (!current_node.is_connected_to_rail || !to_node.is_connected_to_rail) && neighbours.iter().any(|neighbour| neighbour.is_connected_through_rail && neighbour.to == to_node_id) {
         return ValidationResponse::Invalid(
             format!("The player cannot move here because the node (with id {}) is not a neighbouring node connected through the railway!", to_node_id),
         );
