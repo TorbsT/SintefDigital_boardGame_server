@@ -34,7 +34,8 @@ pub enum InGameID {
     PlayerThree = 3,
     PlayerFour = 4,
     PlayerFive = 5,
-    Orchestrator = 6,
+    PlayerSix = 6,
+    Orchestrator = 7,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
@@ -433,9 +434,8 @@ impl GameState {
                     }
                 }
                 player.remaining_moves += bonus_moves;
-            } else {
-                player.remaining_moves -= neighbour_relationship.movement_cost;
             }
+            player.remaining_moves -= neighbour_relationship.movement_cost;
             player.position_node_id = Some(to_node_id);
             return Ok(());
         }
@@ -800,7 +800,8 @@ impl InGameID {
             Self::PlayerTwo => Self::PlayerThree,
             Self::PlayerThree => Self::PlayerFour,
             Self::PlayerFour => Self::PlayerFive,
-            Self::PlayerFive => Self::Orchestrator,
+            Self::PlayerFive => Self::PlayerSix,
+            Self::PlayerSix => Self::Orchestrator,
             Self::Orchestrator => Self::PlayerOne,
         }
     }
