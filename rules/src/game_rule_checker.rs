@@ -90,10 +90,6 @@ impl GameRuleChecker {
             related_inputs: vec![PlayerInputType::SetPlayerBusBool],
             rule_fn: Box::new(can_toggle_bus),
         };
-        let toggle_train = Rule {
-            related_inputs: vec![PlayerInputType::SetPlayerTrainBool],
-            rule_fn: Box::new(can_toggle_train),
-        };
         let next_to_node = Rule {
             related_inputs: vec![PlayerInputType::Movement],
             rule_fn: Box::new(next_node_is_neighbour),
@@ -117,7 +113,6 @@ impl GameRuleChecker {
             orchestrator_check,
             player_has_position,
             toggle_bus,
-            toggle_train,
             next_to_node,
             enough_moves,
             move_to_node,
@@ -450,7 +445,25 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         );
     }
 
-    if player.is_train {
+    let current_node = match game.map.get_node_by_id(player_pos) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " And can therefore not check whether the player can move here!",
+            )
+        }
+    };
+
+    let to_node = match game.map.get_node_by_id(to_node_id) {
+        Ok(n) => n,
+        Err(e) => {
+            return ValidationResponse::Invalid(
+                e + " And can therefore not check whether the player can move here!",
+            )
+        }
+    };
+
+    if current_node.is_connected_to_rail && to_node.is_connected_to_rail && !player.is_bus {
         if neighbours
             .iter()
             .any(|neighbour| neighbour.is_connected_through_rail && neighbour.to == to_node_id)
@@ -503,10 +516,6 @@ fn can_toggle_bus(game: &GameState, player_input: &PlayerInput) -> ValidationRes
     let Some(_) = player_input.related_bool else {
         return ValidationResponse::Invalid("Could not check if you can toggle bus because the related bool was not set. It's needed for so that we can know if you want to stop being a bus or change to a bus!".to_string());
     };
-    
-    if player.is_train {
-        return ValidationResponse::Invalid("You cannot toggle bus if you are a train!".to_string());
-    }
 
     let player_pos = get_player_position_id_or_return_invalid_response!(player);
     let node = match game.map.get_node_by_id(player_pos) {
@@ -527,33 +536,4 @@ fn can_toggle_bus(game: &GameState, player_input: &PlayerInput) -> ValidationRes
     ValidationResponse::Valid
 }
 
-fn can_toggle_train(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
-    let player = get_player_or_return_invalid_response!(game, player_input);
-    
-    let Some(_) = player_input.related_bool else {
-        return ValidationResponse::Invalid("Could not check if you can toggle train because the related bool was not set. It's needed for so that we can know if you want to stop being a train or change to a train!".to_string());
-    };
-    
-    if player.is_bus {
-        return ValidationResponse::Invalid("You cannot toggle train if you are a bus!".to_string());
-    }
-
-    let player_pos = get_player_position_id_or_return_invalid_response!(player);
-    let node = match game.map.get_node_by_id(player_pos) {
-        Ok(n) => n,
-        Err(e) => {
-            return ValidationResponse::Invalid(
-                e + " and can therefore not check wether the player can toggle train!",
-            )
-        }
-    };
-
-    if !node.is_connected_to_rail {
-        return ValidationResponse::Invalid(
-            "You cannot toggle train if you are not on a train station spot!".to_string(),
-        );
-    }
-
-    ValidationResponse::Valid
-}
 // TODO: Check if a player is on the destination node before letting them pressing next turn
