@@ -353,12 +353,16 @@ fn is_edge_modification_action_valid(
 }
 
 fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], node_two_id: NodeID) -> ValidationResponse<String> {
-    if neighbours_one.iter().any(|relationship| relationship.to == node_two_id && relationship.restriction == Some(edge_mod.edge_restriction)) {
-        if edge_mod.delete {
+    let can_modify_edge = neighbours_one.iter().any(|relationship| relationship.to == node_two_id && relationship.restriction == Some(edge_mod.edge_restriction));
+    if edge_mod.delete {
+        if can_modify_edge {
             return ValidationResponse::Valid;
         }
-        return ValidationResponse::Invalid(format!("The edge restriction {:?} already exists on the edge between node {} and node {}!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two));
-    } 
+        return ValidationResponse::Invalid(format!("A edge restriction {:?} already exists on the edge between node {} and node {} or is not modifiable! Modifiable: {}", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two, can_modify_edge));
+    }
+    else if !can_modify_edge {
+        return ValidationResponse::Invalid(format!("The edge {:?} between node {} and node {} or is not modifiable!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two));
+    }
     ValidationResponse::Valid
 }
 
@@ -366,18 +370,18 @@ fn can_modify_park_and_ride(game: &GameState, park_and_ride_mod: &EdgeRestrictio
     if park_and_ride_mod.delete {
         if neighbours_one
             .iter()
-            .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
+            .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide) && neighbour.is_modifiable)
             .count()
             < 2
             || neighbours_two
                 .iter()
-                .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
+                .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide) && neighbour.is_modifiable)
                 .count()
                 < 2
         {
             return ValidationResponse::Valid;
         }
-        return ValidationResponse::Invalid("It's not possible to delete a park & ride edge that is connected to more than one other park & ride edge!".to_string());
+        return ValidationResponse::Invalid("It's not possible to delete a park & ride edge that is connected to more than one other park & ride edge or the park & ride egde is not modifiable!".to_string());
     }
 
     let node_one = match game.map.get_node_by_id(park_and_ride_mod.node_one) {

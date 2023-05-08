@@ -152,6 +152,7 @@ pub struct NeighbourRelationship {
     pub blocked: bool,
     pub is_connected_through_rail: bool,
     pub restriction: Option<RestrictionType>,
+    pub is_modifiable: bool,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -627,7 +628,7 @@ impl GameState {
                     2 => {},
                     3 => {},
                     4 => {
-                        match self.add_edge_restriction(&EdgeRestriction { node_one: 19, node_two: 20, edge_restriction: RestrictionType::OneWay, delete: false }) {
+                        match self.add_edge_restriction(&EdgeRestriction { node_one: 19, node_two: 20, edge_restriction: RestrictionType::OneWay, delete: false }, false) {
                             Ok(_) => (),
                             Err(e) => return Err(e),
                         }
@@ -752,8 +753,9 @@ impl GameState {
     pub fn add_edge_restriction(
         &mut self,
         edge_restriction: &EdgeRestriction,
+        modifiable: bool,
     ) -> Result<(), String> {
-        match self.map.set_restriction_on_edge(edge_restriction) {
+        match self.map.set_restriction_on_edge(edge_restriction, modifiable) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
@@ -881,6 +883,7 @@ impl NeighbourRelationship {
             blocked,
             is_connected_through_rail,
             restriction: None,
+            is_modifiable: true,
         }
     }
 }
@@ -1110,15 +1113,16 @@ impl NodeMap {
     pub fn set_restriction_on_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,
+        modifiable: bool,
     ) -> Result<(), String> {
-        match self.set_restriction_on_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction) {
+        match self.set_restriction_on_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction, modifiable) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
         if edge_restriction.edge_restriction == RestrictionType::OneWay {
             return Ok(()); // If the restriction is one way, we don't need to set the other way
         }
-        match self.set_restriction_on_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction) {
+        match self.set_restriction_on_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction, modifiable) {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
@@ -1136,6 +1140,7 @@ impl NodeMap {
         from_node_id: NodeID,
         to_node_id: NodeID,
         restriction_type: RestrictionType,
+        modifiable: bool,
     ) -> Result<(), String> {
         match self.are_nodes_neighbours(from_node_id, to_node_id) {
             Ok(n) => {
@@ -1154,6 +1159,7 @@ impl NodeMap {
                 continue;
             }
             neighbour.restriction = Some(restriction_type);
+            neighbour.is_modifiable = modifiable;
         }
         Ok(())
     }
@@ -1179,6 +1185,9 @@ impl NodeMap {
             if neighbour.to != to_node_id {
                 continue;
             }
+            if !neighbour.is_modifiable {
+                return Err(format!("The edge between node {} and node {} is not modifiable!", from_node_id, to_node_id));
+            }
             neighbour.restriction = None;
         }
         Ok(())
@@ -1196,7 +1205,7 @@ impl NodeMap {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
-                match self.set_restriction_on_edge(edge_restriction) {
+                match self.set_restriction_on_edge(edge_restriction, true) {
                     Ok(_) => (),
                     Err(e) => err_string = e,
                 }

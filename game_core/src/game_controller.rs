@@ -431,7 +431,7 @@ impl GameController {
                 if edge_mod.delete {
                     return game.remove_restriction_from_edge(&edge_mod);
                 }
-                game.add_edge_restriction(&edge_mod)
+                game.add_edge_restriction(&edge_mod, true)
             }
             PlayerInputType::SetPlayerBusBool => {
                 let Some(boolean) = input.related_bool else {
