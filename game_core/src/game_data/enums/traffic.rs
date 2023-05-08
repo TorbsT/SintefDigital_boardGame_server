@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::game_data::custom_types::MovementCost;
-#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Debug, PartialOrd, Ord)]
 pub enum Traffic {
     LevelOne,
     LevelTwo,

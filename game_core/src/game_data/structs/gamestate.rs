@@ -548,7 +548,11 @@ impl GameState {
                 new_cost_tuple.traffic = new_cost_tuple.traffic.increased();
             }
 
-            new_cost_tuples.push(new_cost_tuple);
+            if cost_tuple.traffic < new_cost_tuple.traffic {
+                new_cost_tuples.push(cost_tuple);
+            } else {
+                new_cost_tuples.push(new_cost_tuple);
+            }
         }
 
         situation_card.costs = new_cost_tuples;
