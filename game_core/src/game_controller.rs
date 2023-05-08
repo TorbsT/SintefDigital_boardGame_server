@@ -485,10 +485,7 @@ impl GameController {
                 edge_modifier: None, 
                 related_bool: None
             };
-            match self.rule_checker.is_input_valid(game, &input) {
-                Some(e) => println!("Input was not valid because: {}", e),
-                None => legal_nodes.push(relationship.to),
-            };
+            self.rule_checker.is_input_valid(game, &input).map_or_else(|| legal_nodes.push(relationship.to), |e| println!("Input was not valid because: {}", e));
         }
         game.legal_nodes = legal_nodes;
     }
