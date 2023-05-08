@@ -360,7 +360,7 @@ fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_on
         if relationship.is_modifiable {
             return ValidationResponse::Valid;
         }
-        return ValidationResponse::Invalid(format!("A edge restriction {:?} already exists on the edge between node {} and node {} or is not modifiable! Modifiable: {}", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two, can_modify_edge));
+        return ValidationResponse::Invalid(format!("A edge restriction {:?} already exists on the edge between node {} and node {} or is not modifiable! Modifiable: {}", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two, relationship.is_modifiable));
     }
     else if !relationship.is_modifiable {
         return ValidationResponse::Invalid(format!("The edge between node {} and node {} or is not modifiable!", edge_mod.node_one, edge_mod.node_two));
