@@ -257,6 +257,7 @@ impl GameState {
             Err(_) => return,
         };
         let player_with_turn_removed = self.current_players_turn == player.in_game_id;
+        let mut its_the_next_players_turn = false;
         self.players.retain(|player| player.unique_id != player_id);
         if self
             .players
@@ -264,11 +265,18 @@ impl GameState {
             .all(|player| player.in_game_id != InGameID::Orchestrator)
         {
             if let Some(mut p) = self.players.first_mut() {
+                if p.in_game_id == self.current_players_turn {
+                    its_the_next_players_turn = true;
+                }
                 p.in_game_id = InGameID::Orchestrator;
                 p.objective_card = None;
+                if self.current_players_turn == InGameID::Orchestrator {
+                    return;
+                }
             };
         }
-        if player_with_turn_removed {
+        if player_with_turn_removed || its_the_next_players_turn {
+            self.actions.clear();
             self.next_player_turn();
         }
     }
