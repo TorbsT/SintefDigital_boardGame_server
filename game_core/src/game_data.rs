@@ -561,6 +561,7 @@ impl GameState {
         let mut can_start_game = false;
         let mut errormessage =
             String::from("Unable to start game because lobby does not have an orchestrator");
+        self.reset_player_in_game_data();
         for player in self.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if self.players.len() < 2 {
@@ -601,7 +602,17 @@ impl GameState {
         }
     }
 
+    pub fn reset_player_in_game_data(&mut self) {
+        for player in self.players.iter_mut() {
+            player.position_node_id = None;
+            player.remaining_moves = Self::get_starting_player_movement_value();
+            player.objective_card = None;
+            player.is_bus = false;
+        }
+    }
+
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
+        self.map.reset();
         match &self.situation_card {
             Some(card) => {
                 self.map.update_neighbourhood_cost(card);
@@ -1010,6 +1021,10 @@ impl NodeMap {
         }
 
         map
+    }
+
+    pub fn reset(&mut self) {
+        let _ = mem::replace(self, Self::new_default());
     }
 
     pub fn toggle_rail_connection_on_node_with_id(&mut self, node_id: NodeID) -> Result<(), String> {
