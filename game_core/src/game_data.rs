@@ -18,7 +18,7 @@ pub type SituationCardID = u8;
 pub type VehicleType = RestrictionType;
 
 //// =============== Constants ===============
-const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
+const MAX_PLAYER_COUNT: usize = 7; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
 pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
 pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
 pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
@@ -80,6 +80,7 @@ pub enum RestrictionType {
     Hazard,
     Destination,
     Heavy,
+    OneWay, // This should never be chones as a district restriction
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -112,6 +113,7 @@ pub struct GameState {
     pub map: NodeMap,
     pub situation_card: Option<SituationCard>,
     pub edge_restrictions: Vec<EdgeRestriction>,
+    pub legal_nodes: Vec<NodeID>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -150,6 +152,7 @@ pub struct NeighbourRelationship {
     pub blocked: bool,
     pub is_connected_through_rail: bool,
     pub restriction: Option<RestrictionType>,
+    pub is_modifiable: bool,
 }
 
 #[derive(Clone, Default, Debug)]
@@ -239,6 +242,7 @@ impl GameState {
             map: NodeMap::new_default(),
             situation_card: None,
             edge_restrictions: Vec::new(),
+            legal_nodes: Vec::new(),
         }
     }
 
@@ -559,6 +563,13 @@ impl GameState {
         let mut can_start_game = false;
         let mut errormessage =
             String::from("Unable to start game because lobby does not have an orchestrator");
+        self.reset_player_in_game_data();
+        self.edge_restrictions.clear();
+        self.district_modifiers.clear();
+        match self.update_node_map_with_situation_card() {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        };
         for player in self.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if self.players.len() < 2 {
@@ -599,7 +610,17 @@ impl GameState {
         }
     }
 
+    pub fn reset_player_in_game_data(&mut self) {
+        for player in self.players.iter_mut() {
+            player.position_node_id = None;
+            player.remaining_moves = Self::get_starting_player_movement_value();
+            player.objective_card = None;
+            player.is_bus = false;
+        }
+    }
+
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
+        self.map.reset();
         match &self.situation_card {
             Some(card) => {
                 self.map.update_neighbourhood_cost(card);
@@ -611,7 +632,10 @@ impl GameState {
                     2 => {},
                     3 => {},
                     4 => {
-                        return self.map.make_edge_one_way(19, 20)
+                        match self.add_edge_restriction(&EdgeRestriction { node_one: 19, node_two: 20, edge_restriction: RestrictionType::OneWay, delete: false }, false) {
+                            Ok(_) => (),
+                            Err(e) => return Err(e),
+                        }
                     },
                     5 => {
                         match self.map.toggle_rail_connection_on_node_with_id(24) {
@@ -623,7 +647,7 @@ impl GameState {
                             Err(e) => return Err(e),
                         }
                     },
-                    6..=u8::MAX => {
+                    _ => {
                         return Err("Error: Situation card with IDs 6 and up do not exist".to_string());
                     },
                 }
@@ -733,8 +757,9 @@ impl GameState {
     pub fn add_edge_restriction(
         &mut self,
         edge_restriction: &EdgeRestriction,
+        modifiable: bool,
     ) -> Result<(), String> {
-        match self.map.set_restriction_on_edge(edge_restriction) {
+        match self.map.set_restriction_on_edge(edge_restriction, modifiable) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
@@ -862,6 +887,7 @@ impl NeighbourRelationship {
             blocked,
             is_connected_through_rail,
             restriction: None,
+            is_modifiable: true,
         }
     }
 }
@@ -1010,6 +1036,10 @@ impl NodeMap {
         map
     }
 
+    pub fn reset(&mut self) {
+        let _ = mem::replace(self, Self::new_default());
+    }
+
     pub fn toggle_rail_connection_on_node_with_id(&mut self, node_id: NodeID) -> Result<(), String> {
         let Some(node) = self.nodes.iter_mut().find(|node| node.id == node_id) else {
             return Err(format!("There is no node with the given ID: {}", node_id));
@@ -1051,10 +1081,11 @@ impl NodeMap {
         let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
-        Ok(cmp::max(
-            *neighbourhood_cost,
-            neighbour_relationship.movement_cost,
-        ))
+        Ok(*neighbourhood_cost)
+        // Ok(cmp::max(
+        //     *neighbourhood_cost,
+        //     neighbour_relationship.movement_cost,
+        // ))
     }
 
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
@@ -1083,41 +1114,19 @@ impl NodeMap {
         self.edges.entry(node2.id).or_default().push(relationship);
     }
 
-    fn make_edge_one_way(
-        &mut self, 
-        from_node_id: NodeID, 
-        to_node_id: NodeID
-    ) -> Result<(), String> {
-        match self.are_nodes_neighbours(from_node_id, to_node_id) {
-            Ok(n) => {
-                if !n {
-                    return Err(format!("The node {} is not neighbours with node {} and can therefore not be made a one way road!", from_node_id, to_node_id));
-                }
-            },
-            Err(e) => return Err(e),
-        };
-        let Some(neighbours) = self.edges.get_mut(&to_node_id) else {
-            return Err(format!("There is no node with id {} that has any neighbours! Therefore, it's not possible to make road one way!", from_node_id));
-        };
-
-        for mut neighbour in neighbours {
-            if neighbour.to != from_node_id {
-                continue;
-            }
-            neighbour.blocked = true;
-                    }
-
-        Ok(())
-    }
     pub fn set_restriction_on_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,
+        modifiable: bool,
     ) -> Result<(), String> {
-        match self.set_restriction_on_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction) {
+        match self.set_restriction_on_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction, modifiable) {
             Ok(_) => (),
             Err(e) => return Err(e),
         }
-        match self.set_restriction_on_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction) {
+        if edge_restriction.edge_restriction == RestrictionType::OneWay {
+            return Ok(()); // If the restriction is one way, we don't need to set the other way
+        }
+        match self.set_restriction_on_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction, modifiable) {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
@@ -1135,6 +1144,7 @@ impl NodeMap {
         from_node_id: NodeID,
         to_node_id: NodeID,
         restriction_type: RestrictionType,
+        modifiable: bool,
     ) -> Result<(), String> {
         match self.are_nodes_neighbours(from_node_id, to_node_id) {
             Ok(n) => {
@@ -1153,6 +1163,7 @@ impl NodeMap {
                 continue;
             }
             neighbour.restriction = Some(restriction_type);
+            neighbour.is_modifiable = modifiable;
         }
         Ok(())
     }
@@ -1178,6 +1189,9 @@ impl NodeMap {
             if neighbour.to != to_node_id {
                 continue;
             }
+            if !neighbour.is_modifiable {
+                return Err(format!("The edge between node {} and node {} is not modifiable!", from_node_id, to_node_id));
+            }
             neighbour.restriction = None;
         }
         Ok(())
@@ -1195,7 +1209,7 @@ impl NodeMap {
             Ok(_) => Ok(()),
             Err(e) => {
                 let mut err_string = String::new();
-                match self.set_restriction_on_edge(edge_restriction) {
+                match self.set_restriction_on_edge(edge_restriction, true) {
                     Ok(_) => (),
                     Err(e) => err_string = e,
                 }
@@ -1315,6 +1329,7 @@ impl RestrictionType {
             Self::Hazard => 1,
             Self::Destination => 1,
             Self::Heavy => 1,
+            Self::OneWay => 0, // This should never be chones as a district restriction
         }
     }
 }

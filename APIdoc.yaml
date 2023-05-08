@@ -242,6 +242,7 @@ components:
         - Hazard
         - Destination
         - Heavy
+        - OneWay
     DistrictModifierType:
       type: string
       enum:
@@ -278,6 +279,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/EdgeRestriction"
+        legal_nodes:
+          type: array
+          items:
+            type: integer
     EdgeRestriction:
       type: object
       properties:

@@ -353,12 +353,18 @@ fn is_edge_modification_action_valid(
 }
 
 fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], node_two_id: NodeID) -> ValidationResponse<String> {
-    if neighbours_one.iter().any(|relationship| relationship.to == node_two_id && relationship.restriction == Some(edge_mod.edge_restriction)) {
-        if edge_mod.delete {
+    let Some(relationship) = neighbours_one.iter().find(|relationship| relationship.to == node_two_id) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have a neighbour with id {}!", edge_mod.node_one, node_two_id));
+    };
+    if edge_mod.delete {
+        if relationship.is_modifiable {
             return ValidationResponse::Valid;
         }
-        return ValidationResponse::Invalid(format!("The edge restriction {:?} already exists on the edge between node {} and node {}!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two));
-    } 
+        return ValidationResponse::Invalid(format!("A edge restriction {:?} already exists on the edge between node {} and node {} or is not modifiable! Modifiable: {}", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two, relationship.is_modifiable));
+    }
+    else if !relationship.is_modifiable {
+        return ValidationResponse::Invalid(format!("The edge between node {} and node {} or is not modifiable!", edge_mod.node_one, edge_mod.node_two));
+    }
     ValidationResponse::Valid
 }
 
@@ -366,18 +372,18 @@ fn can_modify_park_and_ride(game: &GameState, park_and_ride_mod: &EdgeRestrictio
     if park_and_ride_mod.delete {
         if neighbours_one
             .iter()
-            .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
+            .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide) && neighbour.is_modifiable)
             .count()
             < 2
             || neighbours_two
                 .iter()
-                .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide))
+                .filter(|neighbour| neighbour.restriction == Some(RestrictionType::ParkAndRide) && neighbour.is_modifiable)
                 .count()
                 < 2
         {
             return ValidationResponse::Valid;
         }
-        return ValidationResponse::Invalid("It's not possible to delete a park & ride edge that is connected to more than one other park & ride edge!".to_string());
+        return ValidationResponse::Invalid("It's not possible to delete a park & ride edge that is connected to more than one other park & ride edge or the park & ride egde is not modifiable!".to_string());
     }
 
     let node_one = match game.map.get_node_by_id(park_and_ride_mod.node_one) {
@@ -484,14 +490,25 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         return ValidationResponse::Invalid(format!("The node {} is not a neighbour of the node {} and can therefore not be moved to!", to_node_id, player_pos));
     };
 
+    let Some(to_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(to_node_id) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", to_node_id));
+    };
+
+    if let Some(to_node_neighbour_to_self) = to_node_neighbours.iter().find(|neighbour| neighbour.to == player_pos) {
+        if to_node_neighbour_to_self.restriction == Some(RestrictionType::OneWay) {
+            return ValidationResponse::Invalid(format!("The player cannot move to node with id {} because it's a one way street in the opposite direction!", to_node_id));
+        }
+    };
+
     if let Some(restriction) = neighbour_relationship.restriction {
         let Some(objective_card) = &player.objective_card else {
             return ValidationResponse::Invalid(format!("The player {} does not have an objective card and we can therefore not check if the player has access to the given zone!", player.name));
         };
 
-        if !(objective_card.special_vehicle_types.contains(&restriction)
+        if (!(objective_card.special_vehicle_types.contains(&restriction)
         || (restriction == RestrictionType::Destination
-        && GameState::player_has_objective_in_district(&game.map, &player, neighbour_relationship.neighbourhood))) {
+        && GameState::player_has_objective_in_district(&game.map, &player, neighbour_relationship.neighbourhood)))) && restriction != RestrictionType::OneWay
+         {
             return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
         }
 
