@@ -450,26 +450,26 @@ impl GameController {
         let player =  match game.get_player_with_unique_id(player_id) {
             Ok(player) => player,
             Err(_) => {
-                println!("Player with id {} not found!", player_id);
+                //println!("Player with id {} not found!", player_id);
                 return;
             },
         };
 
         let Some(current_player_node_id) = player.position_node_id else {
-            println!("Player with id {} has no position node id!", player_id);
+            //println!("Player with id {} has no position node id!", player_id);
             return;
         };
 
         let neighbouring_node_relationships = match game.map.get_neighbour_relationships_of_node_with_id(current_player_node_id) {
             Some(neighbours) => neighbours,
             None => {
-                println!("Player with id {} and position {} has no neighbours!", player_id, current_player_node_id);
+                //println!("Player with id {} and position {} has no neighbours!", player_id, current_player_node_id);
                 return;
             },
         };
 
         let Some(connected_game_id) = player.connected_game_id else {
-            println!("Player with id {} has no connected game id!", player_id);
+            //println!("Player with id {} has no connected game id!", player_id);
             return;
         };
 
