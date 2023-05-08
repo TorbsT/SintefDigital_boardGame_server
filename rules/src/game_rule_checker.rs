@@ -567,5 +567,3 @@ fn can_toggle_bus(game: &GameState, player_input: &PlayerInput) -> ValidationRes
 
     ValidationResponse::Valid
 }
-
-// TODO: Check if a player is on the destination node before letting them pressing next turn
