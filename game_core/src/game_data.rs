@@ -1053,10 +1053,11 @@ impl NodeMap {
         let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
-        Ok(cmp::max(
-            *neighbourhood_cost,
-            neighbour_relationship.movement_cost,
-        ))
+        Ok(*neighbourhood_cost)
+        // Ok(cmp::max(
+        //     *neighbourhood_cost,
+        //     neighbour_relationship.movement_cost,
+        // ))
     }
 
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
