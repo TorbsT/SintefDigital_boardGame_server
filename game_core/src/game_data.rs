@@ -571,6 +571,12 @@ impl GameState {
             Err(e) => return Err(e),
         };
         for player in self.players.clone() {
+            if player.in_game_id == InGameID::Undecided {
+                errormessage = format!("Unable to start game because player with id {} and name {} is neither player, nor orchestrator (Undecided)", player.unique_id, player.name);
+                return Err(errormessage);
+            }
+        }
+        for player in self.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if self.players.len() < 2 {
                     errormessage =
