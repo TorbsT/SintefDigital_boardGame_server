@@ -563,6 +563,7 @@ impl GameState {
             String::from("Unable to start game because lobby does not have an orchestrator");
         self.reset_player_in_game_data();
         self.edge_restrictions.clear();
+        self.district_modifiers.clear();
         for player in self.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if self.players.len() < 2 {
