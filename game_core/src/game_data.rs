@@ -384,14 +384,14 @@ impl GameState {
                             return Err("The vehicle type can not be determined, and bonus moves can not be applied".to_string());
                         };
 
+                        if modifier.district != neighbour_relationship.neighbourhood {
+                            continue;
+                        }
+
                         if restriction_vehicle_type == RestrictionType::Destination && player_has_objective_in_district {
                             if let Some(movement_value) = modifier.associated_movement_value {
                                 bonus_moves = cmp::max(bonus_moves, movement_value);
                             }
-                        }
-
-                        if modifier.district != neighbour_relationship.neighbourhood {
-                            continue;
                         }
 
                         let Some(vehicle_type) = modifier.vehicle_type else {
