@@ -242,6 +242,7 @@ components:
         - Hazard
         - Destination
         - Heavy
+        - OneWay
     DistrictModifierType:
       type: string
       enum:

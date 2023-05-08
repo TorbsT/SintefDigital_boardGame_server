@@ -80,6 +80,7 @@ pub enum RestrictionType {
     Hazard,
     Destination,
     Heavy,
+    OneWay, // This should never be chones as a district restriction
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
@@ -626,7 +627,10 @@ impl GameState {
                     2 => {},
                     3 => {},
                     4 => {
-                        return self.map.make_edge_one_way(19, 20)
+                        match self.add_edge_restriction(&EdgeRestriction { node_one: 19, node_two: 20, edge_restriction: RestrictionType::OneWay, delete: false }) {
+                            Ok(_) => (),
+                            Err(e) => return Err(e),
+                        }
                     },
                     5 => {
                         match self.map.toggle_rail_connection_on_node_with_id(24) {
@@ -1103,32 +1107,6 @@ impl NodeMap {
         self.edges.entry(node2.id).or_default().push(relationship);
     }
 
-    fn make_edge_one_way(
-        &mut self, 
-        from_node_id: NodeID, 
-        to_node_id: NodeID
-    ) -> Result<(), String> {
-        match self.are_nodes_neighbours(from_node_id, to_node_id) {
-            Ok(n) => {
-                if !n {
-                    return Err(format!("The node {} is not neighbours with node {} and can therefore not be made a one way road!", from_node_id, to_node_id));
-                }
-            },
-            Err(e) => return Err(e),
-        };
-        let Some(neighbours) = self.edges.get_mut(&to_node_id) else {
-            return Err(format!("There is no node with id {} that has any neighbours! Therefore, it's not possible to make road one way!", from_node_id));
-        };
-
-        for mut neighbour in neighbours {
-            if neighbour.to != from_node_id {
-                continue;
-            }
-            neighbour.blocked = true;
-                    }
-
-        Ok(())
-    }
     pub fn set_restriction_on_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,
@@ -1136,6 +1114,9 @@ impl NodeMap {
         match self.set_restriction_on_relationship(edge_restriction.node_one, edge_restriction.node_two, edge_restriction.edge_restriction) {
             Ok(_) => (),
             Err(e) => return Err(e),
+        }
+        if edge_restriction.edge_restriction == RestrictionType::OneWay {
+            return Ok(()); // If the restriction is one way, we don't need to set the other way
         }
         match self.set_restriction_on_relationship(edge_restriction.node_two, edge_restriction.node_one, edge_restriction.edge_restriction) {
             Ok(_) => Ok(()),
@@ -1335,6 +1316,7 @@ impl RestrictionType {
             Self::Hazard => 1,
             Self::Destination => 1,
             Self::Heavy => 1,
+            Self::OneWay => 0, // This should never be chones as a district restriction
         }
     }
 }

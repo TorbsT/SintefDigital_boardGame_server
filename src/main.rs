@@ -97,7 +97,7 @@ async fn get_gamestate(id: web::Path<i32>, shared_data: web::Data<AppData>) -> i
     match game_result {
         Ok(game) => HttpResponse::Ok().json(json!(game)),
         Err(e) => HttpResponse::InternalServerError().body(format!("Could not return the game because: {}", e)),
-    }  
+    }
 }
 
 #[post("/games/join/{game_id}")]
