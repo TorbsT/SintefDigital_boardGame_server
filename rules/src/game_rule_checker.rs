@@ -484,14 +484,25 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         return ValidationResponse::Invalid(format!("The node {} is not a neighbour of the node {} and can therefore not be moved to!", to_node_id, player_pos));
     };
 
+    let Some(to_node_neighbours) = game.map.get_neighbour_relationships_of_node_with_id(to_node_id) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", to_node_id));
+    };
+
+    if let Some(to_node_neighbour_to_self) = to_node_neighbours.iter().find(|neighbour| neighbour.to == player_pos) {
+        if to_node_neighbour_to_self.restriction == Some(RestrictionType::OneWay) {
+            return ValidationResponse::Invalid(format!("The player cannot move to node with id {} because it's a one way street in the opposite direction!", to_node_id));
+        }
+    };
+
     if let Some(restriction) = neighbour_relationship.restriction {
         let Some(objective_card) = &player.objective_card else {
             return ValidationResponse::Invalid(format!("The player {} does not have an objective card and we can therefore not check if the player has access to the given zone!", player.name));
         };
 
-        if !(objective_card.special_vehicle_types.contains(&restriction)
+        if (!(objective_card.special_vehicle_types.contains(&restriction)
         || (restriction == RestrictionType::Destination
-        && GameState::player_has_objective_in_district(&game.map, &player, neighbour_relationship.neighbourhood))) {
+        && GameState::player_has_objective_in_district(&game.map, &player, neighbour_relationship.neighbourhood)))) && restriction != RestrictionType::OneWay
+         {
             return ValidationResponse::Invalid(format!("The player {} does not have access to the edge {:?} and can therefore not move to the node {}!", player.name, restriction, to_node_id));
         }
 
