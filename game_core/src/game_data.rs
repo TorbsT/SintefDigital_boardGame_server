@@ -566,6 +566,10 @@ impl GameState {
         self.reset_player_in_game_data();
         self.edge_restrictions.clear();
         self.district_modifiers.clear();
+        match self.update_node_map_with_situation_card() {
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        };
         for player in self.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if self.players.len() < 2 {
@@ -643,7 +647,7 @@ impl GameState {
                             Err(e) => return Err(e),
                         }
                     },
-                    6..=u8::MAX => {
+                    _ => {
                         return Err("Error: Situation card with IDs 6 and up do not exist".to_string());
                     },
                 }
