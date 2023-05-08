@@ -353,15 +353,17 @@ fn is_edge_modification_action_valid(
 }
 
 fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], node_two_id: NodeID) -> ValidationResponse<String> {
-    let can_modify_edge = neighbours_one.iter().any(|relationship| relationship.to == node_two_id && relationship.restriction == Some(edge_mod.edge_restriction));
+    let Some(relationship) = neighbours_one.iter().find(|relationship| relationship.to == node_two_id) else {
+        return ValidationResponse::Invalid(format!("The node {} does not have a neighbour with id {}!", edge_mod.node_one, node_two_id));
+    };
     if edge_mod.delete {
-        if can_modify_edge {
+        if relationship.is_modifiable {
             return ValidationResponse::Valid;
         }
         return ValidationResponse::Invalid(format!("A edge restriction {:?} already exists on the edge between node {} and node {} or is not modifiable! Modifiable: {}", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two, can_modify_edge));
     }
-    else if !can_modify_edge {
-        return ValidationResponse::Invalid(format!("The edge {:?} between node {} and node {} or is not modifiable!", edge_mod.edge_restriction, edge_mod.node_one, edge_mod.node_two));
+    else if !relationship.is_modifiable {
+        return ValidationResponse::Invalid(format!("The edge between node {} and node {} or is not modifiable!", edge_mod.node_one, edge_mod.node_two));
     }
     ValidationResponse::Valid
 }
