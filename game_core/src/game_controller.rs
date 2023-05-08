@@ -7,11 +7,7 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{
-        GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
-        SituationCardList, NodeID,
-    },
-    rule_checker::RuleChecker,
+    rule_checker::RuleChecker, game_data::{structs::{gamestate::GameState, new_game_info::NewGameInfo, player_input::PlayerInput, player::Player, situation_card_list::SituationCardList}, custom_types::{GameID, PlayerID, NodeID}, enums::player_input_type::PlayerInputType},
 };
 
 pub const PLAYER_TIMEOUT: Duration = Duration::from_secs(90);

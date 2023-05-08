@@ -1,9 +1,6 @@
 use std::ops::ControlFlow;
 
-use game_core::{
-    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, NeighbourRelationship, RestrictionType, NodeID},
-    rule_checker::{ErrorData, RuleChecker},
-};
+use game_core::{rule_checker::{RuleChecker, ErrorData}, game_data::{structs::{gamestate::GameState, player_input::PlayerInput, edge_restriction::EdgeRestriction, neighbour_relationship::NeighbourRelationship}, enums::{player_input_type::PlayerInputType, district_modifier_type::DistrictModifierType, restriction_type::RestrictionType, in_game_id::InGameID}, custom_types::NodeID}};
 
 type RuleFn = Box<dyn Fn(&GameState, &PlayerInput) -> ValidationResponse<String> + Send + Sync>;
 
@@ -346,7 +343,7 @@ fn is_edge_modification_action_valid(
     };
 
     match edge_mod.edge_restriction {
-        game_core::game_data::RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two),
+        RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two),
         _ => default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two),
     }
 

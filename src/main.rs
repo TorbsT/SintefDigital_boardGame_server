@@ -1,11 +1,9 @@
 #![allow(unknown_lints, clippy::significant_drop_tightening)]
 
 use actix_cors::Cors;
-use game_core::{
-    game_controller::GameController,
-    situation_card_list::situation_card_list_wrapper,
-    game_data::{NewGameInfo, Player, PlayerInput, GameState},
-};
+
+
+use game_core::{game_controller::GameController, game_data::structs::{new_game_info::NewGameInfo, player::Player, player_input::PlayerInput, gamestate::GameState}, situation_card_list::situation_card_list_wrapper};
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
@@ -227,7 +225,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
     use actix_web::{dev::Service, http::StatusCode, test, web::{self, Bytes}, App};
-    use game_core::game_data::{GameState, PlayerInputType, PlayerID, NodeMap, InGameID, SituationCard, Neighbourhood, Traffic, SituationCardList, CostTuple};
+    use game_core::game_data::{custom_types::PlayerID, structs::{node_map::NodeMap, situation_card::SituationCard, cost_tuple::CostTuple, situation_card_list::SituationCardList}, enums::{player_input_type::PlayerInputType, in_game_id::InGameID, district::District, traffic::Traffic}};
 
     fn create_game_controller() ->web::Data<AppData> {
         let logger = Arc::new(RwLock::new(ThresholdLogger::new(
@@ -556,12 +554,12 @@ mod tests {
             "Traffic is arbitrarily selected in this scenario".to_string(),
             "Test to see that situation cards work as intended".to_string(),
             vec![
-                CostTuple::new(Neighbourhood::IndustryPark, Traffic::LevelOne),
-                CostTuple::new(Neighbourhood::Port, Traffic::LevelTwo),
-                CostTuple::new(Neighbourhood::Suburbs, Traffic::LevelThree),
-                CostTuple::new(Neighbourhood::RingRoad, Traffic::LevelFour),
-                CostTuple::new(Neighbourhood::CityCentre, Traffic::LevelFive),
-                CostTuple::new(Neighbourhood::Airport, Traffic::LevelThree),
+                CostTuple::new(District::IndustryPark, Traffic::LevelOne),
+                CostTuple::new(District::Port, Traffic::LevelTwo),
+                CostTuple::new(District::Suburbs, Traffic::LevelThree),
+                CostTuple::new(District::RingRoad, Traffic::LevelFour),
+                CostTuple::new(District::CityCentre, Traffic::LevelFive),
+                CostTuple::new(District::Airport, Traffic::LevelThree),
             ],
             Vec::new()
         );

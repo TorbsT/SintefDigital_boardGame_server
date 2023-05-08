@@ -224,7 +224,7 @@ components:
         - LeaveGame
         - ModifyEdgeRestrictions
         - SetPlayerBusBool
-    Neighbourhood:
+    District:
       type: string
       enum:
         - IndustryPark
@@ -364,7 +364,7 @@ components:
       type: object
       properties:
         district:
-          $ref: "#/components/schemas/Neighbourhood"
+          $ref: "#/components/schemas/District"
         modifier:
           $ref: "#/components/schemas/DistrictModifierType"
         vehicle_type:
@@ -403,7 +403,7 @@ components:
       type: object
       properties:
         neighbourhood:
-          $ref: "#/components/schemas/Neighbourhood"
+          $ref: "#/components/schemas/District"
         traffic:
           $ref: "#/components/schemas/Traffic"
     SituationCard:
