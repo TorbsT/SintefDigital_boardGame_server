@@ -18,7 +18,7 @@ pub type SituationCardID = u8;
 pub type VehicleType = RestrictionType;
 
 //// =============== Constants ===============
-const MAX_PLAYER_COUNT: usize = 6; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
+const MAX_PLAYER_COUNT: usize = 7; // TODO: UPDATE THIS IF INGAMEID IS UPDATED
 pub const MAX_TOLL_MODIFIER_COUNT: usize = 1;
 pub const MAX_ACCESS_MODIFIER_COUNT: usize = 2;
 pub const MAX_PRIORITY_MODIFIER_COUNT: usize = 2;
@@ -113,6 +113,7 @@ pub struct GameState {
     pub map: NodeMap,
     pub situation_card: Option<SituationCard>,
     pub edge_restrictions: Vec<EdgeRestriction>,
+    pub legal_nodes: Vec<NodeID>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -240,6 +241,7 @@ impl GameState {
             map: NodeMap::new_default(),
             situation_card: None,
             edge_restrictions: Vec::new(),
+            legal_nodes: Vec::new(),
         }
     }
 
@@ -560,6 +562,9 @@ impl GameState {
         let mut can_start_game = false;
         let mut errormessage =
             String::from("Unable to start game because lobby does not have an orchestrator");
+        self.reset_player_in_game_data();
+        self.edge_restrictions.clear();
+        self.district_modifiers.clear();
         for player in self.players.clone() {
             if player.in_game_id == InGameID::Orchestrator {
                 if self.players.len() < 2 {
@@ -600,7 +605,17 @@ impl GameState {
         }
     }
 
+    pub fn reset_player_in_game_data(&mut self) {
+        for player in self.players.iter_mut() {
+            player.position_node_id = None;
+            player.remaining_moves = Self::get_starting_player_movement_value();
+            player.objective_card = None;
+            player.is_bus = false;
+        }
+    }
+
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
+        self.map.reset();
         match &self.situation_card {
             Some(card) => {
                 self.map.update_neighbourhood_cost(card);
@@ -1014,6 +1029,10 @@ impl NodeMap {
         map
     }
 
+    pub fn reset(&mut self) {
+        let _ = mem::replace(self, Self::new_default());
+    }
+
     pub fn toggle_rail_connection_on_node_with_id(&mut self, node_id: NodeID) -> Result<(), String> {
         let Some(node) = self.nodes.iter_mut().find(|node| node.id == node_id) else {
             return Err(format!("There is no node with the given ID: {}", node_id));
@@ -1055,10 +1074,11 @@ impl NodeMap {
         let Some(neighbourhood_cost) = self.neighbourhood_cost.get(&neighbour_relationship.neighbourhood) else {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
-        Ok(cmp::max(
-            *neighbourhood_cost,
-            neighbour_relationship.movement_cost,
-        ))
+        Ok(*neighbourhood_cost)
+        // Ok(cmp::max(
+        //     *neighbourhood_cost,
+        //     neighbour_relationship.movement_cost,
+        // ))
     }
 
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
