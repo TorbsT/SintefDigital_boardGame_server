@@ -251,7 +251,12 @@ impl GameState {
             )
     }
 
-    pub fn remove_player_with_id(&mut self, player_id: i32) {
+    pub fn remove_player_with_id(&mut self, player_id: PlayerID) {
+        let player = match self.get_player_with_unique_id(player_id) {
+            Ok(player) => player,
+            Err(_) => return,
+        };
+        let player_with_turn_removed = self.current_players_turn == player.in_game_id;
         self.players.retain(|player| player.unique_id != player_id);
         if self
             .players
@@ -262,6 +267,9 @@ impl GameState {
                 p.in_game_id = InGameID::Orchestrator;
                 p.objective_card = None;
             };
+        }
+        if player_with_turn_removed {
+            self.next_player_turn();
         }
     }
 
