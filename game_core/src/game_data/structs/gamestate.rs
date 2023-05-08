@@ -105,34 +105,17 @@ impl GameState {
                 return Err("The player is not at any node!".to_string());
             };
 
-            let current_node = match self.map.get_node_by_id(current_node_id) {
-                Ok(n) => n,
-                Err(e) => return Err(e),
-            };
-
-            let to_node = match self.map.get_node_by_id(to_node_id) {
-                Ok(n) => n,
-                Err(e) => return Err(e),
-            };
-
             let Some(neighbours) = self.map.get_neighbour_relationships_of_node_with_id(current_node_id) else {
                 return Err(format!("There was no node with id {}!", current_node_id));
             };
 
             let Some(neighbour_relationship) = neighbours.iter().find(|relationship| relationship.to == to_node_id) else {
                 return Err(format!("The node you are trying to go to is not a neighbour. From node with id {} to {}", current_node_id, to_node_id));
-            }; // TODO This check should be done in rule checker!
-            if neighbour_relationship.blocked {
-                return Err(format!("The road from id {} to id {} has blocked traffic going in that direciton", current_node_id, to_node_id));
-            }
+            };
 
-            // TODO: This check should be done in the rule checker!
-            if to_node.is_connected_to_rail && current_node.is_connected_to_rail {
-                if neighbour_relationship.is_connected_through_rail {
-                    Self::move_player_to_node(player, to_node_id, 1);
-                    return Ok(());
-                }
-                return Err(format!("The node you are trying to go to (with id {}) is not a neighbouring train station and you can therefore not move to it as a train!", to_node_id));
+            if neighbour_relationship.is_connected_through_rail {
+                Self::move_player_to_node(player, to_node_id, 1);
+                return Ok(());
             }
 
             if player.is_bus {
@@ -229,7 +212,7 @@ impl GameState {
         Self::node_is_in_district(player_pickup_node_neighbours, district) || Self::node_is_in_district(player_drop_off_node_neighbours, district)
     }
 
-    fn move_player_to_node(player: &mut Player, to_node_id: NodeID, cost: MovementCost) {
+    pub fn move_player_to_node(player: &mut Player, to_node_id: NodeID, cost: MovementCost) {
         player.remaining_moves -= cost;
         player.position_node_id = Some(to_node_id);
     }
