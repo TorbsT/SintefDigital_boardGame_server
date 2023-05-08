@@ -1,4 +1,6 @@
-use crate::game_data::{GameState, PlayerInput};
+use crate::game_data::structs::{player_input::PlayerInput, gamestate::GameState};
+
+
 
 pub type ErrorData = String;
 

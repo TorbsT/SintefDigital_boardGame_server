@@ -1,20 +1,14 @@
 use std::{
     any::type_name,
     sync::{Arc, RwLock},
-    time::{Duration, Instant},
+    time::{Instant},
 };
 
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    game_data::{
-        GameID, GameState, NewGameInfo, Player, PlayerID, PlayerInput, PlayerInputType,
-        SituationCardList, NodeID,
-    },
-    rule_checker::RuleChecker,
+    rule_checker::RuleChecker, game_data::{structs::{gamestate::GameState, new_game_info::NewGameInfo, player_input::PlayerInput, player::Player, situation_card_list::SituationCardList}, custom_types::{GameID, PlayerID, NodeID}, enums::player_input_type::PlayerInputType, constants::PLAYER_TIMEOUT},
 };
-
-pub const PLAYER_TIMEOUT: Duration = Duration::from_secs(90);
 
 pub struct GameController {
     pub games: Vec<GameState>,

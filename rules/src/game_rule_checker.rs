@@ -1,9 +1,11 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    game_data::{DistrictModifierType, GameState, InGameID, PlayerInput, PlayerInputType, EdgeRestriction, NeighbourRelationship, RestrictionType, NodeID},
-    rule_checker::{ErrorData, RuleChecker},
-};
+    rule_checker::{RuleChecker, ErrorData},
+    game_data::{structs::{
+        gamestate::GameState, player_input::PlayerInput, edge_restriction::EdgeRestriction, neighbour_relationship::NeighbourRelationship},
+        enums::{player_input_type::PlayerInputType, district_modifier_type::DistrictModifierType, restriction_type::RestrictionType, in_game_id::InGameID},
+        custom_types::NodeID}};
 
 type RuleFn = Box<dyn Fn(&GameState, &PlayerInput) -> ValidationResponse<String> + Send + Sync>;
 
@@ -346,7 +348,7 @@ fn is_edge_modification_action_valid(
     };
 
     match edge_mod.edge_restriction {
-        game_core::game_data::RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two),
+        RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two),
         _ => default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two),
     }
 
@@ -437,6 +439,14 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
     let Some(neighbours) = game.map.get_neighbour_relationships_of_node_with_id(player_pos) else {
         return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", player_pos));
     };
+
+    if neighbours
+    .iter()
+    .any(|neighbour| neighbour.blocked && neighbour.to == to_node_id) {
+        return ValidationResponse::Invalid(
+            format!("The player cannot move here because the node (with id {}) is blocked by a one-way segment", to_node_id),
+        );
+    }
 
     if player.is_bus {
         if neighbours
@@ -557,5 +567,3 @@ fn can_toggle_bus(game: &GameState, player_input: &PlayerInput) -> ValidationRes
 
     ValidationResponse::Valid
 }
-
-// TODO: Check if a player is on the destination node before letting them pressing next turn
