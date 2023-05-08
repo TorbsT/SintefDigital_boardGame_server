@@ -7,7 +7,7 @@ use std::{
 use logging::logger::{LogData, LogLevel, Logger};
 
 use crate::{
-    rule_checker::RuleChecker, game_data::{structs::{gamestate::GameState, new_game_info::NewGameInfo, player_input::PlayerInput, player::Player, situation_card_list::SituationCardList}, custom_types::{GameID, PlayerID, NodeID}, enums::player_input_type::PlayerInputType, constants::PLAYER_TIMEOUT},
+    rule_checker::RuleChecker, game_data::{structs::{gamestate::GameState, new_game_info::NewGameInfo, player_input::PlayerInput, player::Player, situation_card_list::SituationCardList}, custom_types::{GameID, PlayerID, NodeID}, enums::{player_input_type::PlayerInputType}, constants::PLAYER_TIMEOUT},
 };
 
 pub struct GameController {
