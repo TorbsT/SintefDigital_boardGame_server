@@ -10,3 +10,4 @@ pub type MovesRemaining = MovementCost;
 pub type Money = i32;
 pub type SituationCardID = u8;
 pub type VehicleType = RestrictionType;
+pub type ErrorData = String;

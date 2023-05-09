@@ -1,11 +1,11 @@
 use std::ops::ControlFlow;
 
 use game_core::{
-    rule_checker::{RuleChecker, ErrorData},
+    rule_checker::{RuleChecker},
     game_data::{structs::{
         gamestate::GameState, player_input::PlayerInput, edge_restriction::EdgeRestriction, neighbour_relationship::NeighbourRelationship},
         enums::{player_input_type::PlayerInputType, district_modifier_type::DistrictModifierType, restriction_type::RestrictionType, in_game_id::InGameID},
-        custom_types::NodeID}};
+        custom_types::{NodeID, ErrorData}}};
 
 type RuleFn = Box<dyn Fn(&GameState, &PlayerInput) -> ValidationResponse<String> + Send + Sync>;
 
