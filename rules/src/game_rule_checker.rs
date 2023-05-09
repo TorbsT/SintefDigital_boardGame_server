@@ -331,6 +331,7 @@ fn is_orchestrator(game: &GameState, player_input: &PlayerInput) -> ValidationRe
     ValidationResponse::Valid
 }
 
+#[allow(unused_variables)]
 fn is_edge_modification_action_valid(
     game: &GameState,
     player_input: &PlayerInput,
@@ -347,10 +348,12 @@ fn is_edge_modification_action_valid(
         return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have restrictions!", edge_mod.node_one));
     };
 
-    match edge_mod.edge_restriction {
-        RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two),
-        _ => default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two),
-    }
+    default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two)
+
+    // match edge_mod.edge_restriction {
+    //     RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two), // This can be turned on if you only want to add or delete edges next to park and ride start node or other park and ride edges, but you cannot delete edges if there are cycles.
+    //     _ => default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two),
+    // }
 
 }
 
@@ -370,6 +373,7 @@ fn default_can_modify_edge_restriction(edge_mod: &EdgeRestriction, neighbours_on
     ValidationResponse::Valid
 }
 
+#[allow(dead_code)]
 fn can_modify_park_and_ride(game: &GameState, park_and_ride_mod: &EdgeRestriction, neighbours_one: &[NeighbourRelationship], neighbours_two: &[NeighbourRelationship]) -> ValidationResponse<String> {
     if park_and_ride_mod.delete {
         if neighbours_one
