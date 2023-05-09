@@ -12,6 +12,7 @@ pub struct NodeMap {
 }
 
 impl NodeMap {
+    /// Creates a new empty NodeMap.
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
@@ -20,6 +21,7 @@ impl NodeMap {
         }
     }
 
+    /// Updates the district movement penalty of a district based on the situation card.
     pub fn update_neighbourhood_cost(&mut self, situation_card: &SituationCard) {
         for i in &situation_card.costs {
             self.neighbourhood_cost
@@ -27,6 +29,9 @@ impl NodeMap {
         }
     }
 
+    /// Creates a new NodeMap with the default nodes and edges defined in the (7th) workshop version.
+    /// 
+    /// [`Self::new_default`]: #method.new_default
     #[must_use]
     pub fn new_default() -> Self {
         let mut map = Self::new();
@@ -155,10 +160,12 @@ impl NodeMap {
         map
     }
 
+    /// Replaces self with the default map defined in [`Self::new_default`].
     pub fn reset(&mut self) {
         let _ = mem::replace(self, Self::new_default());
     }
 
+    /// Toggles the `is_connected_to_rail` bool of the node with the given ID.
     pub fn toggle_rail_connection_on_node_with_id(&mut self, node_id: NodeID) -> Result<(), String> {
         let Some(node) = self.nodes.iter_mut().find(|node| node.id == node_id) else {
             return Err(format!("There is no node with the given ID: {}", node_id));
@@ -167,6 +174,7 @@ impl NodeMap {
         Ok(())
     }
 
+    /// Gets the node with the given ID. Returns an error if there is no node with the given ID.
     pub fn get_node_by_id(&self, position_node_id: NodeID) -> Result<Node, String> {
         self.nodes
             .iter()
@@ -182,6 +190,7 @@ impl NodeMap {
             )
     }
 
+    /// Gets all the neighbouring edges of the node with the given ID. Returns none if there are no edges for the given node.
     pub fn get_neighbour_relationships_of_node_with_id(
         &self,
         node_id: NodeID,
@@ -189,10 +198,12 @@ impl NodeMap {
         self.edges.get(&node_id).cloned()
     }
 
+    /// Changes the district cost of the given neighbourhood.
     pub fn change_neighbourhood_cost(&mut self, neighbourhood: District, cost: MovementCost) {
         self.neighbourhood_cost.insert(neighbourhood, cost);
     }
 
+    /// Get's the cost of moving within the district (not counting moving along the edge itself). Returns an error if something went wrong.
     pub fn first_time_in_district_cost(
         &self,
         neighbour_relationship: NeighbourRelationship,
@@ -201,12 +212,9 @@ impl NodeMap {
             return Err(format!("There was no neighbourhood_cost in the nodemap for neighbourhood {:?}", neighbour_relationship.neighbourhood));
         };
         Ok(*neighbourhood_cost)
-        // Ok(cmp::max(
-        //     *neighbourhood_cost,
-        //     neighbour_relationship.movement_cost,
-        // ))
     }
 
+    /// Checks if the given node IDs are neighbours. Returns an error if something went wrong.
     pub fn are_nodes_neighbours(&self, node_1: NodeID, node_2: NodeID) -> Result<bool, String> {
         let Some(neighbours) = self.edges.get(&node_1) else {
             return Err(format!("There is no node with id {} that has any neighbour with id {}!", node_1, node_2));
@@ -233,6 +241,7 @@ impl NodeMap {
         self.edges.entry(node2.id).or_default().push(relationship);
     }
 
+    /// Adds the given edge restriction to the map and if the edge restriction is modifiable (removable), and returns an error if something went wrong.
     pub fn set_restriction_on_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,
@@ -316,6 +325,7 @@ impl NodeMap {
         Ok(())
     }
 
+    /// Tries to remove the given edge restriction from the map and returns an error if something went wrong.
     pub fn remove_restriction_from_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,

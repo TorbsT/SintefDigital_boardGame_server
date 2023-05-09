@@ -1,7 +1,5 @@
 use crate::game_data::{structs::{situation_card_list::SituationCardList, situation_card::SituationCard, cost_tuple::CostTuple, player_objective_card::PlayerObjectiveCard}, enums::{district::District, type_entities_to_transport::TypeEntitiesToTransport, traffic::Traffic}, custom_types::VehicleType};
 
-
-
 pub fn situation_card_list_wrapper() -> SituationCardList {
     SituationCardList::new(situation_card_list())
 }

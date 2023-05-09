@@ -16,6 +16,7 @@ pub struct PlayerObjectiveCard {
 }
 
 impl PlayerObjectiveCard {
+    /// Creates a new PlayerObjectiveCard and adds the Heavy vehicle type if the amount of entities to transport is greater than or equal to the HEAVY_VEHICLE_INCLUSIVE_THRESHOLD.
     pub fn new(
         name: String,
         start_node_id: NodeID,

@@ -9,7 +9,6 @@ rust-version = "1.68.2"
 [workspace]
 members = [
     "game_core",
-    "helpers",
     "logging",
     "rules",
 ]

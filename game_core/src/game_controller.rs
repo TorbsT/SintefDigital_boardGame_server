@@ -10,9 +10,10 @@ use crate::{
     rule_checker::RuleChecker, game_data::{structs::{gamestate::GameState, new_game_info::NewGameInfo, player_input::PlayerInput, player::Player, situation_card_list::SituationCardList}, custom_types::{GameID, PlayerID, NodeID}, enums::{player_input_type::PlayerInputType}, constants::PLAYER_TIMEOUT},
 };
 
+/// The GameController struct is the game manager and is what should be used to control all of the games on the server. It has all the neccessary functions to create and handle games.
 pub struct GameController {
     pub games: Vec<GameState>,
-    pub unique_ids: Vec<(i32, Instant)>,
+    pub unique_ids: Vec<(PlayerID, Instant)>,
     pub logger: Arc<RwLock<dyn Logger + Send + Sync>>,
     pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
@@ -26,6 +27,7 @@ macro_rules! log {
 }
 
 impl GameController {
+    /// Creates a new game and assigns the host to the game.
     pub fn new(
         logger: Arc<RwLock<dyn Logger + Send + Sync>>,
         rule_checker: Box<dyn RuleChecker + Send + Sync>,
@@ -38,12 +40,14 @@ impl GameController {
         }
     }
 
+    /// Gets all the created games on the server.
     pub fn get_created_games(&mut self) -> Vec<GameState> {
         self.remove_empty_games();
         self.games.clone()
     }
 
-    pub fn generate_player_id(&mut self) -> Result<i32, &str> {
+    /// Generates a new unique id that a player can use and returns it, but also puts it in the list of unique ids that the controller has.
+    pub fn generate_player_id(&mut self) -> Result<PlayerID, &str> {
         log!(self.logger, LogLevel::Debug, "Generating new player ID");
         let new_id = match self.generate_unused_unique_id() {
             Some(i) => i,
@@ -60,6 +64,7 @@ impl GameController {
         Ok(new_id)
     }
 
+    /// Creates a new game based and assigns the host (the one who requested to create a game) to the game.
     pub fn create_new_game(&mut self, new_lobby: NewGameInfo) -> Result<GameState, String> {
         let new_game = match self.create_new_game_and_assign_host(new_lobby) {
             Ok(game) => game,
@@ -73,6 +78,7 @@ impl GameController {
         Ok(new_game)
     }
 
+    /// Handles the player input and returns the new game state if the player input was valid.
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
         log!(self.logger, LogLevel::Debug, format!("Handling player input: {:?}", player_input).as_str());
         self.remove_empty_games();
@@ -141,10 +147,12 @@ impl GameController {
         }
     }
 
+    /// Returns the amount of unique player ids that have been created.
     pub fn get_amount_of_created_player_ids(&self) -> i32 {
         self.unique_ids.len() as i32
     }
 
+    /// Returns all the games that have not started yet.
     pub fn get_all_lobbies(&self) -> Vec<GameState> {
         log!(self.logger, LogLevel::Debug, "Getting all lobbies!");
         let mut lobbies = Vec::new();
@@ -156,6 +164,7 @@ impl GameController {
         lobbies
     }
 
+    /// Removes/Disconnects the player with the given unique id from the game the player is connected to. This function will also remove all games that do not have any players in them.
     pub fn remove_player_from_game(&mut self, player_id: PlayerID) {
         log!(self.logger, LogLevel::Info, format!("Removing player with id: {}", player_id).as_str());
         self.games.iter_mut().for_each(|game| {
@@ -166,6 +175,7 @@ impl GameController {
         self.remove_empty_games();
     }
 
+    /// Adds the player to the game if there is room for the player and the player is not in another game. It will also return other errors if it cannot add the player to the game.
     pub fn join_game(&mut self, game_id: GameID, player: Player) -> Result<GameState, String> {
         log!(self.logger, LogLevel::Debug, format!("Player with id: {} is trying to join game with id: {}", player.unique_id, game_id).as_str());
         for game in self.games.iter() {
@@ -178,8 +188,8 @@ impl GameController {
         let related_game = match games_iter.find(|game| game.id == game_id) {
             Some(game) => game,
             None => {
-                log!(self.logger, LogLevel::Error, format!("Could not find the game the player with id: {} has done an input for!", player.unique_id).as_str());
-                return Err("Could not find the game the player has done an input for!".to_string())
+                log!(self.logger, LogLevel::Error, format!("Could not find the game the player with id: {} is trying to join!", player.unique_id).as_str());
+                return Err("Could not find the game the player is trying to join!".to_string())
             }
         };
         match related_game.assign_player_to_game(player.clone()) {
@@ -193,6 +203,7 @@ impl GameController {
         Ok(related_game.clone())
     }
 
+    /// Gets the game with the given id. If there was a problem with getting the game it will return a string with the error.
     pub fn get_game_by_id(&mut self, game_id: GameID) -> Result<GameState, String> {
         log!(self.logger, LogLevel::Debug, format!("Trying to get game with id: {}", game_id).as_str());
         let Some(game) = self.games.iter().find(|g| g.id == game_id) else {
@@ -220,6 +231,7 @@ impl GameController {
         }
     }
 
+    /// Tells the game controller that a unique id is used by a player. This will also remove all inactive players. This means that if a player has not checked in after some amount of time, defined in [`constants`](../game_data/constants/index.html) as `PLAYER_TIMEOUT`, they will be removed.
     pub fn update_check_in_and_remove_inactive(
         &mut self,
         player_id: PlayerID,
