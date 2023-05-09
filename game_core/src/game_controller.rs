@@ -501,7 +501,7 @@ impl GameController {
                 edge_modifier: None, 
                 related_bool: None
             };
-            self.rule_checker.is_input_valid(game, &input).map_or_else(|| legal_nodes.push(relationship.to), |e| println!("Input was not valid because: {}", e));
+            self.rule_checker.is_input_valid(game, &input).map_or_else(|| legal_nodes.push(relationship.to), |e| log!(self.logger, LogLevel::Debug, format!("Input was not valid because: {}", e).as_str()));
         }
         game.legal_nodes = legal_nodes;
         log!(self.logger, LogLevel::Debug, format!("Got legal nodes for player with id {}!", player_id).as_str());

@@ -290,9 +290,6 @@ impl GameState {
             .any(|p| p.in_game_id == next_player_turn)
         {
             next_player_turn = next_player_turn.next();
-            if next_player_turn == InGameID::Orchestrator {
-                self.is_lobby = true;
-            }
             if counter >= 1000 {
                 next_player_turn = InGameID::Orchestrator;
                 break;
@@ -301,6 +298,9 @@ impl GameState {
         }
         self.accessed_districts.clear();
         self.current_players_turn = next_player_turn;
+        if self.current_players_turn == InGameID::Orchestrator {
+            self.is_lobby = true;
+        }
     }
 
     pub const fn get_starting_player_movement_value() -> MovementValue {
