@@ -231,9 +231,7 @@ impl GameController {
         }
     }
 
-    /// Tells the game controller that a unique id is used by a player. This will also remove all inactive players. This means that if a player has not checked in after [`PLAYER_TIMEOUT`], they will be removed.
-    /// 
-    /// [`PLAYER_TIMEOUT`]: const.PLAYER_TIMEOUT.html
+    /// Tells the game controller that a unique id is used by a player. This will also remove all inactive players. This means that if a player has not checked in after some amount of time, defined in [`constants`](../game_data/constants/index.html) as `PLAYER_TIMEOUT`, they will be removed.
     pub fn update_check_in_and_remove_inactive(
         &mut self,
         player_id: PlayerID,

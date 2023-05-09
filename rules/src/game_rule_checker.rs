@@ -26,9 +26,7 @@ enum ValidationResponse<T> {
 }
 
 impl RuleChecker for GameRuleChecker {
-    /// Checks if the input is valid based on the rules defined by [`GameRuleChecker`].
-    /// 
-    /// [`GameRuleChecker`]: struct.GameRuleChecker.html
+    /// Checks if the input is valid based on the rules defined by this `GameRuleChecker`.
     fn is_input_valid(&self, game: &GameState, player_input: &PlayerInput) -> Option<ErrorData> {
         let mut error_str = "Invalid input!".to_string();
         let foreach_status = &self.rules.iter().try_for_each(|rule| {

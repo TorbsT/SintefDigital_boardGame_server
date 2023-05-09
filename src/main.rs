@@ -1,3 +1,17 @@
+//! This is the main file of the server. It contains the main function and the server endpoints.
+//! 
+//! This server uses the actix-web framework to handle requests. The server is configured to allow any origin, method and header. This is needed to allow the client (Unity) to connect to the server.
+//! The [`AppData`] struct contains the game controller that actually handles the game logic. The game controller is wrapped in a [`Arc`] and a [`Mutex`] to allow multiple threads to access it.
+//! 
+//! [`AppData`]: struct.AppData.html
+//! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
+//! [`Mutex`]: https://doc.rust-lang.org/std/sync/struct.Mutex.html
+//! 
+//! # Main libraries used
+//! - [`game_core`](../game_core/index.html)
+//! - [`logging`](../logging/index.html)
+//! - [`rules`](../rules/index.html)
+
 #![allow(unknown_lints, clippy::significant_drop_tightening)]
 
 use actix_cors::Cors;
@@ -8,8 +22,6 @@ use std::sync::{Arc, Mutex, RwLock};
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
-
-mod test;
 
 // ==================== Macros ====================
 

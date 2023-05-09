@@ -26,5 +26,5 @@ pub mod player;
 pub mod situation_card_list;
 /// The situation_card module contains the SituationCard struct which describes a situation card for the game, it also includes [`PlayerObjectiveCard`].
 /// 
-/// [`PlayerObjectiveCard`]: struct.PlayerObjectiveCard.html
+/// [`PlayerObjectiveCard`]: ./player_objective_card/struct.PlayerObjectiveCard.html
 pub mod situation_card;
