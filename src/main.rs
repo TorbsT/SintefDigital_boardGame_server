@@ -122,7 +122,7 @@ async fn handle_player_input(
             HttpResponse::Ok().json(json!(g))
         },
         Err(e) => {
-            HttpResponse::InternalServerError().body(format!("Failed to make move because {e}"))
+            HttpResponse::InternalServerError().body(format!("Failed to do action because: {e}"))
         }
     }
 }
