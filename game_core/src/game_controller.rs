@@ -206,7 +206,7 @@ impl GameController {
                     let current_players_turn = game_clone.current_players_turn;
                     let players = game_clone.players.clone();
                     let Some(player) = players.iter().find(|p| p.in_game_id == current_players_turn) else {
-                        log!(self.logger, LogLevel::Error, format!("Failed to apply the game actions to the clone of the game with id {} because there is no player that has the current in game turn {} and can therefore not return the wanted game!", game_id, current_players_turn).as_str());
+                        log!(self.logger, LogLevel::Error, format!("Failed to apply the game actions to the clone of the game with id {} because there is no player that has the current in game turn {:?} and can therefore not return the wanted game!", game_id, current_players_turn).as_str());
                         return Err(format!("There is no player that has the current in game turn {:?}!", current_players_turn));
                     };
                     self.get_legal_nodes(&mut game_clone, player.unique_id);
