@@ -1,4 +1,4 @@
-///! This module contains a logger trait and a threshold logger struct that implements the logger trait.
+///! This library contains a logger trait and a threshold logger struct that implements the logger trait.
 
 /// The logger module contains a logger trait and the enum/datastructures it uses.
 pub mod logger;

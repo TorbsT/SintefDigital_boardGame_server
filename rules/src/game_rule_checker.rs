@@ -14,6 +14,8 @@ struct Rule {
     pub rule_fn: RuleFn,
 }
 
+/// This struct contains the implementation of the RuleChecker trait.
+/// It contains a list of rules that are checked when a player input is received.
 pub struct GameRuleChecker {
     rules: Vec<Rule>,
 }
@@ -24,6 +26,9 @@ enum ValidationResponse<T> {
 }
 
 impl RuleChecker for GameRuleChecker {
+    /// Checks if the input is valid based on the rules defined by [`GameRuleChecker`].
+    /// 
+    /// [`GameRuleChecker`]: struct.GameRuleChecker.html
     fn is_input_valid(&self, game: &GameState, player_input: &PlayerInput) -> Option<ErrorData> {
         let mut error_str = "Invalid input!".to_string();
         let foreach_status = &self.rules.iter().try_for_each(|rule| {
@@ -55,6 +60,7 @@ impl Default for GameRuleChecker {
 }
 
 impl GameRuleChecker {
+    /// Creates a new GameRuleChecker based on the rules defined by it.
     #[must_use]
     pub fn new() -> Self {
         Self {
@@ -146,6 +152,7 @@ macro_rules! get_player_position_id_or_return_invalid_response {
 }
 
 // ==================== RULES ====================
+// If you are unsure what the code does/checks, it can be smart to check what the errors that can be returned are.
 
 fn has_game_started(game: &GameState, _player_input: &PlayerInput) -> ValidationResponse<String> {
     match game.is_lobby {
@@ -175,6 +182,7 @@ fn has_enough_moves(game: &GameState, player_input: &PlayerInput) -> ValidationR
     has_non_negative_amount_of_moves_left(&game_clone, player_input)
 }
 
+// Checks if the player has non-negative amount of remaining moves in the provided GameState.
 fn has_non_negative_amount_of_moves_left(
     game: &GameState,
     player_input: &PlayerInput,
@@ -190,6 +198,7 @@ fn has_non_negative_amount_of_moves_left(
     ValidationResponse::Valid
 }
 
+// Checks if the player can enter the district the player wants to move to based on their objective card/vehicle type.
 fn can_enter_district(game: &GameState, player_input: &PlayerInput) -> ValidationResponse<String> {
     let player = get_player_or_return_invalid_response!(game, player_input);
 
@@ -331,6 +340,7 @@ fn is_orchestrator(game: &GameState, player_input: &PlayerInput) -> ValidationRe
     ValidationResponse::Valid
 }
 
+// Checks if the player is allowed to modify the edge they are trying to modify.
 #[allow(unused_variables)]
 fn is_edge_modification_action_valid(
     game: &GameState,
@@ -350,8 +360,8 @@ fn is_edge_modification_action_valid(
 
     default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two)
 
-    // match edge_mod.edge_restriction {
-    //     RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two), // This can be turned on if you only want to add or delete edges next to park and ride start node or other park and ride edges, but you cannot delete edges if there are cycles.
+    // match edge_mod.edge_restriction { // This can be turned on if you only want to add or delete edges next to park and ride start node or other park and ride edges, but you cannot delete edges if there are cycles.
+    //     RestrictionType::ParkAndRide => can_modify_park_and_ride(game, &edge_mod, &neighbours_one, &neighbours_two), 
     //     _ => default_can_modify_edge_restriction(&edge_mod, &neighbours_one, edge_mod.node_two),
     // }
 
