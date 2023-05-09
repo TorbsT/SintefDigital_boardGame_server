@@ -3,13 +3,15 @@ info:
   title: Board Game REST API
   version: 1.0.0
 servers:
+  - url: http://213.162.241.203:5000
+    description: Official server on the day of writing this API doc
   - url: http://localhost:5000
     description: Local server
 paths:
   /create/playerID:
     get:
       summary: Create a new player ID
-      description: Create a new player ID
+      description: Create a new player ID. A player ID is needed to be able to interact with the server when playing the game!
       responses:
         200:
           description: The new player ID
@@ -26,7 +28,7 @@ paths:
   /create/game:
     post:
       summary: Create a new game
-      description: Create a new game
+      description: Create a new game. Make sure that you fill out a player (you have to make one in order to make a game) struct with a name and the unique id you got from `/create/playerID`.
       requestBody:
         content:
           application/json:
@@ -34,7 +36,7 @@ paths:
               $ref: "#/components/schemas/NewGameInfo"
       responses:
         200:
-          description: The new game state
+          description: The new game state. Keep in mind that this game state will be in the lobby mode (is_lobby=true)).
           content:
             application/json:
               schema:
@@ -48,7 +50,7 @@ paths:
   /games/game/{id}:
     get:
       summary: Get the game state
-      description: Get the game state
+      description: Get the game state. This can be smart to call frequently to get the update of the game you are in.
       parameters:
         - in: path
           name: id
@@ -71,8 +73,26 @@ paths:
                 type: string
   /games/input:
     post:
-      summary: Handle player input
-      description: Handle player input
+      summary: Handle player input on the server
+      description: |
+        Handles a player input on the server. This is the API call you want to use to handle the input from the player.
+        
+        The player input struct has to be used correctly, and it can be a bit confusing how it works.
+        The essence of it is that the server looks at what the input type (see `PlayerInputType`) is and checks certain parts of the input for the values it needs to handle the chosen input type.
+        The server expects the following (optional/nullable) values to be set for each PlayerInputType (`PlayerInputType` -> `PlayerInputStructVariable` // Comment when necessary):
+        - `Movement` -> `related_node_id`
+        - `ChangeRole` -> `related_role_id`
+        - `All` -> // Should never be used, as it's a server side enum. It does nothing for the client.
+        - `NextTurn` -> // Nothing
+        - `UndoAction` -> // Nothing
+        - `ModifyDistrict` -> `district_modifier`
+        - `StartGame` -> // Nothing
+        - `AssignSituationCard` -> `situation_card_id`
+        - `LeaveGame` -> // Nothing
+        - `ModifyEdgeRestriction` -> `edge_modifier`
+        - `SetPlayerBusBool` -> `related_bool`
+        
+        Make sure that you know which values can be null and not by looking at the `PlayerInput` schema in the schema section. The server will also return an error if it's missing something in the `PlayerInput` struct.
       requestBody:
         content:
           application/json:
@@ -80,7 +100,7 @@ paths:
               $ref: "#/components/schemas/PlayerInput"
       responses:
         200:
-          description: The new game state
+          description: The new game state with the player input handled.
           content:
             application/json:
               schema:
@@ -94,7 +114,7 @@ paths:
   /games/lobbies:
     get:
       summary: Gets the lobbies
-      description: Gets the lobbies
+      description: Gets all the games that can be joined (defined by is_lobby=true)
       responses:
         200:
           description: All the open lobbies
@@ -111,7 +131,7 @@ paths:
   /games/join/{game_id}:
     post:
       summary: Join a game
-      description: Join a game
+      description: Join a game with the ID specified
       parameters:
         - in: path
           name: game_id
@@ -126,7 +146,7 @@ paths:
               $ref: "#/components/schemas/Player"
       responses:
         200:
-          description: The new game state
+          description: The game state of the game you joined
           content:
             application/json:
               schema:
@@ -148,30 +168,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SituationCardListStruct"
-  /games/leave/{player_id}:
-    delete:
-      summary: Removes the player from the game
-      description: Removes the player from the game
-      parameters:
-        - in: path
-          name: player_id
-          schema:
-            type: integer
-          required: true
-          description: The ID of the player
-      responses:
-        200:
-          description: The player was removed
-        500:
-          description: Internal server error, with error message
-          content:
-            text/plain:
-              schema:
-                type: string
   /check-in/{player_id}:
     get:
       summary: Let's the server know that the player_id is still used
-      description: Let's the server know that the player_id is still used
+      description: Let's the server know that the player_id is still used. This is important to use often, because if not, the player with the given id will be removed from any game used. It can be smart to do checkins every few seconds. At the time of writing this API doc, it takes 90 seconds before a player is removed due to inactivity/not checking in.
       parameters:
         - in: path
           name: player_id
@@ -183,7 +183,7 @@ paths:
         200:
           description: The player_id was checked in.
         500:
-          description: Internal server error, with error message
+          description: Internal server error, with error message. This will also happen if the player is removed from the server due to inactivity/not checking in in time.
           content:
             text/plain:
               schema:

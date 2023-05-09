@@ -19,7 +19,7 @@ use game_core::{game_controller::GameController, game_data::structs::{new_game_i
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
 
@@ -44,7 +44,6 @@ macro_rules! server_app_with_data {
                 .service(handle_player_input)
                 .service(get_lobbies)
                 .service(join_game)
-                .service(leave_game)
                 .service(get_situation_cards)
                 .service(player_check_in)
         }
@@ -204,15 +203,6 @@ async fn get_lobbies(shared_data: web::Data<AppData>) -> impl Responder {
 #[get("/resources/situationcards")]
 async fn get_situation_cards() -> impl Responder {
     HttpResponse::Ok().json(json!(situation_card_list_wrapper()))
-}
-
-#[delete("/games/leave/{player_id}")]
-async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
-    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
-    };
-    game_controller.remove_player_from_game(*player_id);
-    HttpResponse::Ok().body("")
 }
 
 #[get("/check-in/{player_id}")]
