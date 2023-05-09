@@ -13,7 +13,7 @@ use crate::{
 /// The GameController struct is the game manager and is what should be used to control all of the games on the server. It has all the neccessary functions to create and handle games.
 pub struct GameController {
     pub games: Vec<GameState>,
-    pub unique_ids: Vec<(i32, Instant)>,
+    pub unique_ids: Vec<(PlayerID, Instant)>,
     pub logger: Arc<RwLock<dyn Logger + Send + Sync>>,
     pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
