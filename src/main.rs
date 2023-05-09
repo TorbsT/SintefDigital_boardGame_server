@@ -23,6 +23,8 @@ use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
 
+const SERVER_IP: &str = "127.0.0.1";
+
 // ==================== Macros ====================
 
 macro_rules! server_app_with_data {
@@ -65,7 +67,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         server_app_with_data!(app_data)
     })
-    .bind(("127.0.0.1", 5000))?
+    .bind((SERVER_IP, 5000))?
     .run()
     .await
 }
