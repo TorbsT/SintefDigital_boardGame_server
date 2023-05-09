@@ -8,7 +8,7 @@ pub enum RestrictionType {
     Hazard,
     Destination,
     Heavy,
-    OneWay, // This should never be chones as a district restriction
+    OneWay, // This should never be chosen as a district restriction
 }
 
 impl RestrictionType {
@@ -20,7 +20,7 @@ impl RestrictionType {
             Self::Hazard => 1,
             Self::Destination => 1,
             Self::Heavy => 1,
-            Self::OneWay => 0, // This should never be chones as a district restriction
+            Self::OneWay => 0, // This should never be chosen as a district restriction
         }
     }
 }

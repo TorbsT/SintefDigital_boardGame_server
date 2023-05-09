@@ -1,16 +1,4 @@
+//! This library contains a implementation of the RuleChecker trait.
+
+/// This module contains the implementation of the RuleChecker trait.
 pub mod game_rule_checker;
-
-// pub fn add(left: usize, right: usize) -> usize {
-//     left + right
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn it_works() {
-//         let result = add(2, 2);
-//         assert_eq!(result, 4);
-//     }
-// }

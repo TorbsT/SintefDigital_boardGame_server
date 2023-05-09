@@ -4,6 +4,9 @@ use crate::game_data::{custom_types::{PlayerID, GameID, NodeID, SituationCardID}
 
 use super::{district_modifier::DistrictModifier, edge_restriction::EdgeRestriction};
 
+/// The PlayerInput struct describes the input of a player.
+/// 
+/// The option values should be set to something based on the input_type.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PlayerInput {
     pub player_id: PlayerID,

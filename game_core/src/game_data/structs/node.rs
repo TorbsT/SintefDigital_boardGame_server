@@ -21,6 +21,7 @@ impl Node {
         }
     }
 
+    /// Toggles the is_connected_to_rail field.
     pub fn toggle_rail_connection(&mut self) {
         self.is_connected_to_rail = !self.is_connected_to_rail;
     }

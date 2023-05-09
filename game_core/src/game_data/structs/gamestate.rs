@@ -7,6 +7,7 @@ use crate::{game_data::{custom_types::{GameID, NodeID, PlayerID, MovementCost, M
 
 use super::{player::Player, player_input::PlayerInput, situation_card::SituationCard, edge_restriction::EdgeRestriction, node_map::NodeMap, neighbour_relationship::NeighbourRelationship, district_modifier::DistrictModifier};
 
+/// The GameState struct describes the state of the game.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct GameState {
     pub id: GameID,
@@ -27,7 +28,7 @@ pub struct GameState {
 }
 
 impl GameState {
-    //TODO: Alle max checks, som f.eks. maks antall spillere i en lobby og maks antall restrictions burde flyttes til game_rule_checker
+    /// Creates a new empty GameState.
     #[must_use]
     pub fn new(name: String, game_id: GameID) -> Self {
         Self {
@@ -46,6 +47,7 @@ impl GameState {
         }
     }
 
+    /// Set's the player with the given unique_id to a bus. If there is no player in the game with the given unique_id, nothing happens.
     pub fn set_player_bus_bool(&mut self, player_id: PlayerID, boolean: bool) {
         for player in self.players.iter_mut() {
             if player.unique_id != player_id {
@@ -55,6 +57,7 @@ impl GameState {
         }
     }
 
+    /// Returns `true` if the player with the given unique_id is a participant in the game, else it will return `false`.
     pub fn contains_player_with_unique_id(&self, unique_id: PlayerID) -> bool {
         for player in &self.players {
             if player.unique_id == unique_id {
@@ -64,6 +67,7 @@ impl GameState {
         false
     }
 
+    /// Assigns a player to the game. It will return an error string representing an error if something went wrong while assigning the player to the game.
     pub fn assign_player_to_game(&mut self, mut player: Player) -> Result<(), String> {
         if self.players.len() >= MAX_PLAYER_COUNT {
             return Err("The game is full".to_string());
@@ -91,6 +95,7 @@ impl GameState {
         node_is_in_district
     }
 
+    /// Moves the player to the given node id. Will return an error string if something went wrong while trying to move the player.
     pub fn move_player_with_id(
         &mut self,
         player_id: PlayerID,
@@ -199,6 +204,7 @@ impl GameState {
         Err("There were no players in this game that match the player to update".to_string())
     }
 
+    /// Checks if the player has an objective card in the given district.
     pub fn player_has_objective_in_district(map: &NodeMap, player: &Player, district: District) -> bool {
         let Some(objectivecard) = &player.objective_card else {
             return false;
@@ -212,15 +218,13 @@ impl GameState {
         Self::node_is_in_district(player_pickup_node_neighbours, district) || Self::node_is_in_district(player_drop_off_node_neighbours, district)
     }
 
+    /// Moves the player to a node without checking if the move is valid.
     pub fn move_player_to_node(player: &mut Player, to_node_id: NodeID, cost: MovementCost) {
         player.remaining_moves -= cost;
         player.position_node_id = Some(to_node_id);
     }
 
-    pub fn update_game(&mut self, update: Self) {
-        self.players = update.players;
-    }
-
+    /// Tries to assign the player to the role specified in the change_info tuple. Will return an error if something went wrong.
     pub fn assign_player_role(&mut self, change_info: (PlayerID, InGameID)) -> Result<(), &str> {
         let (related_player_id, change_to_role) = change_info;
         if self
@@ -241,6 +245,7 @@ impl GameState {
         Err("There were no players in this game that match the player to update")
     }
 
+    /// Tries to get the player with the given unique id. Will return an error if something went wrong.
     pub fn get_player_with_unique_id(&self, player_id: PlayerID) -> Result<Player, &str> {
         self.players
             .iter()
@@ -251,6 +256,7 @@ impl GameState {
             )
     }
 
+    /// Removes the player with the given unique id from the game. If the player does not exist in the game, nothing will happen.
     pub fn remove_player_with_id(&mut self, player_id: PlayerID) {
         let player = match self.get_player_with_unique_id(player_id) {
             Ok(player) => player,
@@ -281,6 +287,7 @@ impl GameState {
         }
     }
 
+    /// Sets the current players turn to the next player in the list of players. This function will also set the is_lobby bool to true if the orchestrator is the next player. 
     pub fn next_player_turn(&mut self) {
         let mut next_player_turn = self.current_players_turn.next();
         let mut counter = 0;
@@ -290,9 +297,6 @@ impl GameState {
             .any(|p| p.in_game_id == next_player_turn)
         {
             next_player_turn = next_player_turn.next();
-            if next_player_turn == InGameID::Orchestrator {
-                self.is_lobby = true;
-            }
             if counter >= 1000 {
                 next_player_turn = InGameID::Orchestrator;
                 break;
@@ -301,12 +305,17 @@ impl GameState {
         }
         self.accessed_districts.clear();
         self.current_players_turn = next_player_turn;
+        if self.current_players_turn == InGameID::Orchestrator {
+            self.is_lobby = true;
+        }
     }
 
+    /// Returns the starting movement value for the players.
     pub const fn get_starting_player_movement_value() -> MovementValue {
         START_MOVEMENT_AMOUNT
     }
 
+    /// Assigns a random objective card to all the players in the game, based on the chosen situation card. Will return an error if something went wrong.
     pub fn assign_random_objective_card_to_players(&mut self) -> Result<(), String> {
         let Some(situation_card) = self.situation_card.clone() else {
             return Err("The game does not have a situation card and can therefore not assign objective cards to the players!".to_string());
@@ -330,10 +339,12 @@ impl GameState {
         Ok(())
     }
 
+    /// Updates the situation card of the game to the desired one.
     pub fn update_situation_card(&mut self, new_situation_card: SituationCard) {
         self.situation_card = Some(new_situation_card);
     }
 
+    /// Updates the objective card of the players in the game. Will return an error if something went wrong. This mainly concerns if the "package" of the player has been picked up and dropped off.
     pub fn update_objective_status(&mut self) -> Result<(), String> {
         for player in self.players.iter_mut() {
             if player.in_game_id == InGameID::Orchestrator {
@@ -358,6 +369,7 @@ impl GameState {
         Ok(())
     }
 
+    /// Starts the game, which means it goes from lobby to in game. Will return an error if something went wrong.
     pub fn start_game(&mut self) -> Result<(), String> {
         let mut can_start_game = false;
         let mut errormessage =
@@ -415,6 +427,7 @@ impl GameState {
         }
     }
 
+    /// Resets the players to default values defined in the function.
     pub fn reset_player_in_game_data(&mut self) {
         for player in self.players.iter_mut() {
             player.position_node_id = None;
@@ -424,6 +437,7 @@ impl GameState {
         }
     }
 
+    /// Updates the node map based on the situation card. Will return an error if something went wrong.
     pub fn update_node_map_with_situation_card(&mut self) -> Result<(), String> {
         self.map.reset();
         match &self.situation_card {
@@ -462,12 +476,14 @@ impl GameState {
         }
     }
 
+    /// Resets the players movement values to the starting value.
     pub fn reset_player_movement_values(&mut self) {
         self.players
             .iter_mut()
             .for_each(|player| player.remaining_moves = Self::get_starting_player_movement_value());
     }
 
+    /// Adds the wanted district modifier to the game. Will return an error if something went wrong
     pub fn add_district_modifier(
         &mut self,
         district_modifier: DistrictModifier,
@@ -495,6 +511,7 @@ impl GameState {
         self.update_traffic_levels()
     }
 
+    /// Removes the wanted district modifier from the game. Will return an error if something went wrong.
     pub fn remove_district_modifier(
         &mut self,
         district_modifier: DistrictModifier,
@@ -563,6 +580,7 @@ impl GameState {
         Ok(())
     }
 
+    /// Adds the wanted edge restriction to the game. The `modifiable` bool tells if the orchestrator can modify said edge restriciton. This is handy when a non-modifiable edge restriction is added to the map based on the situation card. Will return an error if something went wrong.
     pub fn add_edge_restriction(
         &mut self,
         edge_restriction: &EdgeRestriction,
@@ -577,6 +595,7 @@ impl GameState {
         Ok(())
     }
 
+    /// Removes the wanted edge restriction from the game. Will return an error if something went wrong.
     pub fn remove_restriction_from_edge(
         &mut self,
         edge_restriction: &EdgeRestriction,

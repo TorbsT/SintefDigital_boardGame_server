@@ -10,6 +10,7 @@ pub struct SituationCard {
     pub title: String,
     pub description: String,
     pub goal: String,
+    /// Contains the movement penalty cost for moving within a district for the first time.
     pub costs: Vec<CostTuple>,
     pub objective_cards: Vec<PlayerObjectiveCard>,
 }

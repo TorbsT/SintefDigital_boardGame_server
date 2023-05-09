@@ -1,3 +1,17 @@
+//! This is the main file of the server. It contains the main function and the server endpoints.
+//! 
+//! This server uses the actix-web framework to handle requests. The server is configured to allow any origin, method and header. This is needed to allow the client (Unity) to connect to the server.
+//! The [`AppData`] struct contains the game controller that actually handles the game logic. The game controller is wrapped in a [`Arc`] and a [`Mutex`] to allow multiple threads to access it.
+//! 
+//! [`AppData`]: struct.AppData.html
+//! [`Arc`]: https://doc.rust-lang.org/std/sync/struct.Arc.html
+//! [`Mutex`]: https://doc.rust-lang.org/std/sync/struct.Mutex.html
+//! 
+//! # Main libraries used
+//! - [`game_core`](../game_core/index.html)
+//! - [`logging`](../logging/index.html)
+//! - [`rules`](../rules/index.html)
+
 #![allow(unknown_lints, clippy::significant_drop_tightening)]
 
 use actix_cors::Cors;
@@ -5,11 +19,58 @@ use game_core::{game_controller::GameController, game_data::structs::{new_game_i
 use serde::{Serialize, Deserialize};
 use rules::game_rule_checker::GameRuleChecker;
 use std::sync::{Arc, Mutex, RwLock};
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, delete};
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use logging::{logger::LogLevel, threshold_logger::ThresholdLogger};
 use serde_json::json;
 
-mod test;
+// ==================== Macros ====================
+
+macro_rules! server_app_with_data {
+    ($x:expr) => {
+        {
+            let cors = Cors::default()
+                .allow_any_origin()
+                .allow_any_method()
+                .allow_any_header()
+                .supports_credentials();
+    
+            App::new()
+                .wrap(cors)
+                .app_data($x.clone())
+                .service(get_unique_id)
+                .service(create_new_game)
+                .service(get_amount_of_created_player_ids)
+                .service(get_gamestate)
+                .service(handle_player_input)
+                .service(get_lobbies)
+                .service(join_game)
+                .service(get_situation_cards)
+                .service(player_check_in)
+        }
+    }
+}
+
+// ==================== Main/Server ====================
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let logger = Arc::new(RwLock::new(ThresholdLogger::new(
+        LogLevel::Ignore,
+        LogLevel::Ignore,
+    )));
+    let app_data = web::Data::new(AppData {
+        game_controller: Mutex::new(GameController::new(logger.clone(), Box::new(GameRuleChecker::new()))),
+    });
+
+    HttpServer::new(move || {
+        server_app_with_data!(app_data)
+    })
+    .bind(("127.0.0.1", 5000))?
+    .run()
+    .await
+}
+
+// ==================== Some server used structs ====================
 
 #[derive(Serialize, Deserialize)]
 struct LobbyList {
@@ -19,6 +80,8 @@ struct LobbyList {
 struct AppData {
     game_controller: Mutex<GameController>,
 }
+
+// ==================== Server endpoints ====================
 
 #[get("/create/playerID")]
 async fn get_unique_id(shared_data: web::Data<AppData>) -> impl Responder {
@@ -142,15 +205,6 @@ async fn get_situation_cards() -> impl Responder {
     HttpResponse::Ok().json(json!(situation_card_list_wrapper()))
 }
 
-#[delete("/games/leave/{player_id}")]
-async fn leave_game(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
-    let Ok(mut game_controller) = shared_data.game_controller.lock() else { 
-        return HttpResponse::InternalServerError().body("Failed to get amount of player IDs because could not lock game controller".to_string());
-    };
-    game_controller.remove_player_from_game(*player_id);
-    HttpResponse::Ok().body("")
-}
-
 #[get("/check-in/{player_id}")]
 async fn player_check_in(player_id: web::Path<i32>, shared_data: web::Data<AppData>) -> impl Responder {
     let Ok(mut game_controller) = shared_data.game_controller.lock() else {
@@ -161,48 +215,4 @@ async fn player_check_in(player_id: web::Path<i32>, shared_data: web::Data<AppDa
         Ok(_) => HttpResponse::Ok().body(""),
         Err(e) => HttpResponse::InternalServerError().body(e),
     }
-}
-
-macro_rules! server_app_with_data {
-    ($x:expr) => {
-        {
-            let cors = Cors::default()
-                .allow_any_origin()
-                .allow_any_method()
-                .allow_any_header()
-                .supports_credentials();
-    
-            App::new()
-                .wrap(cors)
-                .app_data($x.clone())
-                .service(get_unique_id)
-                .service(create_new_game)
-                .service(get_amount_of_created_player_ids)
-                .service(get_gamestate)
-                .service(handle_player_input)
-                .service(get_lobbies)
-                .service(join_game)
-                .service(leave_game)
-                .service(get_situation_cards)
-                .service(player_check_in)
-        }
-    }
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    let logger = Arc::new(RwLock::new(ThresholdLogger::new(
-        LogLevel::Ignore,
-        LogLevel::Ignore,
-    )));
-    let app_data = web::Data::new(AppData {
-        game_controller: Mutex::new(GameController::new(logger.clone(), Box::new(GameRuleChecker::new()))),
-    });
-
-    HttpServer::new(move || {
-        server_app_with_data!(app_data)
-    })
-    .bind(("127.0.0.1", 5000))?
-    .run()
-    .await
 }

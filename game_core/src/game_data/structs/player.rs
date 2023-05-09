@@ -17,6 +17,7 @@ pub struct Player {
 }
 
 impl Player {
+    /// Creates a new Player with default values defined in the function.
     #[must_use]
     pub const fn new(unique_id: PlayerID, name: String) -> Self {
         let is_bus = false;
@@ -32,10 +33,12 @@ impl Player {
         }
     }
 
+    /// Sets the is_bus field to true.
     pub fn transform_to_bus(&mut self) {
         self.is_bus = true;
     }
 
+    /// Sets the is_bus field to false.
     pub fn transform_to_car(&mut self) {
         self.is_bus = false;
     }
