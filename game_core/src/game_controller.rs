@@ -164,17 +164,6 @@ impl GameController {
         lobbies
     }
 
-    /// Removes/Disconnects the player with the given unique id from the game the player is connected to. This function will also remove all games that do not have any players in them.
-    pub fn remove_player_from_game(&mut self, player_id: PlayerID) {
-        log!(self.logger, LogLevel::Info, format!("Removing player with id: {}", player_id).as_str());
-        self.games.iter_mut().for_each(|game| {
-            if game.players.iter().any(|p| p.unique_id == player_id) {
-                game.remove_player_with_id(player_id);
-            }
-        });
-        self.remove_empty_games();
-    }
-
     /// Adds the player to the game if there is room for the player and the player is not in another game. It will also return other errors if it cannot add the player to the game.
     pub fn join_game(&mut self, game_id: GameID, player: Player) -> Result<GameState, String> {
         log!(self.logger, LogLevel::Debug, format!("Player with id: {} is trying to join game with id: {}", player.unique_id, game_id).as_str());
