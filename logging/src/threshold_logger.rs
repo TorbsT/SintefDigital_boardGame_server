@@ -8,6 +8,7 @@ use std::fs::{metadata, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 
+/// The threshold logger will print and store data if the logging data is over a the set thresholds.
 pub struct ThresholdLogger {
     print_threshold: LogLevel,
     store_threshold: LogLevel,
@@ -15,6 +16,7 @@ pub struct ThresholdLogger {
 }
 
 impl ThresholdLogger {
+    /// Creates a new threshold logger with the given thresholds.
     #[must_use]
     pub const fn new(print_threshold: LogLevel, store_threshold: LogLevel) -> Self {
         Self {
@@ -114,6 +116,7 @@ impl ThresholdLogger {
 }
 
 impl Logger for ThresholdLogger {
+    /// Logs the given data.
     fn log(&mut self, data: LogData) {
         self.handle_log_print(data);
         self.handle_storing_of_log(data);

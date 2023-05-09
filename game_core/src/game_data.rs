@@ -1,4 +1,4 @@
-//! This module contains all the data structures (except for the GameController) for the games and some of the game logic.
+// This module contains all the data structures (except for the GameController) for the games and some of the game logic.
 
 /// The constants module contains all the constants used in this library.
 pub mod constants;

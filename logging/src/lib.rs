@@ -1,20 +1,10 @@
+///! This module contains a logger trait and a threshold logger struct that implements the logger trait.
+
+/// The logger module contains a logger trait and the enum/datastructures it uses.
 pub mod logger;
+/// The threshold_logger module contains a threshold logger struct that implements the logger trait.
 pub mod threshold_logger;
 
 const LOG_FOLDER_NAME: &str = "BoardGameServerLogs";
+/// The maximum size of a log file in bytes.
 const MAX_FILE_SIZE: u64 = 256 * 1024 * 1024;
-
-// pub fn add(left: usize, right: usize) -> usize {
-//     left + right
-// }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn it_works() {
-//         let result = add(2, 2);
-//         assert_eq!(result, 4);
-//     }
-// }
