@@ -444,14 +444,6 @@ fn can_move_to_node(game: &GameState, player_input: &PlayerInput) -> ValidationR
         return ValidationResponse::Invalid(format!("The node {} does not have neighbours and can therefore not have park and ride!", player_pos));
     };
 
-    if neighbours
-    .iter()
-    .any(|neighbour| neighbour.blocked && neighbour.to == to_node_id) {
-        return ValidationResponse::Invalid(
-            format!("The player cannot move here because the node (with id {}) is blocked by a one-way segment", to_node_id),
-        );
-    }
-
     if player.is_bus {
         if neighbours
             .iter()
