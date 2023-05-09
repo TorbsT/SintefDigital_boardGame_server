@@ -200,16 +200,8 @@ components:
         - PlayerThree
         - PlayerFour
         - PlayerFive
+        - PlayerSix
         - Orchestrator
-    Neighbourhood:
-      type: string
-      enum:
-        - IndustryPark
-        - Port
-        - Suburbs
-        - RingRoad
-        - CityCentre
-        - Airport
     Traffic:
       type: string
       enum:
@@ -228,22 +220,40 @@ components:
         - UndoAction
         - ModifyDistrict
         - StartGame
+        - AssignSituationCard
         - LeaveGame
-    VehicleType:
+        - ModifyEdgeRestrictions
+        - SetPlayerBusBool
+    District:
       type: string
       enum:
+        - IndustryPark
+        - Port
+        - Suburbs
+        - RingRoad
+        - CityCentre
+        - Airport
+    RestrictionType:
+      type: string
+      enum:
+        - ParkAndRide
         - Electric
-        - Buss
         - Emergency
-        - Industrial
-        - Normal
-        - Geolocation
+        - Hazard
+        - Destination
+        - Heavy
+        - OneWay
     DistrictModifierType:
       type: string
       enum:
         - Access
         - Priority
         - Toll
+    TypeEntitiesToTransport:
+      type: string
+      enum:
+        - People
+        - Packages
     GameState:
       type: object
       properties:
@@ -265,6 +275,25 @@ components:
             $ref: "#/components/schemas/DistrictModifier"
         situation_card:
           $ref: "#/components/schemas/SituationCard"
+        edge_restrictions:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdgeRestriction"
+        legal_nodes:
+          type: array
+          items:
+            type: integer
+    EdgeRestriction:
+      type: object
+      properties:
+        node_one:
+          type: integer
+        node_two:
+          type: integer
+        edge_restriction:
+          $ref: "#/components/schemas/RestrictionType"
+        delete:
+          type: boolean
     Player:
       type: object
       properties:
@@ -284,6 +313,8 @@ components:
           type: integer
         objective_card:
           $ref: "#/components/schemas/PlayerObjectiveCard"
+        is_bus:
+          type: boolean
     Node:
       type: object
       properties:
@@ -291,6 +322,10 @@ components:
           type: integer
         name:
           type: string
+        is_connected_to_rail:
+          type: boolean
+        is_parking_spot:
+          type: boolean
     NewGameInfo:
       type: object
       properties:
@@ -319,22 +354,21 @@ components:
         situation_card_id:
           type: integer
           nullable: true
-    LobbyList:
-      type: object
-      properties:
-        lobbies:
-          type: array
-          items:
-            $ref: "#/components/schemas/GameState"
+        edge_modifier:
+          $ref: "#/components/schemas/EdgeRestriction"
+          nullable: true
+        related_bool:
+          type: boolean
+          nullable: true
     DistrictModifier:
       type: object
       properties:
         district:
-          $ref: "#/components/schemas/Neighbourhood"
+          $ref: "#/components/schemas/District"
         modifier:
           $ref: "#/components/schemas/DistrictModifierType"
         vehicle_type:
-          $ref: "#/components/schemas/VehicleType"
+          $ref: "#/components/schemas/RestrictionType"
           nullable: true
         associated_movement_value:
           type: integer
@@ -342,6 +376,36 @@ components:
           type: integer
         delete:
           type: boolean
+    PlayerObjectiveCard:
+      type: object
+      properties:
+        name:
+          type: string
+        start_node_id:
+          type: integer
+        pick_up_node_id:
+          type: integer
+        drop_off_node_id:
+          type: integer
+        special_vehicle_types:
+          type: array
+          items:
+            $ref: "#/components/schemas/RestrictionType"
+        picked_package_up:
+          type: boolean
+        dropped_package_off:
+          type: boolean
+        type_of_entities_to_transport:
+          $ref: "#/components/schemas/TypeEntitiesToTransport"
+        amount_of_entities:
+          type: integer
+    CostTuple:
+      type: object
+      properties:
+        neighbourhood:
+          $ref: "#/components/schemas/District"
+        traffic:
+          $ref: "#/components/schemas/Traffic"
     SituationCard:
       type: object
       properties:
@@ -368,27 +432,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SituationCard"
-    CostTuple:
+    LobbyList:
       type: object
       properties:
-        neighbourhood:
-          $ref: "#/components/schemas/Neighbourhood"
-        traffic:
-          $ref: "#/components/schemas/Traffic"
-    PlayerObjectiveCard:
-      type: object
-      properties:
-        start_node_id:
-          type: integer
-        pick_up_node_id:
-          type: integer
-        drop_off_node_id:
-          type: integer
-        special_vehicle_types:
+        lobbies:
           type: array
           items:
-            $ref: "#/components/schemas/VehicleType"
-        picked_package_up:
-          type: boolean
-        dropped_package_off:
-          type: boolean
+            $ref: "#/components/schemas/GameState"
