@@ -42,6 +42,6 @@ impl Display for LogData<'_> {
 }
 
 pub trait Logger {
-    // Template for LogData ```LogData::new(LogLevel::Debug, "", type_name::<Self>()```
+    /// Logs the data the data.
     fn log(&mut self, data: LogData);
 }
