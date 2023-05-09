@@ -17,6 +17,14 @@ pub struct GameController {
     pub rule_checker: Box<dyn RuleChecker + Send + Sync>,
 }
 
+macro_rules! log {
+    ($logger:expr, $level:expr, $message:expr) => {
+        if let Ok(mut logger) = $logger.write() {
+            logger.log(LogData::new($level, $message, type_name::<Self>()));
+        }
+    };
+}
+
 impl GameController {
     pub fn new(
         logger: Arc<RwLock<dyn Logger + Send + Sync>>,
@@ -36,34 +44,37 @@ impl GameController {
     }
 
     pub fn generate_player_id(&mut self) -> Result<i32, &str> {
+        log!(self.logger, LogLevel::Debug, "Generating new player ID");
         let new_id = match self.generate_unused_unique_id() {
             Some(i) => i,
-            None => return Err("Failed to make new ID!"),
+            None => {
+                log!(self.logger, LogLevel::Error, "Failed to make new ID!");
+                return Err("Failed to make new ID!")
+            },
         };
 
         self.unique_ids.push((new_id, Instant::now()));
 
-        if let Ok(mut logger) = self.logger.write() {
-            logger.log(LogData::new(
-                LogLevel::Debug,
-                "Made unique ID",
-                type_name::<Self>(),
-            ));
-        }
+        log!(self.logger, LogLevel::Debug, format!("Made unique ID: {}", new_id).as_str());
+        
         Ok(new_id)
     }
 
     pub fn create_new_game(&mut self, new_lobby: NewGameInfo) -> Result<GameState, String> {
         let new_game = match self.create_new_game_and_assign_host(new_lobby) {
             Ok(game) => game,
-            Err(e) => return Err(e),
+            Err(e) => {
+                log!(self.logger, LogLevel::Error, format!("Failed to create new game because: {}", e).as_str());
+                return Err(e)
+            },
         };
-
+        log!(self.logger, LogLevel::Info, format!("Created new game with id: {}", new_game.id).as_str());
         self.games.push(new_game.clone());
         Ok(new_game)
     }
 
     pub fn handle_player_input(&mut self, player_input: PlayerInput) -> Result<GameState, String> {
+        log!(self.logger, LogLevel::Debug, format!("Handling player input: {:?}", player_input).as_str());
         self.remove_empty_games();
         self.remove_inactive_ids();
 
@@ -72,6 +83,7 @@ impl GameController {
             .iter()
             .any(|(id, _)| id == &player_input.player_id)
         {
+            log!(self.logger, LogLevel::Error, format!("There does not exist a player with the unique id {} and can therefore not handle the player input", player_input.player_id).as_str());
             return Err("There does not exist a player with the unique id".to_string());
         }
 
@@ -82,50 +94,50 @@ impl GameController {
         let related_game = match games_iter.find(|game| game.id == connected_game_id) {
             Some(game) => game,
             None => {
+                log!(self.logger, LogLevel::Error, "Could not find the game the player has done an input for!");
                 return Err("Could not find the game the player has done an input for!".to_string())
             }
         };
+        log!(self.logger, LogLevel::Debug, format!("Found game with id: {}", related_game.id).as_str());
 
         let mut related_game_clone = related_game.clone();
         match Self::apply_game_actions(&mut related_game_clone) {
             Ok(_) => (),
-            Err(e) => return Err(e),
+            Err(e) => {
+                log!(self.logger, LogLevel::Error, format!("Failed to apply previous game actions to the clone of the game with id: {} because: {}", related_game.id, e).as_str());
+                return Err(e);
+            },
         }
+        log!(self.logger, LogLevel::Debug, format!("Applied previous game actions to the clone of the game with id: {}", related_game.id).as_str());
 
         if let Some(error) = self
             .rule_checker
             .is_input_valid(&related_game_clone, &player_input)
         {
-            if let Ok(mut logger) = self.logger.write() {
-                logger.log(LogData::new(
-                    LogLevel::Info,
-                    error.as_str(),
-                    type_name::<Self>(),
-                ));
-            }
+            log!(self.logger, LogLevel::Error, format!("The input was not valid for the game with id: {} because: {}", related_game.id, error).as_str());
             return Err(format!("The input was not valid! Because: {error}"));
         }
+        log!(self.logger, LogLevel::Debug, format!("The input was valid for the game with id: {}", related_game.id).as_str());
 
         match Self::handle_input(player_input.clone(), related_game) {
             Ok(_) => (),
             Err(e) => {
-                if let Ok(mut logger) = self.logger.write() {
-                    logger.log(LogData {
-                        severity_level: LogLevel::Error,
-                        log_data: format!("Failed to handle player input because: {}", e).as_str(),
-                        caller_identifier: type_name::<Self>(),
-                    })
-                }
+                log!(self.logger, LogLevel::Error, format!("Failed to handle player input because: {}", e).as_str());
                 return Err(e);
             }
         };
+        log!(self.logger, LogLevel::Info, format!("Added/Handled the new input to the game with id: {}", related_game.id).as_str());
+
         let mut game_clone = related_game.clone();
         match Self::apply_game_actions(&mut game_clone) {
             Ok(_) => {
                 self.get_legal_nodes(&mut game_clone, player_input.player_id);
                 Ok(game_clone.clone())
             },
-            Err(e) => Err(e),
+            Err(e) => {
+                log!(self.logger, LogLevel::Error, format!("Failed to apply the game actions to the clone of the game with id: {} because: {}", related_game.id, e).as_str());
+                Err(e)
+            },
         }
     }
 
@@ -134,6 +146,7 @@ impl GameController {
     }
 
     pub fn get_all_lobbies(&self) -> Vec<GameState> {
+        log!(self.logger, LogLevel::Debug, "Getting all lobbies!");
         let mut lobbies = Vec::new();
         self.games.clone().into_iter().for_each(|game| {
             if game.is_lobby {
@@ -143,7 +156,8 @@ impl GameController {
         lobbies
     }
 
-    pub fn remove_player_from_game(&mut self, player_id: i32) {
+    pub fn remove_player_from_game(&mut self, player_id: PlayerID) {
+        log!(self.logger, LogLevel::Info, format!("Removing player with id: {}", player_id).as_str());
         self.games.iter_mut().for_each(|game| {
             if game.players.iter().any(|p| p.unique_id == player_id) {
                 game.remove_player_with_id(player_id);
@@ -152,9 +166,11 @@ impl GameController {
         self.remove_empty_games();
     }
 
-    pub fn join_game(&mut self, game_id: i32, player: Player) -> Result<GameState, String> {
+    pub fn join_game(&mut self, game_id: GameID, player: Player) -> Result<GameState, String> {
+        log!(self.logger, LogLevel::Debug, format!("Player with id: {} is trying to join game with id: {}", player.unique_id, game_id).as_str());
         for game in self.games.iter() {
             if game.contains_player_with_unique_id(player.unique_id) {
+                log!(self.logger, LogLevel::Error, format!("The player with id: {} is already connected to another game.", player.unique_id).as_str());
                 return Err("The player is already connected to another game.".to_string());
             }
         }
@@ -162,19 +178,25 @@ impl GameController {
         let related_game = match games_iter.find(|game| game.id == game_id) {
             Some(game) => game,
             None => {
+                log!(self.logger, LogLevel::Error, format!("Could not find the game the player with id: {} has done an input for!", player.unique_id).as_str());
                 return Err("Could not find the game the player has done an input for!".to_string())
             }
         };
-        match related_game.assign_player_to_game(player) {
+        match related_game.assign_player_to_game(player.clone()) {
             Ok(_) => (),
-            Err(e) => return Err(e),
+            Err(e) => {
+                log!(self.logger, LogLevel::Error, format!("Failed to assign player with id: {} to game with id: {} because: {}", player.unique_id, game_id, e).as_str());
+                return Err(e);
+            },
         };
-
+        log!(self.logger, LogLevel::Info, format!("Player with id: {} joined game with id: {}", player.unique_id, game_id).as_str());
         Ok(related_game.clone())
     }
 
     pub fn get_game_by_id(&mut self, game_id: GameID) -> Result<GameState, String> {
+        log!(self.logger, LogLevel::Debug, format!("Trying to get game with id: {}", game_id).as_str());
         let Some(game) = self.games.iter().find(|g| g.id == game_id) else {
+            log!(self.logger, LogLevel::Error, format!("There is no game with id {} and can therefore not return the wanted game!", game_id).as_str());
             return Err(format!("There is no game with id {}!", game_id));
         };
         let mut game_clone = game.clone();
@@ -184,12 +206,17 @@ impl GameController {
                     let current_players_turn = game_clone.current_players_turn;
                     let players = game_clone.players.clone();
                     let Some(player) = players.iter().find(|p| p.in_game_id == current_players_turn) else {
+                        log!(self.logger, LogLevel::Error, format!("Failed to apply the game actions to the clone of the game with id {} because there is no player that has the current in game turn {:?} and can therefore not return the wanted game!", game_id, current_players_turn).as_str());
                         return Err(format!("There is no player that has the current in game turn {:?}!", current_players_turn));
                     };
                     self.get_legal_nodes(&mut game_clone, player.unique_id);
                 }
+                log!(self.logger, LogLevel::Info, format!("Returning game with id: {}", game_id).as_str());
                 Ok(game_clone.clone())},
-            Err(e) => Err(e),
+            Err(e) => {
+                log!(self.logger, LogLevel::Error, format!("Failed to apply the game actions to the clone of the game with id: {} because: {} and can therefore not return the wanted game", game_id, e).as_str());
+                Err(e)
+            },
         }
     }
 
@@ -197,7 +224,9 @@ impl GameController {
         &mut self,
         player_id: PlayerID,
     ) -> Result<(), String> {
+        log!(self.logger, LogLevel::Debug, format!("Updating check in for player with id: {}", player_id).as_str());
         if self.unique_ids.iter().all(|(id, _)| id != &player_id) {
+            log!(self.logger, LogLevel::Error, format!("Player with id {} does not exist and can therefore not update the check in!", player_id).as_str());
             return Err(format!("Player with id {} does not exist!", player_id));
         }
         for mut id in self.unique_ids.iter_mut() {
@@ -207,14 +236,17 @@ impl GameController {
         }
         self.remove_inactive_ids();
         self.remove_empty_games();
+        log!(self.logger, LogLevel::Debug, format!("Updated check in for player with id {} and removed unused ids and empty games!", player_id).as_str());
         Ok(())
     }
 
     fn remove_empty_games(&mut self) {
+        log!(self.logger, LogLevel::Debug, "Removing empty games!");
         self.games.retain(|game| !game.players.is_empty());
     }
 
     fn remove_inactive_ids(&mut self) {
+        log!(self.logger, LogLevel::Debug, "Removing inactive ids!");
         self.unique_ids
             .retain(|(_, last_checkin)| last_checkin.elapsed() < PLAYER_TIMEOUT);
         let remaining_ids = self.unique_ids.clone();
@@ -222,6 +254,7 @@ impl GameController {
             game.players
                 .retain(|player| remaining_ids.iter().any(|(id, _)| &player.unique_id == id));
         });
+        log!(self.logger, LogLevel::Debug, "Removed inactive ids!");
     }
 
     fn change_role_player(input: PlayerInput, game: &mut GameState) -> Result<(), &str> {
@@ -231,17 +264,9 @@ impl GameController {
         game.assign_player_role((input.player_id, related_role))
     }
 
-    fn generate_unused_unique_id(&mut self) -> Option<i32> {
-        if let Ok(mut logger) = self.logger.write() {
-            logger.log(LogData::new(
-                LogLevel::Debug,
-                "Making new player ID",
-                type_name::<Self>(),
-            ));
-        }
-
-        let mut id: i32 = rand::random::<i32>();
-
+    fn generate_unused_unique_id(&mut self) -> Option<PlayerID> {
+        log!(self.logger, LogLevel::Debug, "Generating unused unique id!");
+        let mut id: PlayerID = rand::random::<PlayerID>();
         let mut found_unique_id = false;
         for _ in 0..100_000 {
             {
@@ -250,21 +275,14 @@ impl GameController {
                     break;
                 }
             }
-            id = rand::random::<i32>();
+            id = rand::random::<PlayerID>();
         }
 
         if !found_unique_id {
             return None;
         }
 
-        if let Ok(mut logger) = self.logger.write() {
-            logger.log(LogData::new(
-                LogLevel::Debug,
-                "Done making new player ID",
-                type_name::<Self>(),
-            ));
-        }
-
+        log!(self.logger, LogLevel::Debug, format!("Generated unused unique id: {}", id).as_str());
         Some(id)
     }
 
@@ -272,39 +290,47 @@ impl GameController {
         &mut self,
         new_lobby: NewGameInfo,
     ) -> Result<GameState, String> {
+        log!(self.logger, LogLevel::Debug, format!("Trying to create a new game with name {} and assigning host with id {}", new_lobby.name, new_lobby.host.unique_id).as_str());
         if self
             .unique_ids
             .iter()
             .all(|(id, _)| id != &new_lobby.host.unique_id)
         {
+            log!(self.logger, LogLevel::Error, "A player that has a unique ID that was not made by the server cannot create a lobby and can therefore not create a new game");
             return Err("A player that has a unique ID that was not made by the server cannot create a lobby.".to_string());
         }
 
         for game in self.games.iter() {
             if game.contains_player_with_unique_id(new_lobby.host.unique_id) {
+                log!(self.logger, LogLevel::Error, "A player that is already connected to a game in progress cannot create a new game");
                 return Err("A player that is already connected to a game in progress cannot create a new game.".to_string());
             }
         }
 
-        let mut new_game = GameState::new(new_lobby.name, self.generate_unused_game_id());
-        match new_game.assign_player_to_game(new_lobby.host) {
+        let mut new_game = GameState::new(new_lobby.name.clone(), self.generate_unused_game_id());
+        match new_game.assign_player_to_game(new_lobby.host.clone()) {
             Ok(_) => (),
-            Err(e) => return Err(format!("Failed to create new game because: {e}")),
+            Err(e) => {
+                log!(self.logger, LogLevel::Error, format!("Failed to assign host with id {} to the new game because: {}", new_lobby.host.unique_id, e).as_str());
+                return Err(format!("Failed to create new game because: {e}"));
+            },
         };
+        log!(self.logger, LogLevel::Info, format!("Created new game with name {} and assigned host with id {}", new_lobby.name, new_lobby.host.unique_id).as_str());
         Ok(new_game)
     }
 
-    fn generate_unused_game_id(&self) -> i32 {
+    fn generate_unused_game_id(&self) -> GameID {
+        log!(self.logger, LogLevel::Debug, "Trying to generate unused game id!");
         let mut existing_game_ids = Vec::new();
         for game in self.games.iter() {
             existing_game_ids.push(game.id);
         }
 
-        let mut id = rand::random::<i32>();
+        let mut id = rand::random::<GameID>();
         while existing_game_ids.contains(&id) {
-            id = rand::random::<i32>();
+            id = rand::random::<GameID>();
         }
-
+        log!(self.logger, LogLevel::Debug, format!("Generated unused game id: {}", id).as_str());
         id
     }
 
@@ -438,32 +464,28 @@ impl GameController {
     }
 
     fn get_legal_nodes(&mut self, game: &mut GameState, player_id: PlayerID) {
-
+        log!(self.logger, LogLevel::Debug, format!("Getting legal nodes for player with id {}!", player_id).as_str());
         let mut legal_nodes: Vec<NodeID> = Vec::new();
 
         let player =  match game.get_player_with_unique_id(player_id) {
             Ok(player) => player,
             Err(_) => {
-                //println!("Player with id {} not found!", player_id);
                 return;
             },
         };
 
         let Some(current_player_node_id) = player.position_node_id else {
-            //println!("Player with id {} has no position node id!", player_id);
             return;
         };
 
         let neighbouring_node_relationships = match game.map.get_neighbour_relationships_of_node_with_id(current_player_node_id) {
             Some(neighbours) => neighbours,
             None => {
-                //println!("Player with id {} and position {} has no neighbours!", player_id, current_player_node_id);
                 return;
             },
         };
 
         let Some(connected_game_id) = player.connected_game_id else {
-            //println!("Player with id {} has no connected game id!", player_id);
             return;
         };
 
@@ -482,6 +504,7 @@ impl GameController {
             self.rule_checker.is_input_valid(game, &input).map_or_else(|| legal_nodes.push(relationship.to), |e| println!("Input was not valid because: {}", e));
         }
         game.legal_nodes = legal_nodes;
+        log!(self.logger, LogLevel::Debug, format!("Got legal nodes for player with id {}!", player_id).as_str());
     }
 
     fn handle_movement(input: PlayerInput, game: &mut GameState) -> Result<(), String> {
