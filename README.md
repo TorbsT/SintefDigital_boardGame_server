@@ -58,19 +58,6 @@ It's possible to generate a interactible website using `cargo doc --open`, which
 5. Alternatively, you can build the server using `cargo build --release` and then run the binary in <path_to_server>/target/release/. If you are using Ubuntu, you might need run `chmod u+x <path_to_server_binary>`.
 6. On Ubuntu you can also start the server-binary as a service by following the steps [here](https://askubuntu.com/a/1314957).
 
-## Installing and running the client server
-
-1. Install apache2 on your computer and configure it. On Ubuntu it's recommended to follow [this](https://ubuntu.com/tutorials/install-and-configure-apache#1-overview) tutorial.
-2. Clone the repository at a desired location.
-3. Change the IP to the back-end-server's IP in the `RestAPI.cs` script.
-4. Build the project for WebGL. If you are unsure about how to do this, you can follow [this tutorial](https://learn.unity.com/tutorial/creating-and-publishing-webgl-builds#62a05565edbc2a1471677a7b) to step 5.
-5. Copy the WebGL build files into the directory you made in step 1 in the tutorial.
-6. Start/Restart the apache2 server. You should now be able to play the game in a browser when connecting to the IP of the apache2 server.
-
-## ⚠ Disclaimer about caching
-
-As the client server runs on WebGL, caching can become an issue as it runs an older snapshot of the game which does not have the latest features. In order to circumvent this problem, a reload requesting all files will be necessary after an update (typically achieved with the CTRL+R hotkey in your web browser).
-
 ## The REST-API documentation
 
 The API is documented using [Swagger](https://swagger.io). In order to read the documentation in its original format, you have to use the [Swagger Editor](https://swagger.io/tools/swagger-editor/). While on the website, just click on **Try Swagger Editor** and paste the contents of the [APIdoc.yaml](APIdoc.yaml) file.
