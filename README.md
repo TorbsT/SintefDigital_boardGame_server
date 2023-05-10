@@ -46,6 +46,9 @@ This crate contains all the rules for the server. Note that Rust does not have i
 
 This crate contains an interface for logging across the server and an implementation of the Logger trait, called ThresholdLogger which logs data based on if the data that is trying to be logged crosses a threshold defined when instantiating the ThresholdLogger.
 
+## Documentation
+It's possible to generate a interactible website using `cargo doc --open`, which should open the interactible documentation website in your default browser once the website is compiled. More information about how `cargo doc` works can be found [here](https://doc.rust-lang.org/cargo/commands/cargo-doc.html). The code documentation is ofcourse still available in the code itself.
+
 ## Installing and running the server
 
 1. Clone this repository at the desired location.
@@ -70,7 +73,7 @@ As the client server runs on WebGL, caching can become an issue as it runs an ol
 
 ## The REST-API documentation
 
-The API is documented using [Swagger](https://swagger.io). In order to read the documentation in its original format, you have to use the [Swagger Editor](https://swagger.io/tools/swagger-editor/). While on the website, just click on **Try Swagger Editor** and paste the contents of the [APIdoc.yaml](APIdoc.yaml) file
+The API is documented using [Swagger](https://swagger.io). In order to read the documentation in its original format, you have to use the [Swagger Editor](https://swagger.io/tools/swagger-editor/). While on the website, just click on **Try Swagger Editor** and paste the contents of the [APIdoc.yaml](APIdoc.yaml) file.
 
 ## Need help?
 
